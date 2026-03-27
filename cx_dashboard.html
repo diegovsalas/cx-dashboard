@@ -97,6 +97,10 @@ table.dt tr:hover{background:#f9fafb;}
 .pbtn:not(:disabled):hover{background:var(--blue-bg);color:var(--blue);}.pbtn:disabled{opacity:0.35;cursor:default;}
 
 /* Consulta */
+.tipo-tab{padding:10px 16px;background:var(--surface);border:1.5px solid var(--border);border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;color:var(--text2);transition:all 0.15s;white-space:nowrap;}
+.tipo-tab:hover{border-color:var(--blue);color:var(--blue);}
+.tipo-tab.active{background:var(--blue);color:#fff;border-color:var(--blue);box-shadow:0 2px 8px rgba(37,99,235,0.2);}
+
 .consulta-hero{text-align:center;padding:24px 0 16px;}
 .consulta-hero h2{font-size:22px;font-weight:800;margin-bottom:6px;}.consulta-hero p{font-size:13px;color:var(--text2);}
 .consulta-search-box{max-width:560px;margin:14px auto 20px;display:flex;gap:8px;}
@@ -143,6 +147,10 @@ table.dt tr:hover{background:#f9fafb;}
 
 <!-- Dashboard -->
 <div class="page-content" id="page-dashboard">
+<div style="text-align:center;margin-bottom:20px;">
+<h2 id="dashboard-title" style="font-size:24px;font-weight:800;margin-bottom:12px;">📊 Customer Experience Dashboard</h2>
+<div id="tipo-solicitud-tabs" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:16px;"></div>
+</div>
 <div class="filter-bar" id="filters-dash"></div>
 <div id="kpis"></div>
 <div class="quick-actions">
@@ -256,9 +264,9 @@ function buildFilters(){
 function buildFB(cid){
   var el=document.getElementById(cid);
   var defs=[
+    {key:'tipo_solicitud',label:'Tipo Solicitud',col:'tipo_de_solicitud'},
     {key:'anio',label:'Año',col:'_anio'},
     {key:'mes',label:'Mes',col:'mes'},
-    {key:'tipo_solicitud',label:'Tipo Solicitud',col:'tipo_de_solicitud'},
     {key:'tipo_servicio',label:'Servicio',col:'tipo_de_servicio'},
     {key:'tipo_incidencia',label:'Tipo Incidencia',col:'tipo_de_incidencia'},
     {key:'zona',label:'Zona',col:'zona'},
@@ -332,9 +340,47 @@ function applyFilters(){
   var n=Object.values(F).filter(function(v){return v;}).length;
   var info=n?n+' filtro'+(n>1?'s':'')+' · '+filtered.length.toLocaleString()+' de '+allData.length.toLocaleString()+' registros':''+allData.length.toLocaleString()+' registros';
   document.querySelectorAll('.filter-info').forEach(function(el){el.textContent=info;});
+  updateDashboardTitle();
+  renderTipoSolicitudTabs();
   renderKPIs();renderCharts();
   tblPg=0;conPg=0;
   if(curPage==='registros')renderRegistros();
+}
+
+// ─── Dashboard Title & Tabs ────────────
+function updateDashboardTitle(){
+  var title='📊 Customer Experience Dashboard';
+  if(F.tipo_solicitud){
+    if(F.tipo_solicitud.toLowerCase().includes('cancelac'))title='📋 Solicitudes de Cancelación';
+    else if(F.tipo_solicitud.toLowerCase().includes('queja'))title='😞 Quejas y Reclamaciones';
+    else if(F.tipo_solicitud.toLowerCase().includes('incidencia'))title='⚠️ Incidencias Generales';
+    else title='📊 '+F.tipo_solicitud;
+  }
+  document.getElementById('dashboard-title').textContent=title;
+}
+
+function renderTipoSolicitudTabs(){
+  var tipos=[],seen={};
+  allData.forEach(function(r){
+    var v=r.tipo_de_solicitud;
+    if(v!=null&&String(v).trim()!==''&&!seen[v]){seen[v]=true;tipos.push(v);}
+  });
+  tipos.sort();
+  var h='<button class="tipo-tab '+(F.tipo_solicitud===''?'active':'')+'\" onclick="setTipoSolicitud(null)">📊 Todos</button>';
+  tipos.forEach(function(t){
+    var ico='📊';
+    if(t.toLowerCase().includes('cancelac'))ico='📋';
+    else if(t.toLowerCase().includes('queja'))ico='😞';
+    else if(t.toLowerCase().includes('incidencia'))ico='⚠️';
+    h+='<button class="tipo-tab '+(F.tipo_solicitud===t?'active':'')+'\" onclick="setTipoSolicitud(\''+esc(t)+'\')\" title="'+esc(t)+'">'+ico+' '+esc(trn(t,18))+'</button>';
+  });
+  document.getElementById('tipo-solicitud-tabs').innerHTML=h;
+}
+
+function setTipoSolicitud(v){
+  F.tipo_solicitud=v||'';
+  document.querySelectorAll('select[data-fkey="tipo_solicitud"]').forEach(function(s){s.value=v||'';s.classList.toggle('active-select',v);});
+  applyFilters();
 }
 
 // ─── KPIs ──────────────────────────────
