@@ -141,7 +141,7 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 let allData=[],filtered=[],user=null,curPage='dashboard',chartInstances={},tblPg=0,conPg=0;
 const LIM=50;
 const PAL=['#2563eb','#059669','#d97706','#dc2626','#7c3aed','#ec4899','#0891b2','#65a30d','#ea580c','#6366f1','#14b8a6','#e11d48'];
-let F={mes:'',tipo_servicio:'',zona:'',status:'',tipo_incidencia:'',ejecutivo:''};
+let F={anio:'',mes:'',tipo_servicio:'',zona:'',status:'',tipo_incidencia:'',ejecutivo:''};
 
 async function doLogin(){
   const email=document.getElementById('in-email').value.trim(),pass=document.getElementById('in-pass').value;
@@ -171,7 +171,21 @@ async function loadData(){
     if(error)throw new Error(error.message);if(!data.length)break;
     allData.push(...data);if(data.length<1000)break;off+=1000;
   }
-  allData.forEach(r=>{try{var c=r.cliente_from_nombre_del_cliente;if(typeof c==='string'&&c.startsWith('[')){r.nombre_del_cliente_nuevo=JSON.parse(c)[0];}else if(Array.isArray(c)){r.nombre_del_cliente_nuevo=c[0];}else if(c){r.nombre_del_cliente_nuevo=String(c);}if(!r.nombre_del_cliente_nuevo&&r.titular_del_servicio)r.nombre_del_cliente_nuevo=r.titular_del_servicio;}catch(e){}});
+  allData.forEach(r=>{
+    try{var c=r.cliente_from_nombre_del_cliente;if(typeof c==='string'&&c.startsWith('[')){r.nombre_del_cliente_nuevo=JSON.parse(c)[0];}else if(Array.isArray(c)){r.nombre_del_cliente_nuevo=c[0];}else if(c){r.nombre_del_cliente_nuevo=String(c);}if(!r.nombre_del_cliente_nuevo&&r.titular_del_servicio)r.nombre_del_cliente_nuevo=r.titular_del_servicio;}catch(e){}
+    // Extraer año y mes de fecha_de_la_solicitud
+    if(r.fecha_de_la_solicitud){
+      var fd=String(r.fecha_de_la_solicitud);
+      r._anio=fd.slice(0,4);
+      // Intentar extraer mes del campo 'mes' o de la fecha
+      if(!r.mes||r.mes.trim()===''){
+        var md=parseInt(fd.slice(5,7));if(!isNaN(md)&&md>=1&&md<=12){
+          var mo=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+          r.mes=mo[md-1];
+        }
+      }
+    }
+  });
 }
 
 function goPage(p){
@@ -185,10 +199,24 @@ function buildFilters(){['filters-dash','filters-consulta','filters-reg'].forEac
 
 function buildFB(cid){
   const el=document.getElementById(cid);
-  const defs=[{key:'mes',label:'Mes',col:'mes'},{key:'tipo_servicio',label:'Servicio',col:'tipo_de_servicio'},{key:'zona',label:'Zona',col:'zona'},{key:'status',label:'Status',col:'status'},{key:'tipo_incidencia',label:'Tipo Incidencia',col:'tipo_de_incidencia'},{key:'ejecutivo',label:'Ejecutivo',col:'ejecutivo_asignado'}];
+  const defs=[{key:'anio',label:'Año',col:'_anio'},{key:'mes',label:'Mes',col:'mes'},{key:'tipo_servicio',label:'Servicio',col:'tipo_de_servicio'},{key:'zona',label:'Zona',col:'zona'},{key:'status',label:'Status',col:'status'},{key:'tipo_incidencia',label:'Tipo Incidencia',col:'tipo_de_incidencia'},{key:'ejecutivo',label:'Ejecutivo',col:'ejecutivo_asignado'}];
   let h='<span class="flabel" style="margin:0">Filtros:</span>';
   defs.forEach(d=>{
-    const vals=[...new Set(allData.map(r=>r[d.col]).filter(v=>v!=null&&String(v).trim()!==''))].sort();
+    let vals=[...new Set(allData.map(r=>r[d.col]).filter(v=>v!=null&&String(v).trim()!==''))];
+    // Para año, ordenar descendente (más recientes primero)
+    if(d.key==='anio'){
+      vals.sort((a,b)=>String(b).localeCompare(String(a)));
+    } else if(d.key==='mes'){
+      // Para mes, mantener orden natural
+      var mo=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+      vals.sort((a,b)=>{
+        var ia=mo.findIndex(m=>a.toLowerCase().includes(m.toLowerCase()));
+        var ib=mo.findIndex(m=>b.toLowerCase().includes(m.toLowerCase()));
+        if(ia>=0&&ib>=0)return ia-ib;return a.localeCompare(b);
+      });
+    } else {
+      vals.sort();
+    }
     h+='<select data-fkey="'+d.key+'" onchange="onF(this)"><option value="">'+d.label+': Todos</option>';
     vals.forEach(v=>{h+='<option value="'+esc(v)+'"'+(F[d.key]===v?' selected':'')+'>'+esc(v.length>22?v.slice(0,22)+'…':v)+'</option>';});
     h+='</select>';
@@ -203,6 +231,7 @@ function clearF(){Object.keys(F).forEach(k=>F[k]='');document.querySelectorAll('
 
 function applyFilters(){
   filtered=allData.filter(r=>{
+    if(F.anio&&r._anio!==F.anio)return false;
     if(F.mes&&r.mes!==F.mes)return false;
     if(F.tipo_servicio&&r.tipo_de_servicio!==F.tipo_servicio)return false;
     if(F.zona&&r.zona!==F.zona)return false;
