@@ -68,6 +68,9 @@ table.dt tr:hover{background:#f9fafb;}
 .pag-btns{display:flex;gap:6px;align-items:center;}
 .pbtn{padding:5px 12px;border:1px solid var(--border);border-radius:4px;background:var(--surface);font-size:11px;cursor:pointer;font-family:inherit;color:var(--text2);}
 .pbtn:not(:disabled):hover{background:var(--blue-bg);color:var(--blue);}.pbtn:disabled{opacity:0.35;cursor:default;}
+.tipo-tab{padding:8px 14px;background:var(--surface);border:1px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;color:var(--text2);transition:all 0.12s;margin-bottom:6px;}
+.tipo-tab:hover{border-color:var(--blue);color:var(--blue);}
+.tipo-tab.active{background:var(--blue);color:#fff;border-color:var(--blue);}
 .consulta-hero{text-align:center;padding:30px 0 20px;}
 .consulta-hero h2{font-size:22px;font-weight:800;margin-bottom:6px;}.consulta-hero p{font-size:13px;color:var(--text2);}
 .consulta-search-box{max-width:560px;margin:16px auto 24px;display:flex;gap:8px;}
@@ -108,6 +111,10 @@ table.dt tr:hover{background:#f9fafb;}
 </nav>
 
 <div class="page-content" id="page-dashboard">
+<div style="text-align:center;margin-bottom:20px;">
+<h2 id="dashboard-title" style="font-size:24px;font-weight:800;margin-bottom:12px;">📊 Customer Experience Dashboard</h2>
+<div id="tipo-solicitud-tabs" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:16px;"></div>
+</div>
 <div class="filter-bar" id="filters-dash"></div>
 <div id="kpis"></div>
 <div id="charts-area"></div>
@@ -141,7 +148,7 @@ const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 let allData=[],filtered=[],user=null,curPage='dashboard',chartInstances={},tblPg=0,conPg=0;
 const LIM=50;
 const PAL=['#2563eb','#059669','#d97706','#dc2626','#7c3aed','#ec4899','#0891b2','#65a30d','#ea580c','#6366f1','#14b8a6','#e11d48'];
-let F={anio:'',mes:'',tipo_servicio:'',zona:'',status:'',tipo_incidencia:'',ejecutivo:''};
+let F={tipo_solicitud:'',anio:'',mes:'',tipo_servicio:'',zona:'',status:'',tipo_incidencia:'',ejecutivo:''};
 
 async function doLogin(){
   const email=document.getElementById('in-email').value.trim(),pass=document.getElementById('in-pass').value;
@@ -199,7 +206,7 @@ function buildFilters(){['filters-dash','filters-consulta','filters-reg'].forEac
 
 function buildFB(cid){
   const el=document.getElementById(cid);
-  const defs=[{key:'anio',label:'Año',col:'_anio'},{key:'mes',label:'Mes',col:'mes'},{key:'tipo_servicio',label:'Servicio',col:'tipo_de_servicio'},{key:'zona',label:'Zona',col:'zona'},{key:'status',label:'Status',col:'status'},{key:'tipo_incidencia',label:'Tipo Incidencia',col:'tipo_de_incidencia'},{key:'ejecutivo',label:'Ejecutivo',col:'ejecutivo_asignado'}];
+  const defs=[{key:'tipo_solicitud',label:'Tipo Solicitud',col:'tipo_de_solicitud'},{key:'anio',label:'Año',col:'_anio'},{key:'mes',label:'Mes',col:'mes'},{key:'tipo_servicio',label:'Servicio',col:'tipo_de_servicio'},{key:'zona',label:'Zona',col:'zona'},{key:'status',label:'Status',col:'status'},{key:'tipo_incidencia',label:'Tipo Incidencia',col:'tipo_de_incidencia'},{key:'ejecutivo',label:'Ejecutivo',col:'ejecutivo_asignado'}];
   let h='<span class="flabel" style="margin:0">Filtros:</span>';
   defs.forEach(d=>{
     let vals=[...new Set(allData.map(r=>r[d.col]).filter(v=>v!=null&&String(v).trim()!==''))];
@@ -233,6 +240,7 @@ function applyFilters(){
   filtered=allData.filter(r=>{
     if(F.anio&&r._anio!==F.anio)return false;
     if(F.mes&&r.mes!==F.mes)return false;
+    if(F.tipo_solicitud&&r.tipo_de_solicitud!==F.tipo_solicitud)return false;
     if(F.tipo_servicio&&r.tipo_de_servicio!==F.tipo_servicio)return false;
     if(F.zona&&r.zona!==F.zona)return false;
     if(F.status&&r.status!==F.status)return false;
@@ -242,8 +250,42 @@ function applyFilters(){
   });
   const n=Object.values(F).filter(v=>v).length;
   document.querySelectorAll('.active-filters').forEach(el=>{el.textContent=n?n+' filtro'+(n>1?'s':'')+' · '+filtered.length+' de '+allData.length+' registros':'';});
+  updateDashboardTitle();
+  renderTipoSolicitudTabs();
   renderKPIs();renderCharts();tblPg=0;conPg=0;
   if(curPage==='registros')renderRegistros();
+}
+
+function updateDashboardTitle(){
+  var title='📊 Customer Experience Dashboard';
+  if(F.tipo_solicitud){
+    if(F.tipo_solicitud.toLowerCase().includes('cancelac'))title='📋 Solicitudes de Cancelación';
+    else if(F.tipo_solicitud.toLowerCase().includes('queja'))title='😞 Quejas y Reclamaciones';
+    else if(F.tipo_solicitud.toLowerCase().includes('incidencia'))title='⚠️ Incidencias Generales';
+    else title='📊 '+F.tipo_solicitud;
+  }
+  var el=document.getElementById('dashboard-title'); if(el)el.textContent=title;
+}
+
+function renderTipoSolicitudTabs(){
+  var tipos=[],seen={};
+  allData.forEach(r=>{var v=r.tipo_de_solicitud; if(v!=null&&String(v).trim()!==''&&!seen[v]){seen[v]=true;tipos.push(v);}});
+  tipos.sort();
+  var h='<button class="tipo-tab '+(F.tipo_solicitud===''?'active':'')+'" onclick="setTipoSolicitud(null)">📊 Todos</button>';
+  tipos.forEach(t=>{
+    var ico='📊';
+    if(t.toLowerCase().includes('cancelac'))ico='📋';
+    else if(t.toLowerCase().includes('queja'))ico='😞';
+    else if(t.toLowerCase().includes('incidencia'))ico='⚠️';
+    h+='<button class="tipo-tab '+(F.tipo_solicitud===t?'active':'')+'" onclick="setTipoSolicitud(\''+esc(t)+'\')" title="'+esc(t)+'">'+ico+' '+esc(t.length>18?t.slice(0,18)+'…':t)+'</button>';
+  });
+  var cont=document.getElementById('tipo-solicitud-tabs'); if(cont)cont.innerHTML=h;
+}
+
+function setTipoSolicitud(v){
+  F.tipo_solicitud=v||'';
+  document.querySelectorAll('select[data-fkey="tipo_solicitud"]').forEach(s=>{s.value=v||'';});
+  applyFilters();
 }
 
 function isRes(s){if(!s)return false;var l=s.toLowerCase();return l.includes('cerrad')||l.includes('resuelt')||l.includes('completad')||l.includes('solucionad');}
