@@ -301,8 +301,21 @@ function renderKPIs(){
 function renderCharts(){
   Object.values(chartInstances).forEach(c=>{if(c)c.destroy();});chartInstances={};
   var a=document.getElementById('charts-area');
-  a.innerHTML='<div class="chart-row"><div class="chart-card"><h3>Tipo de Incidencia</h3><div class="csub">Distribución por tipo</div><canvas id="c1"></canvas></div><div class="chart-card"><h3>Sub-Motivo</h3><div class="csub">Detalle de incidencias</div><canvas id="c2"></canvas></div></div><div class="chart-row"><div class="chart-card"><h3>Análisis de Causa Raíz</h3><div class="csub">Por categoría</div><canvas id="c3"></canvas></div><div class="chart-card"><h3>Por Zona</h3><div class="csub">Distribución geográfica</div><canvas id="c4"></canvas></div></div><div class="chart-row"><div class="chart-card"><h3>Tipo de Servicio</h3><div class="csub">Aroma vs Intendencia</div><canvas id="c5"></canvas></div><div class="chart-card"><h3>Incidencias por Mes</h3><div class="csub">Tendencia temporal</div><canvas id="c6"></canvas></div></div><div class="chart-row"><div class="chart-card"><h3>Carta Convenio</h3><div class="csub">Distribución</div><canvas id="c7"></canvas></div><div class="chart-card"><h3>Status General</h3><div class="csub">Todos los estados</div><canvas id="c8"></canvas></div></div>';
-  chartInstances.c1=mkDonut('c1','tipo_de_incidencia');
+  a.innerHTML='<div class="chart-row"><div class="chart-card" id="chart1-card"><h3>Tipo de Incidencia</h3><div class="csub">Distribución por tipo</div><canvas id="c1"></canvas></div><div class="chart-card"><h3>Sub-Motivo</h3><div class="csub">Detalle de incidencias</div><canvas id="c2"></canvas></div></div><div class="chart-row"><div class="chart-card"><h3>Análisis de Causa Raíz</h3><div class="csub">Por categoría</div><canvas id="c3"></canvas></div><div class="chart-card"><h3>Por Zona</h3><div class="csub">Distribución geográfica</div><canvas id="c4"></canvas></div></div><div class="chart-row"><div class="chart-card"><h3>Tipo de Servicio</h3><div class="csub">Aroma vs Intendencia</div><canvas id="c5"></canvas></div><div class="chart-card"><h3>Incidencias por Mes</h3><div class="csub">Tendencia temporal</div><canvas id="c6"></canvas></div></div><div class="chart-row"><div class="chart-card"><h3>Carta Convenio</h3><div class="csub">Distribución</div><canvas id="c7"></canvas></div><div class="chart-card"><h3>Status General</h3><div class="csub">Todos los estados</div><canvas id="c8"></canvas></div></div>';
+  var c1Col='tipo_de_incidencia';
+  var c1Title='Tipo de Incidencia';
+  var c1Sub='Distribución por tipo';
+  if(F.tipo_solicitud && F.tipo_solicitud.toLowerCase().includes('cancelac')){
+    c1Col='motivo_de_cancelacin';
+    c1Title='Motivo de Cancelación';
+    c1Sub='Causas de cancelación';
+  }
+  var c1Container=document.getElementById('chart1-card');
+  if(c1Container){
+    c1Container.querySelector('h3').textContent=c1Title;
+    c1Container.querySelector('.csub').textContent=c1Sub;
+  }
+  chartInstances.c1=mkDonut('c1',c1Col);
   chartInstances.c2=mkDonut('c2','submotvio');
   chartInstances.c3=mkDonut('c3','categora');
   chartInstances.c4=mkDonut('c4','zona');
