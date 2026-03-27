@@ -1,0 +1,342 @@
+{
+  "fecha": "2026-03-26T17:34:44.384545",
+  "base_id": "appbW5kgLgxgwr9Kd",
+  "tablas": [
+    {
+      "tabla": "Incidencias Innova Sport",
+      "tabla_pg": "incidencias_innova_sport",
+      "status": "✅ Migrada",
+      "registros": 322
+    },
+    {
+      "tabla": "Registro de incidencias Ultra Acoustics",
+      "tabla_pg": "registro_de_incidencias_ultra_acoustics",
+      "status": "⚠️ 64 errores",
+      "registros": 0
+    },
+    {
+      "tabla": "Clientes AAA",
+      "tabla_pg": "clientes_aaa",
+      "status": "✅ Migrada",
+      "registros": 45
+    },
+    {
+      "tabla": "Propiedades Ultra Acoustics",
+      "tabla_pg": "propiedades_ultra_acoustics",
+      "status": "✅ Migrada",
+      "registros": 162
+    },
+    {
+      "tabla": "Evaluar Demo Ultra Acoustics",
+      "tabla_pg": "evaluar_demo_ultra_acoustics",
+      "status": "⚠️ 2 errores",
+      "registros": 0
+    },
+    {
+      "tabla": "Solicitudes Ultra",
+      "tabla_pg": "solicitudes_ultra",
+      "status": "✅ Migrada",
+      "registros": 31
+    },
+    {
+      "tabla": "Incidencias Camino Real",
+      "tabla_pg": "incidencias_camino_real",
+      "status": "✅ Migrada",
+      "registros": 3
+    },
+    {
+      "tabla": "Incidencias Elektra",
+      "tabla_pg": "incidencias_elektra",
+      "status": "✅ Migrada",
+      "registros": 150
+    },
+    {
+      "tabla": "Demos",
+      "tabla_pg": "demos",
+      "status": "✅ Migrada",
+      "registros": 10
+    },
+    {
+      "tabla": "Propiedades GDA",
+      "tabla_pg": "propiedades_gda",
+      "status": "✅ Migrada",
+      "registros": 351
+    },
+    {
+      "tabla": "Innova propiedades",
+      "tabla_pg": "innova_propiedades",
+      "status": "✅ Migrada",
+      "registros": 261
+    },
+    {
+      "tabla": "Propiedades Elektra",
+      "tabla_pg": "propiedades_elektra",
+      "status": "✅ Migrada",
+      "registros": 628
+    },
+    {
+      "tabla": "Clientes Generales",
+      "tabla_pg": "clientes_generales",
+      "status": "✅ Migrada",
+      "registros": 2208
+    },
+    {
+      "tabla": "Tablero de Innova",
+      "tabla_pg": "tablero_de_innova",
+      "status": "✅ Migrada",
+      "registros": 265
+    },
+    {
+      "tabla": "Base General",
+      "tabla_pg": "base_general",
+      "status": "✅ Migrada",
+      "registros": 1149
+    },
+    {
+      "tabla": "Incidencias Clientes AA",
+      "tabla_pg": "incidencias_clientes_aa",
+      "status": "✅ Migrada",
+      "registros": 1
+    },
+    {
+      "tabla": "Cancelaciones Clientes AA",
+      "tabla_pg": "cancelaciones_clientes_aa",
+      "status": "✅ Migrada",
+      "registros": 199
+    },
+    {
+      "tabla": "Incidencias Cleber",
+      "tabla_pg": "incidencias_cleber",
+      "status": "✅ Migrada",
+      "registros": 1
+    },
+    {
+      "tabla": "Propiedades Cleber",
+      "tabla_pg": "propiedades_cleber",
+      "status": "✅ Migrada",
+      "registros": 36
+    },
+    {
+      "tabla": "GASTO DERRAMES",
+      "tabla_pg": "gasto_derrames",
+      "status": "✅ Migrada",
+      "registros": 4
+    },
+    {
+      "tabla": "SUCURSALES CON DERRAME NACIONAL",
+      "tabla_pg": "sucursales_con_derrame_nacional",
+      "status": "✅ Migrada",
+      "registros": 24
+    },
+    {
+      "tabla": "CDMX ACRILICO +5 EQUIPOS",
+      "tabla_pg": "cdmx_acrilico_5_equipos",
+      "status": "✅ Migrada",
+      "registros": 31
+    },
+    {
+      "tabla": "CAMBIO A PRO",
+      "tabla_pg": "cambio_a_pro",
+      "status": "✅ Migrada",
+      "registros": 14
+    },
+    {
+      "tabla": "Cambios Aroma One Fase 1",
+      "tabla_pg": "cambios_aroma_one_fase_1",
+      "status": "✅ Migrada",
+      "registros": 12
+    },
+    {
+      "tabla": "Propiedades CyQR",
+      "tabla_pg": "propiedades_cyqr",
+      "status": "✅ Migrada",
+      "registros": 132
+    },
+    {
+      "tabla": "Sodexo / Banamex",
+      "tabla_pg": "sodexo_banamex",
+      "status": "✅ Migrada",
+      "registros": 206
+    },
+    {
+      "tabla": "Autozone",
+      "tabla_pg": "autozone",
+      "status": "✅ Migrada",
+      "registros": 176
+    },
+    {
+      "tabla": "Avance Aroma Servicios",
+      "tabla_pg": "avance_aroma_servicios",
+      "status": "✅ Migrada",
+      "registros": 1855
+    },
+    {
+      "tabla": "Avance Fumigacion Servicios",
+      "tabla_pg": "avance_fumigacion_servicios",
+      "status": "✅ Migrada",
+      "registros": 275
+    },
+    {
+      "tabla": "Encuesta de satisfacción",
+      "tabla_pg": "encuesta_de_satisfaccin",
+      "status": "⚠️ 2 errores",
+      "registros": 4
+    },
+    {
+      "tabla": "Clientes",
+      "tabla_pg": "clientes",
+      "status": "✅ Migrada",
+      "registros": 1313
+    },
+    {
+      "tabla": "Propiedades",
+      "tabla_pg": "propiedades",
+      "status": "✅ Migrada",
+      "registros": 1799
+    },
+    {
+      "tabla": "Reporte de Quejas o Incidencias",
+      "tabla_pg": "reporte_de_quejas_o_incidencias",
+      "status": "✅ Migrada",
+      "registros": 260
+    },
+    {
+      "tabla": "Tipos de incidencia Aromatex",
+      "tabla_pg": "tipos_de_incidencia_aromatex",
+      "status": "✅ Migrada",
+      "registros": 3
+    },
+    {
+      "tabla": "Sub Motivo Incidencias",
+      "tabla_pg": "sub_motivo_incidencias",
+      "status": "✅ Migrada",
+      "registros": 10
+    },
+    {
+      "tabla": "Propiedades Camino Real",
+      "tabla_pg": "propiedades_camino_real",
+      "status": "✅ Migrada",
+      "registros": 17
+    },
+    {
+      "tabla": "Solicitudes de Cancelacion",
+      "tabla_pg": "solicitudes_de_cancelacion",
+      "status": "✅ Migrada",
+      "registros": 186
+    },
+    {
+      "tabla": "Motivos de Cancelacion",
+      "tabla_pg": "motivos_de_cancelacion",
+      "status": "✅ Migrada",
+      "registros": 3
+    },
+    {
+      "tabla": "Sub Motivos de Cancelacion",
+      "tabla_pg": "sub_motivos_de_cancelacion",
+      "status": "✅ Migrada",
+      "registros": 13
+    },
+    {
+      "tabla": "Solicitudes del departamento",
+      "tabla_pg": "solicitudes_del_departamento",
+      "status": "✅ Migrada",
+      "registros": 45
+    },
+    {
+      "tabla": "Tipos de solicitud",
+      "tabla_pg": "tipos_de_solicitud",
+      "status": "✅ Migrada",
+      "registros": 3
+    },
+    {
+      "tabla": "Coordinador Avantex",
+      "tabla_pg": "coordinador_avantex",
+      "status": "✅ Migrada",
+      "registros": 5
+    },
+    {
+      "tabla": "Propiedades HDI",
+      "tabla_pg": "propiedades_hdi",
+      "status": "✅ Migrada",
+      "registros": 53
+    },
+    {
+      "tabla": "Incidencias HDI",
+      "tabla_pg": "incidencias_hdi",
+      "status": "✅ Migrada",
+      "registros": 2
+    },
+    {
+      "tabla": "Propiedades Tiendas Alka",
+      "tabla_pg": "propiedades_tiendas_alka",
+      "status": "✅ Migrada",
+      "registros": 86
+    },
+    {
+      "tabla": "Incidencias Tiendas Alka",
+      "tabla_pg": "incidencias_tiendas_alka",
+      "status": "✅ Migrada",
+      "registros": 1
+    },
+    {
+      "tabla": "Propiedades Gilsa",
+      "tabla_pg": "propiedades_gilsa",
+      "status": "✅ Migrada",
+      "registros": 20
+    },
+    {
+      "tabla": "Incidencias Gilsa",
+      "tabla_pg": "incidencias_gilsa",
+      "status": "✅ Migrada",
+      "registros": 2
+    },
+    {
+      "tabla": "Grid view",
+      "tabla_pg": "grid_view",
+      "status": "✅ Migrada",
+      "registros": 6893
+    },
+    {
+      "tabla": "Formulario Tec Services",
+      "tabla_pg": "formulario_tec_services",
+      "status": "✅ Migrada",
+      "registros": 1
+    },
+    {
+      "tabla": "Propiedades Tec Services",
+      "tabla_pg": "propiedades_tec_services",
+      "status": "✅ Migrada",
+      "registros": 43
+    },
+    {
+      "tabla": "Migracion",
+      "tabla_pg": "migracion",
+      "status": "✅ Migrada",
+      "registros": 3
+    },
+    {
+      "tabla": "Tickets WhatsApp",
+      "tabla_pg": "tickets_whatsapp",
+      "status": "✅ Migrada",
+      "registros": 38
+    },
+    {
+      "tabla": "Config",
+      "tabla_pg": "config",
+      "status": "✅ Migrada",
+      "registros": 1
+    },
+    {
+      "tabla": "Agentes",
+      "tabla_pg": "agentes",
+      "status": "✅ Migrada",
+      "registros": 7
+    },
+    {
+      "tabla": "FAQ",
+      "tabla_pg": "faq",
+      "status": "✅ Migrada",
+      "registros": 27
+    }
+  ]
+}

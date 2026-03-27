@@ -1,0 +1,614 @@
+{
+  "tabla": "base_general",
+  "total_registros": 1149,
+  "total_columnas": 71,
+  "analisis": {
+    "id": {
+      "type": "NUMERIC",
+      "confidence": 70,
+      "detail": "Promedio: 575.00, Max: 1149",
+      "non_null": 1149,
+      "total": 1149,
+      "fill_pct": 100.0
+    },
+    "airtable_id": {
+      "type": "TEXT",
+      "confidence": 60,
+      "detail": "Largo promedio: 17 chars",
+      "non_null": 1149,
+      "total": 1149,
+      "fill_pct": 100.0
+    },
+    "folio_ticket": {
+      "type": "ID/CODE",
+      "confidence": 90,
+      "detail": "Nombre indica código + 1149 numéricos",
+      "non_null": 1149,
+      "total": 1149,
+      "fill_pct": 100.0
+    },
+    "fecha_de_la_solicitud": {
+      "type": "DATE",
+      "confidence": 85,
+      "detail": "1149 fechas detectadas",
+      "non_null": 1149,
+      "total": 1149,
+      "fill_pct": 100.0
+    },
+    "nombre_del_cliente": {
+      "type": "TEXT",
+      "confidence": 60,
+      "detail": "Largo promedio: 21 chars",
+      "non_null": 1149,
+      "total": 1149,
+      "fill_pct": 100.0
+    },
+    "nombre_del_cliente_nuevo": {
+      "type": "TEXT",
+      "confidence": 60,
+      "detail": "Largo promedio: 19 chars",
+      "non_null": 143,
+      "total": 1149,
+      "fill_pct": 12.4
+    },
+    "propiedad_from_nombre_del_cliente": {
+      "type": "TEXT",
+      "confidence": 60,
+      "detail": "Largo promedio: 24 chars",
+      "non_null": 919,
+      "total": 1149,
+      "fill_pct": 80.0
+    },
+    "propiedad": {
+      "type": "TEXT",
+      "confidence": 60,
+      "detail": "Largo promedio: 20 chars",
+      "non_null": 270,
+      "total": 1149,
+      "fill_pct": 23.5
+    },
+    "tipo_de_incidencia": {
+      "type": "CATEGORY",
+      "confidence": 85,
+      "detail": "18 opciones: Calidad del Aroma, Fallas en el equipo, Equipo sale aroma pe",
+      "non_null": 759,
+      "total": 1149,
+      "fill_pct": 66.1
+    },
+    "detalle_de_la_incidencia": {
+      "type": "TEXT",
+      "confidence": 60,
+      "detail": "Largo promedio: 133 chars",
+      "non_null": 1148,
+      "total": 1149,
+      "fill_pct": 99.9
+    },
+    "cliente_from_nombre_del_cliente": {
+      "type": "TEXT",
+      "confidence": 60,
+      "detail": "Largo promedio: 23 chars",
+      "non_null": 1149,
+      "total": 1149,
+      "fill_pct": 100.0
+    },
+    "quien_reporta": {
+      "type": "TEXT",
+      "confidence": 60,
+      "detail": "Largo promedio: 15 chars",
+      "non_null": 1148,
+      "total": 1149,
+      "fill_pct": 99.9
+    },
+    "departamento": {
+      "type": "CATEGORY",
+      "confidence": 85,
+      "detail": "7 opciones: Administración y Cob, Ventas, Atención a Clientes",
+      "non_null": 1147,
+      "total": 1149,
+      "fill_pct": 99.8
+    },
+    "nombre_del_contacto": {
+      "type": "TEXT",
+      "confidence": 60,
+      "detail": "Largo promedio: 15 chars",
+      "non_null": 1148,
+      "total": 1149,
+      "fill_pct": 99.9
+    },
+    "correo_avantex": {
+      "type": "EMAIL",
+      "confidence": 95,
+      "detail": "1146 emails",
+      "non_null": 1147,
+      "total": 1149,
+      "fill_pct": 99.8
+    },
+    "telefono_del_contacto": {
+      "type": "PHONE",
+      "confidence": 95,
+      "detail": "Nombre indica teléfono + 1111 coincidencias",
+      "non_null": 1133,
+      "total": 1149,
+      "fill_pct": 98.6
+    },
+    "correo_del_contacto": {
+      "type": "EMAIL",
+      "confidence": 95,
+      "detail": "534 emails",
+      "non_null": 559,
+      "total": 1149,
+      "fill_pct": 48.7
+    },
+    "evidencia": {
+      "type": "TEXT",
+      "confidence": 60,
+      "detail": "Largo promedio: 1606 chars",
+      "non_null": 150,
+      "total": 1149,
+      "fill_pct": 13.1
+    },
+    "tipo_de_solicitud": {
+      "type": "CATEGORY",
+      "confidence": 85,
+      "detail": "3 opciones: Incidencia / Queja /, Solicitud de Cancela, Otras Solicutudes",
+      "non_null": 1119,
+      "total": 1149,
+      "fill_pct": 97.4
+    },
+    "motivo_de_cancelacin": {
+      "type": "CATEGORY",
+      "confidence": 85,
+      "detail": "5 opciones: Problemas Financiero, Inconformidad con el, Recorte de Presupues",
+      "non_null": 385,
+      "total": 1149,
+      "fill_pct": 33.5
+    },
+    "status": {
+      "type": "CATEGORY",
+      "confidence": 85,
+      "detail": "3 opciones: Resuelta, Sin atender, En proceso",
+      "non_null": 1149,
+      "total": 1149,
+      "fill_pct": 100.0
+    },
+    "zona": {
+      "type": "CATEGORY",
+      "confidence": 85,
+      "detail": "5 opciones: Matriz, Centro, Pacifico / Bajio",
+      "non_null": 1109,
+      "total": 1149,
+      "fill_pct": 96.5
+    },
+    "status_cancelacion": {
+      "type": "CATEGORY",
+      "confidence": 85,
+      "detail": "5 opciones: Cancelada, Negociacion, Retenida",
+      "non_null": 441,
+      "total": 1149,
+      "fill_pct": 38.4
+    },
+    "tipo_de_servicio": {
+      "type": "CATEGORY",
+      "confidence": 85,
+      "detail": "3 opciones: Aroma, Intendencia, Fumigación",
+      "non_null": 1148,
+      "total": 1149,
+      "fill_pct": 99.9
+    },
+    "folio": {
+      "type": "ID/CODE",
+      "confidence": 90,
+      "detail": "Nombre indica código + 1149 numéricos",
+      "non_null": 1149,
+      "total": 1149,
+      "fill_pct": 100.0
+    },
+    "fecha_de_solucion": {
+      "type": "DATE",
+      "confidence": 85,
+      "detail": "653 fechas detectadas",
+      "non_null": 653,
+      "total": 1149,
+      "fill_pct": 56.8
+    },
+    "copia_de_fecha_de_solucion": {
+      "type": "DATE",
+      "confidence": 85,
+      "detail": "653 fechas detectadas",
+      "non_null": 653,
+      "total": 1149,
+      "fill_pct": 56.8
+    },
+    "ejecutivo_asignado": {
+      "type": "CATEGORY",
+      "confidence": 85,
+      "detail": "8 opciones: Ana Karen Torres, Nalleli Quiroz, Rene Martniez",
+      "non_null": 1019,
+      "total": 1149,
+      "fill_pct": 88.7
+    },
+    "ejecutivo_cx": {
+      "type": "CATEGORY",
+      "confidence": 85,
+      "detail": "3 opciones: {'id': 'usrIavYwwwcE, {'id': 'usrCTSF6uzGi, {'id': 'usrsGg7maFNG",
+      "non_null": 325,
+      "total": 1149,
+      "fill_pct": 28.3
+    },
+    "comentarios_de_seguimiento": {
+      "type": "TEXT",
+      "confidence": 60,
+      "detail": "Largo promedio: 309 chars",
+      "non_null": 956,
+      "total": 1149,
+      "fill_pct": 83.2
+    },
+    "contrato_cancelado_en_operandium": {
+      "type": "BOOLEAN",
+      "confidence": 95,
+      "detail": "Valores: [('True', 92)]",
+      "non_null": 92,
+      "total": 1149,
+      "fill_pct": 8.0
+    },
+    "cita_de_recoleccion": {
+      "type": "BOOLEAN",
+      "confidence": 95,
+      "detail": "Valores: [('True', 66)]",
+      "non_null": 66,
+      "total": 1149,
+      "fill_pct": 5.7
+    },
+    "equipo_recuperado": {
+      "type": "BOOLEAN",
+      "confidence": 95,
+      "detail": "Valores: [('True', 30)]",
+      "non_null": 30,
+      "total": 1149,
+      "fill_pct": 2.6
+    },
+    "cantidad_de_equipos": {
+      "type": "NUMERIC",
+      "confidence": 90,
+      "detail": "Promedio: 1.82, Max: 20.00",
+      "non_null": 681,
+      "total": 1149,
+      "fill_pct": 59.3
+    },
+    "modelo_del_equipo": {
+      "type": "JSON",
+      "confidence": 90,
+      "detail": "364 valores JSON",
+      "non_null": 364,
+      "total": 1149,
+      "fill_pct": 31.7
+    },
+    "facturacin_sin_iva": {
+      "type": "NUMERIC",
+      "confidence": 90,
+      "detail": "Promedio: 2837.52, Max: 28210.00",
+      "non_null": 350,
+      "total": 1149,
+      "fill_pct": 30.5
+    },
+    "carta_convenio": {
+      "type": "BOOLEAN",
+      "confidence": 95,
+      "detail": "Valores: [('Si', 213), ('No', 126)]",
+      "non_null": 339,
+      "total": 1149,
+      "fill_pct": 29.5
+    },
+    "inicio_de_contrato": {
+      "type": "DATE",
+      "confidence": 85,
+      "detail": "642 fechas detectadas",
+      "non_null": 642,
+      "total": 1149,
+      "fill_pct": 55.9
+    },
+    "fecha_tentativa_de_cancelacin": {
+      "type": "DATE",
+      "confidence": 85,
+      "detail": "157 fechas detectadas",
+      "non_null": 157,
+      "total": 1149,
+      "fill_pct": 13.7
+    },
+    "duracion_del_contato": {
+      "type": "NUMERIC",
+      "confidence": 80,
+      "detail": "Rango: 0-1223, Promedio: 15.8",
+      "non_null": 642,
+      "total": 1149,
+      "fill_pct": 55.9
+    },
+    "status_2": {
+      "type": "EMPTY",
+      "confidence": 100,
+      "detail": "Sin datos",
+      "non_null": 0,
+      "total": 1149,
+      "fill_pct": 0.0
+    },
+    "mes": {
+      "type": "CATEGORY",
+      "confidence": 85,
+      "detail": "11 opciones: July, September, October",
+      "non_null": 1149,
+      "total": 1149,
+      "fill_pct": 100.0
+    },
+    "tiempo_de_respuesta": {
+      "type": "NUMERIC",
+      "confidence": 80,
+      "detail": "Rango: 0-315, Promedio: 74.0",
+      "non_null": 1149,
+      "total": 1149,
+      "fill_pct": 100.0
+    },
+    "consultor_aromatex": {
+      "type": "CATEGORY",
+      "confidence": 85,
+      "detail": "12 opciones: Damariz Romero, Otro, Janeth Saucedo",
+      "non_null": 757,
+      "total": 1149,
+      "fill_pct": 65.9
+    },
+    "aroma_contratado": {
+      "type": "JSON",
+      "confidence": 90,
+      "detail": "476 valores JSON",
+      "non_null": 476,
+      "total": 1149,
+      "fill_pct": 41.4
+    },
+    "ciudad": {
+      "type": "TEXT",
+      "confidence": 60,
+      "detail": "Largo promedio: 12 chars",
+      "non_null": 533,
+      "total": 1149,
+      "fill_pct": 46.4
+    },
+    "calle": {
+      "type": "TEXT",
+      "confidence": 60,
+      "detail": "Largo promedio: 18 chars",
+      "non_null": 25,
+      "total": 1149,
+      "fill_pct": 2.2
+    },
+    "numero_exterior": {
+      "type": "NUMERIC",
+      "confidence": 70,
+      "detail": "Promedio: 933.70, Max: 4052",
+      "non_null": 25,
+      "total": 1149,
+      "fill_pct": 2.2
+    },
+    "nmero_interior": {
+      "type": "TEXT",
+      "confidence": 60,
+      "detail": "Largo promedio: 7 chars",
+      "non_null": 11,
+      "total": 1149,
+      "fill_pct": 1.0
+    },
+    "colonia": {
+      "type": "TEXT",
+      "confidence": 60,
+      "detail": "Largo promedio: 13 chars",
+      "non_null": 25,
+      "total": 1149,
+      "fill_pct": 2.2
+    },
+    "cp": {
+      "type": "ID/CODE",
+      "confidence": 90,
+      "detail": "Nombre indica código + 21 numéricos",
+      "non_null": 25,
+      "total": 1149,
+      "fill_pct": 2.2
+    },
+    "ciudad_municipio": {
+      "type": "TEXT",
+      "confidence": 60,
+      "detail": "Largo promedio: 14 chars",
+      "non_null": 25,
+      "total": 1149,
+      "fill_pct": 2.2
+    },
+    "camino_y_quinta_real": {
+      "type": "EMPTY",
+      "confidence": 100,
+      "detail": "Sin datos",
+      "non_null": 0,
+      "total": 1149,
+      "fill_pct": 0.0
+    },
+    "pendiente_de_pago": {
+      "type": "NUMERIC",
+      "confidence": 90,
+      "detail": "Promedio: 5245.03, Max: 13380.00",
+      "non_null": 26,
+      "total": 1149,
+      "fill_pct": 2.3
+    },
+    "condonacion": {
+      "type": "NUMERIC",
+      "confidence": 90,
+      "detail": "Promedio: 2240.00, Max: 2240.00",
+      "non_null": 1,
+      "total": 1149,
+      "fill_pct": 0.1
+    },
+    "clasificacin_manual": {
+      "type": "TEXT",
+      "confidence": 60,
+      "detail": "Largo promedio: 3 chars",
+      "non_null": 1149,
+      "total": 1149,
+      "fill_pct": 100.0
+    },
+    "submotvio": {
+      "type": "CATEGORY",
+      "confidence": 85,
+      "detail": "28 opciones: Recorte de presupues, Equipo apagado (no f, No huele",
+      "non_null": 508,
+      "total": 1149,
+      "fill_pct": 44.2
+    },
+    "ltv": {
+      "type": "CATEGORY",
+      "confidence": 85,
+      "detail": "5 opciones: Prevención (+ 12 mes, Renovación (9 a 12 m, Incorporación (0 a 3",
+      "non_null": 622,
+      "total": 1149,
+      "fill_pct": 54.1
+    },
+    "reporte_de_quejas_o_incidencias": {
+      "type": "EMPTY",
+      "confidence": 100,
+      "detail": "Sin datos",
+      "non_null": 0,
+      "total": 1149,
+      "fill_pct": 0.0
+    },
+    "total_de_quejas": {
+      "type": "EMPTY",
+      "confidence": 100,
+      "detail": "Sin datos",
+      "non_null": 0,
+      "total": 1149,
+      "fill_pct": 0.0
+    },
+    "total_de_las_quejas_from_total_de_quejas": {
+      "type": "EMPTY",
+      "confidence": 100,
+      "detail": "Sin datos",
+      "non_null": 0,
+      "total": 1149,
+      "fill_pct": 0.0
+    },
+    "copia_de_reporte_de_quejas_o_incidencias": {
+      "type": "EMPTY",
+      "confidence": 100,
+      "detail": "Sin datos",
+      "non_null": 0,
+      "total": 1149,
+      "fill_pct": 0.0
+    },
+    "titular_del_servicio": {
+      "type": "TEXT",
+      "confidence": 60,
+      "detail": "Largo promedio: 18 chars",
+      "non_null": 13,
+      "total": 1149,
+      "fill_pct": 1.1
+    },
+    "correo_titular_del_servicio": {
+      "type": "EMAIL",
+      "confidence": 95,
+      "detail": "13 emails",
+      "non_null": 13,
+      "total": 1149,
+      "fill_pct": 1.1
+    },
+    "whatsapp_titular_del_servicio": {
+      "type": "PHONE",
+      "confidence": 95,
+      "detail": "Nombre indica teléfono + 11 coincidencias",
+      "non_null": 13,
+      "total": 1149,
+      "fill_pct": 1.1
+    },
+    "mes_de_cancelacion": {
+      "type": "CATEGORY",
+      "confidence": 85,
+      "detail": "11 opciones: Septiembre, Julio, Octubre",
+      "non_null": 157,
+      "total": 1149,
+      "fill_pct": 13.7
+    },
+    "anlisis_de_causa_raz": {
+      "type": "TEXT",
+      "confidence": 60,
+      "detail": "Largo promedio: 140 chars",
+      "non_null": 112,
+      "total": 1149,
+      "fill_pct": 9.7
+    },
+    "rca": {
+      "type": "TEXT",
+      "confidence": 60,
+      "detail": "Largo promedio: 85 chars",
+      "non_null": 112,
+      "total": 1149,
+      "fill_pct": 9.7
+    },
+    "categora": {
+      "type": "CATEGORY",
+      "confidence": 85,
+      "detail": "12 opciones: Percepción y Prefere, Mantenimiento y Limp, Presupuesto y Cierre",
+      "non_null": 112,
+      "total": 1149,
+      "fill_pct": 9.7
+    },
+    "motivo_real": {
+      "type": "TEXT",
+      "confidence": 60,
+      "detail": "Largo promedio: 37 chars",
+      "non_null": 2,
+      "total": 1149,
+      "fill_pct": 0.2
+    },
+    "tipo_de_cliente": {
+      "type": "CATEGORY",
+      "confidence": 85,
+      "detail": "3 opciones: PyME, Empresa, Casas / Efectivo",
+      "non_null": 93,
+      "total": 1149,
+      "fill_pct": 8.1
+    }
+  },
+  "correcciones": [
+    {
+      "col": "folio_ticket",
+      "issue": "Código/ID guardado como número",
+      "fix": "Convertir a TEXT"
+    },
+    {
+      "col": "telefono_del_contacto",
+      "issue": "Teléfono guardado como número",
+      "fix": "Convertir a TEXT"
+    },
+    {
+      "col": "folio",
+      "issue": "Código/ID guardado como número",
+      "fix": "Convertir a TEXT"
+    },
+    {
+      "col": "cp",
+      "issue": "Código/ID guardado como número",
+      "fix": "Convertir a TEXT"
+    },
+    {
+      "col": "whatsapp_titular_del_servicio",
+      "issue": "Teléfono guardado como número",
+      "fix": "Convertir a TEXT"
+    }
+  ],
+  "resumen_tipos": {
+    "NUMERIC": 8,
+    "TEXT": 21,
+    "ID/CODE": 3,
+    "DATE": 5,
+    "CATEGORY": 17,
+    "EMAIL": 3,
+    "PHONE": 2,
+    "BOOLEAN": 4,
+    "JSON": 2,
+    "EMPTY": 6
+  }
+}
