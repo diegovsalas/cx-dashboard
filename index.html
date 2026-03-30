@@ -77,7 +77,21 @@ table.dt tr:hover{background:#f9fafb;}
 .consulta-search-box input{flex:1;padding:12px 16px;border:2px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;}
 .consulta-search-box input:focus{border-color:var(--blue);outline:none;}
 .consulta-search-box button{padding:12px 24px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;}
-@media(max-width:900px){.kpi-row{grid-template-columns:repeat(2,1fr);}.chart-row{grid-template-columns:1fr;}}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999;align-items:center;justify-content:center;}.modal-overlay.on{display:flex;}
+.modal{background:var(--surface);border-radius:14px;width:680px;max-width:92vw;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.15);padding:0;}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:20px 24px 16px;border-bottom:1px solid var(--border);}
+.modal-head h2{font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px;}
+.modal-close{width:32px;height:32px;border:1px solid var(--border);border-radius:8px;background:var(--surface);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);}
+.modal-close:hover{background:var(--red-bg);color:var(--red);border-color:#fecaca;}
+.modal-body{padding:20px 24px 24px;}
+.detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;}
+.detail-item{padding:12px 0;border-bottom:1px solid #f3f4f6;}
+.detail-item.full{grid-column:1/-1;}
+.detail-label{font-size:10px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:3px;}
+.detail-val{font-size:13px;color:var(--text);word-break:break-word;white-space:pre-wrap;}
+.detail-val.empty{color:var(--text3);font-style:italic;}
+table.dt tbody tr.tk-row{cursor:pointer;}table.dt tbody tr.tk-row:hover{background:var(--blue-bg);}
+@media(max-width:900px){.kpi-row{grid-template-columns:repeat(2,1fr);}.chart-row{grid-template-columns:1fr;}.detail-grid{grid-template-columns:1fr;}}
 </style>
 </head>
 <body>
@@ -152,6 +166,13 @@ table.dt tr:hover{background:#f9fafb;}
 </tr></thead><tbody id="tk-tbody"></tbody></table></div>
 <div class="pag"><span id="tk-pag-info"></span><div class="pag-btns"><button class="pbtn" id="tk-prev" onclick="tkPgPrev()">← Anterior</button><span id="tk-pag-num" style="padding:0 6px"></span><button class="pbtn" id="tk-next" onclick="tkPgNext()">Siguiente →</button></div></div>
 </div>
+</div>
+</div>
+
+<div class="modal-overlay" id="tk-modal" onclick="if(event.target===this)tkCloseModal()">
+<div class="modal">
+<div class="modal-head"><h2 id="tk-modal-title">Detalle del Ticket</h2><button class="modal-close" onclick="tkCloseModal()">&times;</button></div>
+<div class="modal-body" id="tk-modal-body"></div>
 </div>
 </div>
 
@@ -456,9 +477,9 @@ function tkClear(){document.getElementById('tk-f-estatus').value='';document.get
 function tkRender(){
   var tp=Math.ceil(tkFiltered.length/TK_LIM),pg=tkFiltered.slice(tkPg*TK_LIM,(tkPg+1)*TK_LIM);
   document.getElementById('tk-count').textContent=tkFiltered.length.toLocaleString()+' ticket'+(tkFiltered.length!==1?'s':'');
-  var h='';
-  pg.forEach(r=>{
-    h+='<tr>';
+  var h='',baseIdx=tkPg*TK_LIM;
+  pg.forEach((r,i)=>{
+    h+='<tr class="tk-row" onclick="tkOpenModal('+(baseIdx+i)+')">';
     h+='<td>'+esc(r.folio||'—')+'</td>';
     h+='<td>'+(r.created_at?esc(r.created_at.slice(0,10)):'<span class="null-v">—</span>')+'</td>';
     h+='<td>'+esc(r.telefono||'—')+'</td>';
@@ -486,6 +507,39 @@ function tkRender(){
 function tkPriBadge(v){var l=String(v).toLowerCase(),c='bb';if(l.includes('alta')||l.includes('urgent'))c='br';else if(l.includes('media'))c='ba';else if(l.includes('baja'))c='bg';return'<span class="badge '+c+'">'+esc(v)+'</span>';}
 function tkPgPrev(){if(tkPg>0){tkPg--;tkRender();}}
 function tkPgNext(){var tp=Math.ceil(tkFiltered.length/TK_LIM);if(tkPg<tp-1){tkPg++;tkRender();}}
+
+function tkOpenModal(idx){
+  var r=tkFiltered[idx];if(!r)return;
+  document.getElementById('tk-modal-title').innerHTML='Ticket <span style="color:var(--blue)">'+esc(r.folio||'—')+'</span>';
+  var fields=[
+    {l:'Folio',v:r.folio},{l:'Fecha',v:r.created_at?r.created_at.replace('T',' ').slice(0,19):null},
+    {l:'Telefono',v:r.telefono},{l:'Nombre',v:r.nombre},
+    {l:'Empresa',v:r.empresa},{l:'Correo',v:r.correo},
+    {l:'Servicio',v:r.servicio},{l:'Tipo',v:r.tipo},
+    {l:'Categoria',v:r.categoria},{l:'Subtipo',v:r.subtipo},
+    {l:'Prioridad',v:r.prioridad,badge:'pri'},{l:'Estatus',v:r.estatus,badge:'st'},
+    {l:'Agente',v:r.agente},{l:'CSAT',v:r.csat!=null?String(r.csat):null},
+    {l:'Mensaje',v:r.mensaje,full:true},
+    {l:'Diagnostico',v:r.diagnostico,full:true},
+    {l:'Causa Raiz',v:r.causa_raiz,full:true}
+  ];
+  var h='<div class="detail-grid">';
+  fields.forEach(f=>{
+    h+='<div class="detail-item'+(f.full?' full':'')+'">';
+    h+='<div class="detail-label">'+f.l+'</div>';
+    if(!f.v&&f.v!==0)h+='<div class="detail-val empty">Sin datos</div>';
+    else if(f.badge==='pri')h+='<div class="detail-val">'+tkPriBadge(f.v)+'</div>';
+    else if(f.badge==='st')h+='<div class="detail-val">'+sBadge(f.v)+'</div>';
+    else h+='<div class="detail-val">'+esc(String(f.v))+'</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+  document.getElementById('tk-modal-body').innerHTML=h;
+  document.getElementById('tk-modal').classList.add('on');
+  document.body.style.overflow='hidden';
+}
+function tkCloseModal(){document.getElementById('tk-modal').classList.remove('on');document.body.style.overflow='';}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')tkCloseModal();});
 
 checkSession();
 </script>
