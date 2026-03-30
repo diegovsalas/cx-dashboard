@@ -219,12 +219,11 @@ async function loadData(){
     allData.push(...data);if(data.length<1000)break;off+=1000;
   }
   allData.forEach(r=>{
+    r._source='base_general';
     try{var c=r.cliente_from_nombre_del_cliente;if(typeof c==='string'&&c.startsWith('[')){r.nombre_del_cliente_nuevo=JSON.parse(c)[0];}else if(Array.isArray(c)){r.nombre_del_cliente_nuevo=c[0];}else if(c){r.nombre_del_cliente_nuevo=String(c);}if(!r.nombre_del_cliente_nuevo&&r.titular_del_servicio)r.nombre_del_cliente_nuevo=r.titular_del_servicio;}catch(e){}
-    // Extraer año y mes de fecha_de_la_solicitud
     if(r.fecha_de_la_solicitud){
       var fd=String(r.fecha_de_la_solicitud);
       r._anio=fd.slice(0,4);
-      // Intentar extraer mes del campo 'mes' o de la fecha
       if(!r.mes||r.mes.trim()===''){
         var md=parseInt(fd.slice(5,7));if(!isNaN(md)&&md>=1&&md<=12){
           var mo=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -233,6 +232,40 @@ async function loadData(){
       }
     }
   });
+  // Cargar tickets WhatsApp y mapear a campos unificados
+  let tOff=0;
+  while(true){
+    const{data,error}=await sb.from('tickets').select('*').order('created_at',{ascending:false}).range(tOff,tOff+999);
+    if(error){console.error('Error loading tickets:',error.message);break;}
+    if(!data.length)break;
+    data.forEach(t=>{
+      var fd=t.created_at?String(t.created_at):'';
+      var anio=fd.slice(0,4);
+      var mesNum=parseInt(fd.slice(5,7));
+      var moArr=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+      var mesStr=(!isNaN(mesNum)&&mesNum>=1&&mesNum<=12)?moArr[mesNum-1]:'';
+      allData.push({
+        _source:'whatsapp',_tk:t,
+        folio_ticket:t.folio,folio:t.folio,
+        fecha_de_la_solicitud:fd.slice(0,10),
+        nombre_del_cliente_nuevo:t.nombre,
+        propiedad:t.empresa,
+        tipo_de_incidencia:t.tipo,
+        submotvio:t.subtipo,
+        categora:t.categoria,
+        status:t.estatus,
+        ejecutivo_asignado:t.agente,
+        tipo_de_servicio:t.servicio,
+        tipo_de_solicitud:'Ticket WhatsApp',
+        zona:'',
+        _anio:anio,mes:mesStr,
+        _csat:t.csat,_prioridad:t.prioridad,
+        telefono:t.telefono,correo:t.correo,
+        mensaje:t.mensaje,diagnostico:t.diagnostico,causa_raiz:t.causa_raiz
+      });
+    });
+    if(data.length<1000)break;tOff+=1000;
+  }
 }
 
 function goPage(p){
@@ -342,7 +375,7 @@ function renderKPIs(){
 function renderCharts(){
   Object.values(chartInstances).forEach(c=>{if(c)c.destroy();});chartInstances={};
   var a=document.getElementById('charts-area');
-  a.innerHTML='<div class="chart-row"><div class="chart-card" id="chart1-card"><h3>Tipo de Incidencia</h3><div class="csub">Distribución por tipo</div><canvas id="c1"></canvas></div><div class="chart-card"><h3>Sub-Motivo</h3><div class="csub">Detalle de incidencias</div><canvas id="c2"></canvas></div></div><div class="chart-row"><div class="chart-card"><h3>Análisis de Causa Raíz</h3><div class="csub">Por categoría</div><canvas id="c3"></canvas></div><div class="chart-card"><h3>Por Zona</h3><div class="csub">Distribución geográfica</div><canvas id="c4"></canvas></div></div><div class="chart-row"><div class="chart-card"><h3>Tipo de Servicio</h3><div class="csub">Aroma vs Intendencia</div><canvas id="c5"></canvas></div><div class="chart-card"><h3>Incidencias por Mes</h3><div class="csub">Tendencia temporal</div><canvas id="c6"></canvas></div></div><div class="chart-row"><div class="chart-card"><h3>Carta Convenio</h3><div class="csub">Distribución</div><canvas id="c7"></canvas></div><div class="chart-card"><h3>Status General</h3><div class="csub">Todos los estados</div><canvas id="c8"></canvas></div></div>';
+  a.innerHTML='<div class="chart-row"><div class="chart-card" id="chart1-card"><h3>Tipo de Incidencia</h3><div class="csub">Distribución por tipo</div><canvas id="c1"></canvas></div><div class="chart-card"><h3>Sub-Motivo</h3><div class="csub">Detalle de incidencias</div><canvas id="c2"></canvas></div></div><div class="chart-row"><div class="chart-card"><h3>Análisis de Causa Raíz</h3><div class="csub">Por categoría</div><canvas id="c3"></canvas></div><div class="chart-card"><h3>Por Zona</h3><div class="csub">Distribución geográfica</div><canvas id="c4"></canvas></div></div><div class="chart-row"><div class="chart-card"><h3>Tipo de Servicio</h3><div class="csub">Aroma vs Intendencia</div><canvas id="c5"></canvas></div><div class="chart-card"><h3>Incidencias por Mes</h3><div class="csub">Tendencia temporal</div><canvas id="c6"></canvas></div></div><div class="chart-row"><div class="chart-card"><h3>Carta Convenio</h3><div class="csub">Distribución</div><canvas id="c7"></canvas></div><div class="chart-card"><h3>Status General</h3><div class="csub">Todos los estados</div><canvas id="c8"></canvas></div></div><div class="chart-row"><div class="chart-card"><h3>NPS — Net Promoter Score</h3><div class="csub">Basado en CSAT de Tickets WhatsApp (1-5)</div><div id="nps-score" style="text-align:center;margin:10px 0"></div><canvas id="c9"></canvas></div><div class="chart-card"><h3>CSAT por Servicio</h3><div class="csub">Promedio de satisfacción por servicio</div><canvas id="c10"></canvas></div></div>';
   var c1Col='tipo_de_incidencia';
   var c1Title='Tipo de Incidencia';
   var c1Sub='Distribución por tipo';
@@ -364,6 +397,33 @@ function renderCharts(){
   chartInstances.c6=mkMonthBar('c6');
   chartInstances.c7=mkColBar('c7','carta_convenio');
   chartInstances.c8=mkColBar('c8','status');
+  chartInstances.c9=mkNPS('c9');
+  chartInstances.c10=mkCSATbyService('c10');
+}
+
+function mkNPS(id){
+  // NPS sobre escala CSAT 1-5: Promotores=5, Pasivos=4, Detractores=1-3
+  var scores=filtered.filter(r=>r._csat!=null).map(r=>Number(r._csat)).filter(n=>!isNaN(n)&&n>=1&&n<=5);
+  if(!scores.length){document.getElementById('nps-score').innerHTML='<span style="color:var(--text3);font-size:12px">Sin datos CSAT</span>';return null;}
+  var prom=scores.filter(n=>n===5).length,pas=scores.filter(n=>n===4).length,det=scores.filter(n=>n<=3).length;
+  var total=scores.length;
+  var nps=Math.round(((prom-det)/total)*100);
+  var npsColor=nps>=50?'var(--green)':nps>=0?'var(--amber)':'var(--red)';
+  document.getElementById('nps-score').innerHTML='<div style="font-size:48px;font-weight:800;color:'+npsColor+'">'+nps+'</div><div style="font-size:11px;color:var(--text2);margin-top:2px">Promotores: '+prom+' · Pasivos: '+pas+' · Detractores: '+det+' · Total: '+total+'</div>';
+  return new Chart(document.getElementById(id),{type:'doughnut',data:{labels:['Promotores (5)','Pasivos (4)','Detractores (1-3)'],datasets:[{data:[prom,pas,det],backgroundColor:['#059669','#d97706','#dc2626'],borderWidth:2,borderColor:'#fff'}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:11,family:'Inter'},padding:8,boxWidth:12}},tooltip:{callbacks:{label:function(ctx){return ctx.label+': '+ctx.raw+' ('+((ctx.raw/total)*100).toFixed(1)+'%)'}}}}}});
+}
+
+function mkCSATbyService(id){
+  var svc={};
+  filtered.forEach(r=>{
+    if(r._csat==null||!r.tipo_de_servicio)return;
+    var n=Number(r._csat);if(isNaN(n))return;
+    var s=r.tipo_de_servicio;
+    if(!svc[s])svc[s]={sum:0,cnt:0};svc[s].sum+=n;svc[s].cnt++;
+  });
+  var entries=Object.entries(svc).map(([k,v])=>({label:k,avg:+(v.sum/v.cnt).toFixed(2),cnt:v.cnt})).sort((a,b)=>b.avg-a.avg);
+  if(!entries.length)return null;
+  return new Chart(document.getElementById(id),{type:'bar',data:{labels:entries.map(e=>trn(e.label,20)),datasets:[{label:'Promedio CSAT',data:entries.map(e=>e.avg),backgroundColor:entries.map(e=>e.avg>=4.5?'#059669':e.avg>=3.5?'#2563eb':e.avg>=2.5?'#d97706':'#dc2626'),borderRadius:5}]},options:{responsive:true,indexAxis:'horizontal',plugins:{legend:{display:false},tooltip:{callbacks:{label:function(ctx){var e=entries[ctx.dataIndex];return'CSAT: '+e.avg+' ('+e.cnt+' respuestas)'}}}},scales:{x:{min:0,max:5,ticks:{font:{size:10},color:'#9ca3af'},grid:{color:'#f3f4f6'}},y:{ticks:{font:{size:10},color:'#9ca3af'},grid:{display:false}}}}});
 }
 
 function colCnt(col){var c={};filtered.forEach(r=>{var v=r[col];if(v!=null&&String(v).trim()!=='')c[v]=(c[v]||0)+1;});return Object.entries(c).sort((a,b)=>b[1]-a[1]);}
@@ -388,7 +448,7 @@ function mkMonthBar(id){
 
 function doConsulta(){
   var q=(document.getElementById('consulta-input').value||'').toLowerCase().trim(),res=filtered;
-  if(q){res=res.filter(r=>inc(r.folio_ticket,q)||inc(r.nombre_del_cliente_nuevo,q)||inc(r.propiedad,q)||inc(r.tipo_de_incidencia,q)||inc(r.submotvio,q)||inc(r.ejecutivo_asignado,q)||inc(r.zona,q)||inc(r.status,q)||inc(r.folio,q));}
+  if(q){res=res.filter(r=>inc(r.folio_ticket,q)||inc(r.nombre_del_cliente_nuevo,q)||inc(r.propiedad,q)||inc(r.tipo_de_incidencia,q)||inc(r.submotvio,q)||inc(r.ejecutivo_asignado,q)||inc(r.zona,q)||inc(r.status,q)||inc(r.folio,q)||inc(r.telefono,q)||inc(r.mensaje,q));}
   conPg=0;renderCon(res);
 }
 
@@ -434,20 +494,12 @@ function esc(s){var d=document.createElement('div');d.textContent=s;return d.inn
 // ═══════════════════════════════════════
 // TICKETS WHATSAPP
 // ═══════════════════════════════════════
-let tkAll=[],tkFiltered=[],tkPg=0,tkLoaded=false;
+let tkAll=[],tkFiltered=[],tkPg=0;
 const TK_LIM=50;
 
-async function loadTickets(){
-  if(!tkLoaded){
-    tkAll=[];let off=0;
-    while(true){
-      const{data,error}=await sb.from('tickets').select('*').order('created_at',{ascending:false}).range(off,off+999);
-      if(error){console.error('Error loading tickets:',error.message);break;}
-      if(!data.length)break;tkAll.push(...data);if(data.length<1000)break;off+=1000;
-    }
-    tkLoaded=true;tkBuildFilters();
-  }
-  tkApply();
+function loadTickets(){
+  tkAll=allData.filter(r=>r._source==='whatsapp').map(r=>r._tk);
+  tkBuildFilters();tkApply();
 }
 
 function tkBuildFilters(){
