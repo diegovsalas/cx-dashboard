@@ -103,6 +103,7 @@ table.dt tr:hover{background:#f9fafb;}
 <a class="nav-link on" data-page="dashboard" onclick="goPage('dashboard')">Dashboard</a>
 <a class="nav-link" data-page="consulta" onclick="goPage('consulta')">Consulta de Status</a>
 <a class="nav-link" data-page="registros" onclick="goPage('registros')">Todos los Registros</a>
+<a class="nav-link" data-page="tickets" onclick="goPage('tickets')">Tickets WhatsApp</a>
 </div>
 <div class="nav-right">
 <span class="nav-user" id="nav-user"></span>
@@ -133,6 +134,24 @@ table.dt tr:hover{background:#f9fafb;}
 <div class="page-content" id="page-registros" style="display:none">
 <div class="filter-bar" id="filters-reg"></div>
 <div id="reg-table"></div>
+</div>
+
+<div class="page-content" id="page-tickets" style="display:none">
+<div style="margin-bottom:16px;"><h2 style="font-size:22px;font-weight:800;">📱 Tickets WhatsApp</h2><p style="font-size:13px;color:var(--text2);margin-top:4px;">Tickets generados desde el bot de WhatsApp</p></div>
+<div class="filter-bar" id="filters-tickets">
+<span class="flabel" style="margin:0">Filtros:</span>
+<select id="tk-f-estatus" onchange="tkApply()"><option value="">Estatus: Todos</option></select>
+<select id="tk-f-servicio" onchange="tkApply()"><option value="">Servicio: Todos</option></select>
+<button class="btn-clear" onclick="tkClear()">Limpiar</button>
+<span class="active-filters" id="af-tickets"></span>
+</div>
+<div class="tbl-card">
+<div class="tbl-header"><h3 id="tk-count">0 tickets</h3><input class="tbl-search" id="tk-search" placeholder="Buscar por folio, teléfono, nombre, empresa..." oninput="tkApply()"></div>
+<div class="tbl-scroll"><table class="dt"><thead><tr>
+<th>Folio</th><th>Fecha</th><th>Teléfono</th><th>Nombre</th><th>Empresa</th><th>Servicio</th><th>Tipo</th><th>Categoría</th><th>Subtipo</th><th>Mensaje</th><th>Prioridad</th><th>Estatus</th><th>Agente</th><th>CSAT</th>
+</tr></thead><tbody id="tk-tbody"></tbody></table></div>
+<div class="pag"><span id="tk-pag-info"></span><div class="pag-btns"><button class="pbtn" id="tk-prev" onclick="tkPgPrev()">← Anterior</button><span id="tk-pag-num" style="padding:0 6px"></span><button class="pbtn" id="tk-next" onclick="tkPgNext()">Siguiente →</button></div></div>
+</div>
 </div>
 </div>
 
@@ -198,8 +217,9 @@ async function loadData(){
 function goPage(p){
   curPage=p;
   document.querySelectorAll('.nav-link').forEach(el=>{el.classList.toggle('on',el.dataset.page===p);});
-  ['dashboard','consulta','registros'].forEach(pg=>{document.getElementById('page-'+pg).style.display=pg===p?'':'none';});
+  ['dashboard','consulta','registros','tickets'].forEach(pg=>{document.getElementById('page-'+pg).style.display=pg===p?'':'none';});
   if(p==='registros'){tblPg=0;renderRegistros();}
+  if(p==='tickets')loadTickets();
 }
 
 function buildFilters(){['filters-dash','filters-consulta','filters-reg'].forEach(id=>buildFB(id));}
@@ -389,6 +409,83 @@ function sBadge(v){var l=v.toLowerCase(),c='bb';if(isRes(v))c='bg';else if(isPen
 function inc(v,q){return v!=null&&String(v).toLowerCase().includes(q);}
 function trn(s,n){return s.length>n?s.slice(0,n)+'…':s;}
 function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+// ═══════════════════════════════════════
+// TICKETS WHATSAPP
+// ═══════════════════════════════════════
+let tkAll=[],tkFiltered=[],tkPg=0,tkLoaded=false;
+const TK_LIM=50;
+
+async function loadTickets(){
+  if(!tkLoaded){
+    tkAll=[];let off=0;
+    while(true){
+      const{data,error}=await sb.from('tickets').select('*').order('created_at',{ascending:false}).range(off,off+999);
+      if(error){console.error('Error loading tickets:',error.message);break;}
+      if(!data.length)break;tkAll.push(...data);if(data.length<1000)break;off+=1000;
+    }
+    tkLoaded=true;tkBuildFilters();
+  }
+  tkApply();
+}
+
+function tkBuildFilters(){
+  var estatus=[...new Set(tkAll.map(r=>r.estatus).filter(v=>v!=null&&String(v).trim()!==''))].sort();
+  var servicios=[...new Set(tkAll.map(r=>r.servicio).filter(v=>v!=null&&String(v).trim()!==''))].sort();
+  var se=document.getElementById('tk-f-estatus'),ss=document.getElementById('tk-f-servicio');
+  se.innerHTML='<option value="">Estatus: Todos</option>'+estatus.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+  ss.innerHTML='<option value="">Servicio: Todos</option>'+servicios.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+}
+
+function tkApply(){
+  var fe=document.getElementById('tk-f-estatus').value,fs=document.getElementById('tk-f-servicio').value;
+  var q=(document.getElementById('tk-search').value||'').toLowerCase().trim();
+  tkFiltered=tkAll.filter(r=>{
+    if(fe&&r.estatus!==fe)return false;
+    if(fs&&r.servicio!==fs)return false;
+    if(q&&!inc(r.folio,q)&&!inc(r.telefono,q)&&!inc(r.nombre,q)&&!inc(r.empresa,q)&&!inc(r.servicio,q)&&!inc(r.tipo,q)&&!inc(r.categoria,q)&&!inc(r.mensaje,q)&&!inc(r.agente,q))return false;
+    return true;
+  });
+  var nf=(fe?1:0)+(fs?1:0);
+  document.getElementById('af-tickets').textContent=nf?nf+' filtro'+(nf>1?'s':'')+' · '+tkFiltered.length+' de '+tkAll.length+' tickets':'';
+  tkPg=0;tkRender();
+}
+
+function tkClear(){document.getElementById('tk-f-estatus').value='';document.getElementById('tk-f-servicio').value='';document.getElementById('tk-search').value='';tkApply();}
+
+function tkRender(){
+  var tp=Math.ceil(tkFiltered.length/TK_LIM),pg=tkFiltered.slice(tkPg*TK_LIM,(tkPg+1)*TK_LIM);
+  document.getElementById('tk-count').textContent=tkFiltered.length.toLocaleString()+' ticket'+(tkFiltered.length!==1?'s':'');
+  var h='';
+  pg.forEach(r=>{
+    h+='<tr>';
+    h+='<td>'+esc(r.folio||'—')+'</td>';
+    h+='<td>'+(r.created_at?esc(r.created_at.slice(0,10)):'<span class="null-v">—</span>')+'</td>';
+    h+='<td>'+esc(r.telefono||'—')+'</td>';
+    h+='<td>'+esc(trn(r.nombre||'—',24))+'</td>';
+    h+='<td>'+esc(trn(r.empresa||'—',22))+'</td>';
+    h+='<td>'+esc(r.servicio||'—')+'</td>';
+    h+='<td>'+esc(r.tipo||'—')+'</td>';
+    h+='<td>'+esc(r.categoria||'—')+'</td>';
+    h+='<td>'+esc(trn(r.subtipo||'—',20))+'</td>';
+    h+='<td title="'+esc(r.mensaje||'')+'">'+esc(trn(r.mensaje||'—',30))+'</td>';
+    h+='<td>'+(r.prioridad?tkPriBadge(r.prioridad):'<span class="null-v">—</span>')+'</td>';
+    h+='<td>'+(r.estatus?sBadge(r.estatus):'<span class="null-v">—</span>')+'</td>';
+    h+='<td>'+esc(r.agente||'—')+'</td>';
+    h+='<td>'+(r.csat!=null?esc(String(r.csat)):'<span class="null-v">—</span>')+'</td>';
+    h+='</tr>';
+  });
+  if(!pg.length)h='<tr><td colspan="14" style="text-align:center;padding:30px;color:var(--text3)">Sin tickets</td></tr>';
+  document.getElementById('tk-tbody').innerHTML=h;
+  document.getElementById('tk-pag-info').textContent=tkFiltered.length?(tkPg*TK_LIM+1)+'–'+Math.min((tkPg+1)*TK_LIM,tkFiltered.length)+' de '+tkFiltered.length:'';
+  document.getElementById('tk-pag-num').textContent=tp?(tkPg+1)+'/'+tp:'';
+  document.getElementById('tk-prev').disabled=tkPg===0;
+  document.getElementById('tk-next').disabled=tkPg>=tp-1;
+}
+
+function tkPriBadge(v){var l=String(v).toLowerCase(),c='bb';if(l.includes('alta')||l.includes('urgent'))c='br';else if(l.includes('media'))c='ba';else if(l.includes('baja'))c='bg';return'<span class="badge '+c+'">'+esc(v)+'</span>';}
+function tkPgPrev(){if(tkPg>0){tkPg--;tkRender();}}
+function tkPgNext(){var tp=Math.ceil(tkFiltered.length/TK_LIM);if(tkPg<tp-1){tkPg++;tkRender();}}
 
 checkSession();
 </script>
