@@ -938,58 +938,68 @@ function descargarGuia(){
   var W=800,H=800;
   var c=document.createElement('canvas');c.width=W;c.height=H;
   var ctx=c.getContext('2d');
-  // Background
-  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
-  // Green header bar
-  ctx.fillStyle='#25d366';ctx.fillRect(0,0,W,110);
-  ctx.fillStyle='#ffffff';ctx.font='bold 28px Inter, Arial, sans-serif';ctx.textAlign='center';
-  ctx.fillText('Grupo Avantex',W/2,45);
-  ctx.font='bold 20px Inter, Arial, sans-serif';
-  ctx.fillText('Reporte de Incidencias por WhatsApp',W/2,80);
-  // Number section
-  ctx.fillStyle='#111827';ctx.font='bold 22px Inter, Arial, sans-serif';
-  ctx.fillText('Escribe "Hola" al WhatsApp de soporte:',W/2,150);
-  ctx.fillStyle='#25d366';ctx.font='bold 36px Inter, Arial, sans-serif';
-  ctx.fillText('+52 449 156 1238',W/2,195);
-  // Steps
-  var steps=[
-    {n:'1',t:'Escribe "Hola"',d:'Envía un mensaje al número de soporte'},
-    {n:'2',t:'Identifícate',d:'Proporciona tu nombre, empresa y correo'},
-    {n:'3',t:'Selecciona servicio',d:'Elige el tipo de servicio e incidencia'},
-    {n:'4',t:'Describe tu problema',d:'Escribe los detalles. Se genera un folio automático'},
-    {n:'5',t:'Consulta tu ticket',d:'Escribe "Consultar" o tu folio para ver el estatus'}
-  ];
-  var startY=240;
-  steps.forEach(function(s,i){
-    var y=startY+i*82;
-    // Circle
-    ctx.fillStyle='#2563eb';ctx.beginPath();ctx.arc(80,y+20,22,0,Math.PI*2);ctx.fill();
-    ctx.fillStyle='#ffffff';ctx.font='bold 18px Inter, Arial, sans-serif';ctx.textAlign='center';
-    ctx.fillText(s.n,80,y+27);
-    // Text
-    ctx.textAlign='left';ctx.fillStyle='#111827';ctx.font='bold 18px Inter, Arial, sans-serif';
-    ctx.fillText(s.t,120,y+16);
-    ctx.fillStyle='#6b7280';ctx.font='14px Inter, Arial, sans-serif';
-    ctx.fillText(s.d,120,y+38);
-    // Line
-    if(i<steps.length-1){ctx.strokeStyle='#e5e7eb';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(80,y+42);ctx.lineTo(80,y+60);ctx.stroke();}
-  });
-  // QR section
-  var qrImg=new Image();qrImg.crossOrigin='anonymous';
-  qrImg.onload=function(){
-    ctx.drawImage(qrImg,W/2-60,650,120,120);
-    ctx.fillStyle='#6b7280';ctx.font='11px Inter, Arial, sans-serif';ctx.textAlign='center';
-    ctx.fillText('Escanea el QR para abrir el chat',W/2,788);
-    // Footer line
+
+  function dibujarContenido(logoImg,qrImg){
+    // Background
+    ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
+    // Green header bar
+    ctx.fillStyle='#25d366';ctx.fillRect(0,0,W,120);
+    // Logo Avantex in header
+    if(logoImg){
+      var lh=50,lw=logoImg.width*(lh/logoImg.height);
+      ctx.drawImage(logoImg,W/2-lw/2,10,lw,lh);
+    }
+    ctx.fillStyle='#ffffff';ctx.font='bold 20px Inter, Arial, sans-serif';ctx.textAlign='center';
+    ctx.fillText('Reporte de Incidencias por WhatsApp',W/2,92);
+    // Number section
+    ctx.fillStyle='#111827';ctx.font='bold 20px Inter, Arial, sans-serif';
+    ctx.fillText('Escribe "Hola" al WhatsApp de soporte:',W/2,158);
+    ctx.fillStyle='#25d366';ctx.font='bold 36px Inter, Arial, sans-serif';
+    ctx.fillText('+52 449 156 1238',W/2,200);
+    // Steps
+    var steps=[
+      {n:'1',t:'Escribe "Hola"',d:'Envía un mensaje al número de soporte'},
+      {n:'2',t:'Identifícate',d:'Proporciona tu nombre, empresa y correo'},
+      {n:'3',t:'Selecciona servicio',d:'Elige el tipo de servicio e incidencia'},
+      {n:'4',t:'Describe tu problema',d:'Escribe los detalles. Se genera un folio automático'},
+      {n:'5',t:'Consulta tu ticket',d:'Escribe "Consultar" o tu folio para ver el estatus'}
+    ];
+    var startY=245;
+    steps.forEach(function(s,i){
+      var y=startY+i*80;
+      ctx.fillStyle='#2563eb';ctx.beginPath();ctx.arc(80,y+20,22,0,Math.PI*2);ctx.fill();
+      ctx.fillStyle='#ffffff';ctx.font='bold 18px Inter, Arial, sans-serif';ctx.textAlign='center';
+      ctx.fillText(s.n,80,y+27);
+      ctx.textAlign='left';ctx.fillStyle='#111827';ctx.font='bold 18px Inter, Arial, sans-serif';
+      ctx.fillText(s.t,120,y+16);
+      ctx.fillStyle='#6b7280';ctx.font='14px Inter, Arial, sans-serif';
+      ctx.fillText(s.d,120,y+38);
+      if(i<steps.length-1){ctx.strokeStyle='#e5e7eb';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(80,y+42);ctx.lineTo(80,y+58);ctx.stroke();}
+    });
+    // QR
+    if(qrImg){
+      ctx.drawImage(qrImg,W/2-60,655,120,120);
+      ctx.fillStyle='#6b7280';ctx.font='11px Inter, Arial, sans-serif';ctx.textAlign='center';
+      ctx.fillText('Escanea el QR para abrir el chat',W/2,790);
+    }
+    // Footer
     ctx.fillStyle='#25d366';ctx.fillRect(0,H-4,W,4);
     // Download
     var link=document.createElement('a');link.download='Guia_Reporte_Incidencias_Avantex.png';link.href=c.toDataURL('image/png');link.click();
-  };
-  qrImg.onerror=function(){
-    // Download without QR if fails
-    ctx.fillStyle='#25d366';ctx.fillRect(0,H-4,W,4);
-    var link=document.createElement('a');link.download='Guia_Reporte_Incidencias_Avantex.png';link.href=c.toDataURL('image/png');link.click();
-  };
+  }
+
+  // Load logo + QR in parallel
+  var logo=null,qr=null,loaded=0,total=2;
+  function check(){loaded++;if(loaded>=total)dibujarContenido(logo,qr);}
+
+  var logoImg=new Image();logoImg.crossOrigin='anonymous';
+  logoImg.onload=function(){logo=logoImg;check();};
+  logoImg.onerror=function(){check();};
+  logoImg.src='https://grupoavantex.com/wp-content/uploads/2022/09/AX_Logo_oficial.png';
+
+  var qrImg=new Image();qrImg.crossOrigin='anonymous';
+  qrImg.onload=function(){qr=qrImg;check();};
+  qrImg.onerror=function(){check();};
   qrImg.src='https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https://wa.me/524491561238&color=25d366';
 }
 
