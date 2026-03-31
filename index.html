@@ -95,6 +95,11 @@ table.dt tr:hover{background:#f9fafb;}
 table.dt tbody tr.tk-row{cursor:pointer;}table.dt tbody tr.tk-row:hover{background:var(--blue-bg);}
 .status-select{padding:6px 10px;border:2px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;background:var(--surface);color:var(--text);min-width:160px;}
 .status-select:focus{border-color:var(--blue);outline:none;}
+.comment-area{width:100%;min-height:120px;padding:12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;color:var(--text);resize:vertical;background:#fff;line-height:1.5;}
+.comment-area:focus{border-color:var(--blue);outline:none;box-shadow:0 0 0 3px rgba(37,99,235,0.08);}
+.btn-save-comment{padding:8px 20px;background:var(--blue);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;margin-top:8px;}
+.btn-save-comment:hover{background:#1d4ed8;}
+.btn-save-comment:disabled{opacity:0.5;cursor:wait;}
 .status-msg{font-size:11px;margin-top:6px;font-weight:600;}
 .home-hero{text-align:center;padding:40px 0 30px;}.home-hero h1{font-size:28px;font-weight:800;margin-bottom:8px;}.home-hero p{font-size:15px;color:var(--text2);max-width:600px;margin:0 auto;}
 .home-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin:30px 0;}
@@ -672,10 +677,29 @@ function regOpenModal(idx){
   }
   h+='</div></div>';
   // Monto de cancelación si aplica
-  if(r.tipo_de_solicitud&&r.tipo_de_solicitud.toLowerCase().includes('cancelac')&&r.facturacin_sin_iva!=null){
+  var isCancelacion=r.tipo_de_solicitud&&r.tipo_de_solicitud.toLowerCase().includes('cancelac');
+  if(isCancelacion&&r.facturacin_sin_iva!=null){
     h+='<div class="detail-item full"><div class="detail-label">Facturación sin IVA</div><div class="detail-val" style="font-size:18px;font-weight:700;color:var(--red)">$'+Number(r.facturacin_sin_iva).toLocaleString('es-MX',{minimumFractionDigits:2})+'</div></div>';
   }
+  // Status cancelación editable para admin en cancelaciones
+  if(isCancelacion){
+    var curStCanc=r.status_cancelacion||'';
+    h+='<div class="detail-item full" style="background:#fef2f2;padding:16px;border-radius:10px;margin-bottom:8px">';
+    h+='<div class="detail-label">Status Cancelación</div>';
+    h+='<div style="display:flex;align-items:center;gap:12px;margin-top:4px">';
+    if(isAdmin()){
+      h+='<select class="status-select" id="reg-stcanc-sel" onchange="regChangeStCanc()">';
+      ['Negociacion','Retenida','Cancelada'].forEach(s=>{h+='<option value="'+s+'"'+(curStCanc.toLowerCase()===s.toLowerCase()?' selected':'')+'>'+s+'</option>';});
+      if(curStCanc&&!['negociacion','retenida','cancelada'].includes(curStCanc.toLowerCase())){h+='<option value="'+esc(curStCanc)+'" selected>'+esc(curStCanc)+'</option>';}
+      h+='</select>';
+      h+='<span class="status-msg" id="reg-stcanc-msg"></span>';
+    } else {
+      h+=sBadge(curStCanc||'Sin status');
+    }
+    h+='</div></div>';
+  }
   fields.forEach(f=>{
+    if(f.l==='Comentarios')return;
     h+='<div class="detail-item'+(f.full?' full':'')+'">';
     h+='<div class="detail-label">'+f.l+'</div>';
     if(!f.v&&f.v!==0)h+='<div class="detail-val empty">Sin datos</div>';
@@ -683,10 +707,73 @@ function regOpenModal(idx){
     else h+='<div class="detail-val">'+esc(String(f.v))+'</div>';
     h+='</div>';
   });
+  // Comentarios de seguimiento — editable para admin
+  var comentarios=r.comentarios_de_seguimiento||'';
+  h+='<div class="detail-item full" style="margin-top:12px">';
+  h+='<div class="detail-label">Comentarios de Seguimiento</div>';
+  if(isAdmin()){
+    h+='<textarea class="comment-area" id="reg-comentarios">'+esc(comentarios)+'</textarea>';
+    h+='<div style="display:flex;align-items:center;gap:12px"><button class="btn-save-comment" id="reg-save-comment" onclick="regSaveComment()"><i class="fa-solid fa-floppy-disk"></i> Guardar comentarios</button>';
+    h+='<span class="status-msg" id="reg-comment-msg"></span></div>';
+  } else {
+    if(comentarios)h+='<div class="detail-val" style="white-space:pre-wrap">'+esc(comentarios)+'</div>';
+    else h+='<div class="detail-val empty">Sin comentarios</div>';
+  }
+  h+='</div>';
   h+='</div>';
   document.getElementById('tk-modal-body').innerHTML=h;
   document.getElementById('tk-modal').classList.add('on');
   document.body.style.overflow='hidden';
+}
+
+async function regChangeStCanc(){
+  var r=regDisplayed[_regModalIdx];if(!r)return;
+  var newVal=document.getElementById('reg-stcanc-sel').value;
+  var msgEl=document.getElementById('reg-stcanc-msg');
+  msgEl.textContent='Guardando...';msgEl.style.color='var(--blue)';
+  try{
+    var id=r.id;
+    if(id){
+      const{error}=await sb.from('base_general').update({status_cancelacion:newVal}).eq('id',id);
+      if(error)throw error;
+    }
+    r.status_cancelacion=newVal;
+    msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';
+    setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
+  }catch(e){
+    msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
+  }
+}
+
+async function regSaveComment(){
+  var r=regDisplayed[_regModalIdx];if(!r)return;
+  var newComment=document.getElementById('reg-comentarios').value;
+  var msgEl=document.getElementById('reg-comment-msg');
+  var btn=document.getElementById('reg-save-comment');
+  btn.disabled=true;msgEl.textContent='Guardando...';msgEl.style.color='var(--blue)';
+  try{
+    var isWA=r._source==='whatsapp';
+    if(isWA){
+      var folio=r.folio_ticket||r.folio;
+      if(folio){
+        const{error}=await sb.from('tickets').update({comentarios:newComment}).eq('folio',folio);
+        if(error)throw error;
+      }
+    } else {
+      var id=r.id;
+      if(id){
+        const{error}=await sb.from('base_general').update({comentarios_de_seguimiento:newComment}).eq('id',id);
+        if(error)throw error;
+      }
+    }
+    r.comentarios_de_seguimiento=newComment;
+    if(isWA&&r._tk)r._tk.comentarios=newComment;
+    msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';
+    setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
+  }catch(e){
+    msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
+  }
+  btn.disabled=false;
 }
 
 async function regChangeStatus(){
