@@ -175,10 +175,29 @@ table.dt tbody tr.tk-row{cursor:pointer;}table.dt tbody tr.tk-row:hover{backgrou
 <button class="hbtn" onclick="goPage('registros')">Ver Registros</button>
 </div>
 </div>
+<div class="flow-section" style="text-align:center;background:linear-gradient(135deg,#f0fdf4,#ecfdf5);">
+<h2><i class="fa-brands fa-whatsapp" style="color:#25d366"></i> Línea de Soporte WhatsApp</h2>
+<p style="font-size:14px;color:var(--text2);margin:8px 0 18px;">Comparte este número con tus clientes para que reporten incidencias</p>
+<div style="display:flex;align-items:center;justify-content:center;gap:30px;flex-wrap:wrap;">
+<div>
+<div style="font-size:32px;font-weight:800;color:#25d366;letter-spacing:1px;">+52 449 156 1238</div>
+<a href="https://wa.me/524491561238" target="_blank" style="display:inline-block;margin-top:10px;padding:10px 24px;background:#25d366;color:#fff;border-radius:10px;text-decoration:none;font-size:13px;font-weight:600;"><i class="fa-brands fa-whatsapp"></i> Abrir WhatsApp</a>
+</div>
+<div style="background:#fff;padding:12px;border-radius:12px;border:1px solid var(--border);">
+<img src="https://api.qrserver.com/v1/create-qr-code/?size=160x160&data=https://wa.me/524491561238&color=25d366" alt="QR WhatsApp" style="display:block;width:160px;height:160px;">
+<div style="font-size:10px;color:var(--text3);margin-top:6px;text-align:center;">Escanea para abrir chat</div>
+</div>
+</div>
+<div style="margin-top:20px;">
+<button class="hbtn" style="background:#25d366;font-size:13px;padding:10px 28px;" onclick="descargarGuia()"><i class="fa-solid fa-download"></i> Descargar Guía para Clientes</button>
+<p style="font-size:10px;color:var(--text3);margin-top:6px;">Imagen optimizada para compartir por WhatsApp (800x800)</p>
+</div>
+</div>
+
 <div class="flow-section">
 <h2>¿Cómo funciona el reporte de incidencias?</h2>
 <div class="flow-steps">
-<div class="flow-step"><div class="snum">1</div><h4>Contacto</h4><p>El cliente escribe <strong>"Hola"</strong> al WhatsApp de soporte Avantex</p></div>
+<div class="flow-step"><div class="snum">1</div><h4>Contacto</h4><p>El cliente escribe <strong>"Hola"</strong> al <strong>+52 449 156 1238</strong></p></div>
 <div class="flow-arrow">→</div>
 <div class="flow-step"><div class="snum">2</div><h4>Identificación</h4><p>El bot solicita <strong>nombre, empresa y correo</strong> para registrar al cliente</p></div>
 <div class="flow-arrow">→</div>
@@ -195,7 +214,7 @@ table.dt tbody tr.tk-row{cursor:pointer;}table.dt tbody tr.tk-row:hover{backgrou
 <div style="padding:14px;border:1px solid var(--border);border-radius:10px;">
 <div style="font-size:20px;margin-bottom:6px;"><i class="fa-solid fa-plus-circle" style="color:#25d366"></i></div>
 <h4 style="font-size:13px;font-weight:700;margin-bottom:4px;">Crear Ticket</h4>
-<p style="font-size:11px;color:var(--text2);">Escribe <strong>"Hola"</strong> para iniciar el flujo guiado de reporte de incidencia.</p>
+<p style="font-size:11px;color:var(--text2);">Escribe <strong>"Hola"</strong> al <strong>+52 449 156 1238</strong> para iniciar el flujo guiado.</p>
 </div>
 <div style="padding:14px;border:1px solid var(--border);border-radius:10px;">
 <div style="font-size:20px;margin-bottom:6px;"><i class="fa-solid fa-magnifying-glass" style="color:var(--blue)"></i></div>
@@ -914,6 +933,65 @@ async function tkChangeStatus(){
 }
 function tkCloseModal(){document.getElementById('tk-modal').classList.remove('on');document.body.style.overflow='';}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')tkCloseModal();});
+
+function descargarGuia(){
+  var W=800,H=800;
+  var c=document.createElement('canvas');c.width=W;c.height=H;
+  var ctx=c.getContext('2d');
+  // Background
+  ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
+  // Green header bar
+  ctx.fillStyle='#25d366';ctx.fillRect(0,0,W,110);
+  ctx.fillStyle='#ffffff';ctx.font='bold 28px Inter, Arial, sans-serif';ctx.textAlign='center';
+  ctx.fillText('Grupo Avantex',W/2,45);
+  ctx.font='bold 20px Inter, Arial, sans-serif';
+  ctx.fillText('Reporte de Incidencias por WhatsApp',W/2,80);
+  // Number section
+  ctx.fillStyle='#111827';ctx.font='bold 22px Inter, Arial, sans-serif';
+  ctx.fillText('Escribe "Hola" al WhatsApp de soporte:',W/2,150);
+  ctx.fillStyle='#25d366';ctx.font='bold 36px Inter, Arial, sans-serif';
+  ctx.fillText('+52 449 156 1238',W/2,195);
+  // Steps
+  var steps=[
+    {n:'1',t:'Escribe "Hola"',d:'Envía un mensaje al número de soporte'},
+    {n:'2',t:'Identifícate',d:'Proporciona tu nombre, empresa y correo'},
+    {n:'3',t:'Selecciona servicio',d:'Elige el tipo de servicio e incidencia'},
+    {n:'4',t:'Describe tu problema',d:'Escribe los detalles. Se genera un folio automático'},
+    {n:'5',t:'Consulta tu ticket',d:'Escribe "Consultar" o tu folio para ver el estatus'}
+  ];
+  var startY=240;
+  steps.forEach(function(s,i){
+    var y=startY+i*82;
+    // Circle
+    ctx.fillStyle='#2563eb';ctx.beginPath();ctx.arc(80,y+20,22,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#ffffff';ctx.font='bold 18px Inter, Arial, sans-serif';ctx.textAlign='center';
+    ctx.fillText(s.n,80,y+27);
+    // Text
+    ctx.textAlign='left';ctx.fillStyle='#111827';ctx.font='bold 18px Inter, Arial, sans-serif';
+    ctx.fillText(s.t,120,y+16);
+    ctx.fillStyle='#6b7280';ctx.font='14px Inter, Arial, sans-serif';
+    ctx.fillText(s.d,120,y+38);
+    // Line
+    if(i<steps.length-1){ctx.strokeStyle='#e5e7eb';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(80,y+42);ctx.lineTo(80,y+60);ctx.stroke();}
+  });
+  // QR section
+  var qrImg=new Image();qrImg.crossOrigin='anonymous';
+  qrImg.onload=function(){
+    ctx.drawImage(qrImg,W/2-60,650,120,120);
+    ctx.fillStyle='#6b7280';ctx.font='11px Inter, Arial, sans-serif';ctx.textAlign='center';
+    ctx.fillText('Escanea el QR para abrir el chat',W/2,788);
+    // Footer line
+    ctx.fillStyle='#25d366';ctx.fillRect(0,H-4,W,4);
+    // Download
+    var link=document.createElement('a');link.download='Guia_Reporte_Incidencias_Avantex.png';link.href=c.toDataURL('image/png');link.click();
+  };
+  qrImg.onerror=function(){
+    // Download without QR if fails
+    ctx.fillStyle='#25d366';ctx.fillRect(0,H-4,W,4);
+    var link=document.createElement('a');link.download='Guia_Reporte_Incidencias_Avantex.png';link.href=c.toDataURL('image/png');link.click();
+  };
+  qrImg.src='https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https://wa.me/524491561238&color=25d366';
+}
 
 checkSession();
 </script>
