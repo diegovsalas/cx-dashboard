@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Guia WhatsApp — Grupo Avantex</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{--charcoal:#3D4148;--blue:#0D8BF2;--blue-dark:#0A6FC2;--blue-light:#EBF5FF;--gray:#6B7280;--gray-light:#F3F4F6;--green-bg:#ECFDF5;--green-border:#059669;--amber-bg:#FFFBEB;--amber-border:#D97706;--red-bg:#FEF2F2;--red-border:#DC2626;--white:#FFFFFF;--font:'Plus Jakarta Sans',system-ui,sans-serif}
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#F9FAFB;color:var(--charcoal);font-family:var(--font);line-height:1.7;-webkit-font-smoothing:antialiased}
+.top-bar{background:var(--charcoal);padding:14px 0;position:sticky;top:0;z-index:50;box-shadow:0 2px 12px rgba(0,0,0,.15)}
+.top-bar-inner{max-width:900px;margin:0 auto;padding:0 24px;display:flex;align-items:center;justify-content:space-between}
+.top-bar img{height:28px}
+.top-bar a{color:rgba(255,255,255,.7);text-decoration:none;font-size:13px;font-weight:500;transition:color .2s}
+.top-bar a:hover{color:#fff}
+.hero{background:linear-gradient(135deg,var(--charcoal) 0%,#2a2d33 100%);padding:80px 24px 60px;text-align:center;position:relative;overflow:hidden}
+.hero::after{content:'';position:absolute;bottom:0;left:0;right:0;height:6px;background:linear-gradient(90deg,var(--blue),#3b82f6,var(--blue))}
+.hero-badge{display:inline-block;font-size:11px;letter-spacing:3px;text-transform:uppercase;color:var(--blue);background:rgba(13,139,242,.1);border:1px solid rgba(13,139,242,.25);padding:6px 16px;border-radius:100px;margin-bottom:20px;font-weight:600}
+.hero h1{font-size:clamp(28px,5vw,42px);font-weight:700;color:#fff;margin-bottom:10px}
+.hero p{font-size:18px;color:rgba(255,255,255,.6);max-width:600px;margin:0 auto}
+.container{max-width:900px;margin:0 auto;padding:40px 24px 80px}
+.toc{background:var(--white);border:1px solid #E5E7EB;border-radius:16px;padding:28px 32px;margin-bottom:40px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.toc-title{font-size:13px;letter-spacing:2px;text-transform:uppercase;color:var(--gray);font-weight:600;margin-bottom:14px}
+.toc-grid{display:grid;grid-template-columns:1fr 1fr;gap:6px 24px}
+.toc a{color:var(--charcoal);text-decoration:none;font-size:14px;padding:6px 0;display:block;border-bottom:1px solid transparent;transition:all .2s}
+.toc a:hover{color:var(--blue);border-bottom-color:var(--blue)}
+.toc a span{color:var(--blue);font-weight:600;margin-right:6px}
+.section{background:var(--white);border:1px solid #E5E7EB;border-radius:16px;padding:32px;margin-bottom:24px;box-shadow:0 1px 3px rgba(0,0,0,.04)}
+.section-number{font-size:12px;letter-spacing:2px;text-transform:uppercase;color:var(--blue);font-weight:700;margin-bottom:6px}
+.section h2{font-size:22px;font-weight:700;color:var(--charcoal);margin-bottom:6px;padding-bottom:12px;border-bottom:2px solid var(--blue)}
+.section h3{font-size:17px;font-weight:600;color:var(--blue-dark);margin:24px 0 10px}
+.section p{margin-bottom:14px;font-size:15px;color:#4B5563}
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+th{background:var(--charcoal);color:#fff;padding:10px 14px;text-align:left;font-weight:600;font-size:13px}
+th:first-child{border-radius:8px 0 0 0}th:last-child{border-radius:0 8px 0 0}
+td{padding:10px 14px;border-bottom:1px solid #E5E7EB;color:#4B5563}
+tr:nth-child(even) td{background:var(--gray-light)}
+tr:last-child td:first-child{border-radius:0 0 0 8px}tr:last-child td:last-child{border-radius:0 0 8px 0}
+td strong{color:var(--charcoal)}
+.callout{border-left:4px solid;border-radius:0 10px 10px 0;padding:16px 20px;margin:16px 0;font-size:14px}
+.callout-blue{background:var(--blue-light);border-color:var(--blue)}
+.callout-green{background:var(--green-bg);border-color:var(--green-border)}
+.callout-amber{background:var(--amber-bg);border-color:var(--amber-border)}
+.callout-red{background:var(--red-bg);border-color:var(--red-border)}
+.callout strong{display:block;margin-bottom:4px;color:var(--charcoal)}
+.callout em{color:#374151;font-style:italic}
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:16px 0}
+.col-card{border:1px solid #E5E7EB;border-radius:12px;padding:20px;font-size:14px}
+.col-card h4{font-size:14px;font-weight:700;margin-bottom:8px}
+.col-card.blue{background:var(--blue-light);border-color:rgba(13,139,242,.2)}
+.col-card.blue h4{color:var(--blue-dark)}
+.col-card.neutral h4{color:var(--charcoal)}
+.wa-number{display:inline-flex;align-items:center;gap:8px;background:var(--green-bg);border:1px solid rgba(5,150,105,.2);padding:8px 18px;border-radius:100px;font-weight:700;color:#065F46;font-size:15px;margin:8px 0}
+.tag-before{background:var(--red-bg);color:#991B1B;font-size:12px;padding:3px 10px;border-radius:100px;font-weight:600;display:inline-block}
+.tag-after{background:var(--green-bg);color:#065F46;font-size:12px;padding:3px 10px;border-radius:100px;font-weight:600;display:inline-block}
+.footer{text-align:center;padding:40px 24px;color:var(--gray);font-size:13px}
+.footer img{height:24px;margin-bottom:10px;opacity:.5}
+.back-top{position:fixed;bottom:24px;right:24px;background:var(--blue);color:#fff;width:44px;height:44px;border-radius:50%;display:flex;align-items:center;justify-content:center;text-decoration:none;font-size:20px;box-shadow:0 4px 12px rgba(13,139,242,.3);opacity:0;transition:opacity .3s;z-index:40}
+.back-top.show{opacity:1}
+@media(max-width:640px){.two-col,.toc-grid{grid-template-columns:1fr}.section{padding:24px 20px}.hero{padding:60px 20px 40px}}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+<div class="top-bar-inner">
+<img src="https://grupoavantex.com/wp-content/uploads/2022/09/AX_Logo_oficial.png" alt="Grupo Avantex">
+<a href="index.html">Volver al Dashboard</a>
+</div>
+</div>
+
+<div class="hero">
+<div class="hero-badge">Guia Interna</div>
+<h1>Nuevo Proceso de Reporte de Incidencias</h1>
+<p>Todo lo que necesitas saber para orientar a los clientes en el reporte de quejas e incidencias por WhatsApp</p>
+</div>
+
+<div class="container">
+
+<div class="toc">
+<div class="toc-title">Contenido</div>
+<div class="toc-grid">
+<a href="#contexto"><span>01</span> Contexto y objetivo</a>
+<a href="#numero"><span>02</span> Numero de WhatsApp</a>
+<a href="#flujo"><span>03</span> Flujo del cliente paso a paso</a>
+<a href="#cancelacion"><span>04</span> Solicitudes de cancelacion</a>
+<a href="#consulta"><span>05</span> Consulta de status</a>
+<a href="#agente"><span>06</span> Solicitar agente humano</a>
+<a href="#dashboard"><span>07</span> Dashboard CX</a>
+<a href="#roles"><span>08</span> Roles y permisos</a>
+<a href="#faq"><span>09</span> Preguntas frecuentes</a>
+<a href="#contacto"><span>10</span> Contacto interno</a>
+</div>
+</div>
+
+<!-- 01 -->
+<div class="section" id="contexto">
+<div class="section-number">01</div>
+<h2>Contexto y objetivo</h2>
+<p>Grupo Avantex ha implementado un <strong>bot de WhatsApp</strong> como canal principal para recibir reportes de incidencias, quejas y solicitudes de cancelacion de servicio por parte de los clientes.</p>
+<div class="two-col">
+<div class="col-card neutral">
+<h4><span class="tag-before">Antes</span></h4>
+<p>Los clientes reportaban por llamada, correo o directamente a su vendedor/tecnico. No habia un proceso estandarizado ni trazabilidad clara.</p>
+</div>
+<div class="col-card blue">
+<h4><span class="tag-after">Ahora</span></h4>
+<p>Todos los reportes se canalizan por WhatsApp. Se genera un <strong>folio automatico</strong>, se clasifica la incidencia y se asigna a un agente. Todo queda registrado en el Dashboard CX.</p>
+</div>
+</div>
+<div class="callout callout-blue">
+<strong>Tu rol como equipo interno</strong>
+<em>Cuando un cliente te contacte (por llamada, en campo, por correo) para reportar una queja o incidencia, orientalo a escribir al WhatsApp de soporte. Puedes compartirle la guia visual o el numero directamente.</em>
+</div>
+</div>
+
+<!-- 02 -->
+<div class="section" id="numero">
+<div class="section-number">02</div>
+<h2>Numero de WhatsApp de Soporte</h2>
+<p>Este es el numero al que los clientes deben escribir para reportar incidencias:</p>
+<div class="wa-number">WhatsApp: +52 449 156 1238</div>
+<p>Enlace directo: <a href="https://wa.me/524491561238" target="_blank" style="color:var(--blue);font-weight:600">wa.me/524491561238</a></p>
+<div style="margin:20px 0;text-align:center">
+<img src="https://api.qrserver.com/v1/create-qr-code/?size=180x180&data=https://wa.me/524491561238&color=059669" alt="QR WhatsApp" style="border-radius:12px;border:1px solid #E5E7EB;padding:12px;background:#fff">
+<p style="font-size:12px;color:var(--gray);margin-top:8px">Escanea para abrir el chat de soporte</p>
+</div>
+<div class="callout callout-green">
+<strong>Comparte este numero</strong>
+<em>Puedes descargar la guia visual para clientes desde la pagina de Inicio del Dashboard CX y enviarla por WhatsApp a tus clientes.</em>
+</div>
+</div>
+
+<!-- 03 -->
+<div class="section" id="flujo">
+<div class="section-number">03</div>
+<h2>Flujo del cliente paso a paso</h2>
+<p>Cuando un cliente escribe <strong>"Hola"</strong> al numero de soporte, el bot lo guia por el siguiente proceso:</p>
+<table>
+<tr><th>Paso</th><th>Que sucede</th><th>Que hace el cliente</th></tr>
+<tr><td><strong>1. Saludo</strong></td><td>El bot da la bienvenida y pregunta el nombre</td><td>Escribe su nombre completo</td></tr>
+<tr><td><strong>2. Empresa</strong></td><td>El bot pregunta el nombre de la empresa</td><td>Escribe el nombre de su empresa o razon social</td></tr>
+<tr><td><strong>3. Correo</strong></td><td>El bot solicita un correo de contacto</td><td>Proporciona su correo electronico</td></tr>
+<tr><td><strong>4. Servicio</strong></td><td>El bot muestra un menu interactivo de servicios</td><td>Selecciona el servicio (Aromatex, Intendencia, etc.)</td></tr>
+<tr><td><strong>5. Tipo</strong></td><td>El bot muestra tipos de incidencia segun el servicio</td><td>Selecciona el tipo de problema</td></tr>
+<tr><td><strong>6. Categoria</strong></td><td>El bot muestra categorias especificas</td><td>Selecciona la categoria y subtipo</td></tr>
+<tr><td><strong>7. Descripcion</strong></td><td>El bot pide que describa el problema</td><td>Escribe los detalles de la incidencia</td></tr>
+<tr><td><strong>8. Folio</strong></td><td>Se genera un folio automatico (ej: A0015)</td><td>Recibe confirmacion con folio y resumen</td></tr>
+</table>
+<div class="callout callout-amber">
+<strong>Importante</strong>
+<em>Si el cliente ya ha reportado antes, el bot lo reconoce automaticamente por su numero de telefono y no le vuelve a pedir nombre ni empresa.</em>
+</div>
+</div>
+
+<!-- 04 -->
+<div class="section" id="cancelacion">
+<div class="section-number">04</div>
+<h2>Solicitudes de cancelacion</h2>
+<p>Cuando un cliente expresa que quiere <strong>cancelar el servicio</strong>, se activa un flujo especial:</p>
+<table>
+<tr><th>Paso</th><th>Que sucede</th></tr>
+<tr><td><strong>1. Deteccion</strong></td><td>El bot detecta palabras clave como "cancelar", "baja", "rescindir"</td></tr>
+<tr><td><strong>2. Confirmacion</strong></td><td>El bot pregunta: "Quieres cancelar de forma definitiva? Responde si o no"</td></tr>
+<tr><td><strong>3. Nombre</strong></td><td>Si no lo tiene, pide nombre completo del cliente</td></tr>
+<tr><td><strong>4. Empresa</strong></td><td>Solicita nombre de empresa o razon social</td></tr>
+<tr><td><strong>5. Motivo</strong></td><td>Pregunta el motivo de cancelacion</td></tr>
+<tr><td><strong>6. Registro</strong></td><td>Se genera folio, se crea ticket con prioridad Alta y se asigna a agente</td></tr>
+<tr><td><strong>7. Clausulas</strong></td><td>Se le informa sobre aviso de cancelacion (30 dias) y penalizacion anticipada (2 meses)</td></tr>
+</table>
+<div class="callout callout-red">
+<strong>Retencion</strong>
+<em>Las solicitudes de cancelacion llegan como prioridad Alta al dashboard. El agente asignado debe contactar al cliente lo antes posible para intentar la retencion. El status de cancelacion puede ser: En negociacion, Retenido o Cancelado.</em>
+</div>
+</div>
+
+<!-- 05 -->
+<div class="section" id="consulta">
+<div class="section-number">05</div>
+<h2>Consulta de status</h2>
+<p>Los clientes pueden consultar el estado de su ticket en cualquier momento:</p>
+<div class="two-col">
+<div class="col-card blue">
+<h4>Opcion 1: Escribir "Consultar"</h4>
+<p>El bot busca tickets activos asociados a su numero de telefono y muestra el estatus.</p>
+</div>
+<div class="col-card blue">
+<h4>Opcion 2: Escribir el folio</h4>
+<p>Ejemplo: <strong>A0015</strong> o <strong>TKT-0001</strong>. El bot busca directamente por folio y muestra los detalles.</p>
+</div>
+</div>
+</div>
+
+<!-- 06 -->
+<div class="section" id="agente">
+<div class="section-number">06</div>
+<h2>Solicitar agente humano</h2>
+<p>Si el cliente necesita hablar con una persona, puede escribir:</p>
+<p><strong>"Agente"</strong>, <strong>"Asesor"</strong>, <strong>"Quiero hablar con un agente"</strong> o frases similares.</p>
+<div class="callout callout-blue">
+<strong>Que pasa cuando solicita agente?</strong>
+<em>Se genera una alerta en el Dashboard de Chat. El agente disponible recibe una notificacion sonora y del navegador. El agente toma el control de la conversacion y puede responder directamente desde el dashboard.</em>
+</div>
+</div>
+
+<!-- 07 -->
+<div class="section" id="dashboard">
+<div class="section-number">07</div>
+<h2>Dashboard CX</h2>
+<p>El Dashboard CX es la plataforma donde se visualiza toda la informacion de incidencias y tickets:</p>
+<table>
+<tr><th>Seccion</th><th>Que contiene</th></tr>
+<tr><td><strong>Inicio</strong></td><td>Guia del proceso, numero de WhatsApp, QR y descarga de guia visual para clientes</td></tr>
+<tr><td><strong>Dashboard</strong></td><td>KPIs, graficas de tendencias, NPS, CSAT, distribucion por tipo/servicio/zona</td></tr>
+<tr><td><strong>Registros</strong></td><td>Todos los registros (base general + tickets WhatsApp) con busqueda y filtros. Clic en un registro abre el detalle completo</td></tr>
+<tr><td><strong>Cancelaciones</strong></td><td>Vista dedicada de solicitudes de cancelacion con KPIs de monto (Cancelado/Retenido/En negociacion)</td></tr>
+<tr><td><strong>Tickets WhatsApp</strong></td><td>Tickets generados desde el bot con detalle completo, selector de zona y edicion de status</td></tr>
+<tr><td><strong>Chat Agentes</strong></td><td>Dashboard operativo con chat en vivo, kanban y estadisticas en tiempo real (solo admin)</td></tr>
+</table>
+</div>
+
+<!-- 08 -->
+<div class="section" id="roles">
+<div class="section-number">08</div>
+<h2>Roles y permisos</h2>
+<table>
+<tr><th>Rol</th><th>Usuario</th><th>Permisos</th></tr>
+<tr><td><strong>Administrador</strong></td><td>servicioalcliente@grupoavantex.com</td><td>Acceso completo: editar status, ver Chat Agentes, todos los dashboards</td></tr>
+<tr><td><strong>Consulta</strong></td><td>cobranza@grupoavantex.com, comercial@grupoavantex.com, otros</td><td>Solo lectura: ver dashboards, registros, tickets. No puede editar status ni acceder al Chat</td></tr>
+</table>
+<div class="callout callout-amber">
+<strong>Acceso</strong>
+<em>Para solicitar acceso al Dashboard CX, contacta a servicioalcliente@grupoavantex.com. Se te creara una cuenta con el rol correspondiente.</em>
+</div>
+</div>
+
+<!-- 09 -->
+<div class="section" id="faq">
+<div class="section-number">09</div>
+<h2>Preguntas frecuentes</h2>
+
+<h3>Un cliente me llama para reportar una queja, que hago?</h3>
+<p>Orientalo a escribir <strong>"Hola"</strong> al <strong>+52 449 156 1238</strong>. Puedes compartirle la guia visual descargable desde el Dashboard. Si el cliente no puede usar WhatsApp, puedes escalar al equipo de servicio al cliente.</p>
+
+<h3>Un tecnico en campo recibe una queja, que hace?</h3>
+<p>Le comparte el numero de soporte al cliente para que reporte directamente. Si es urgente, puede notificar internamente al equipo de servicio al cliente.</p>
+
+<h3>Un vendedor recibe queja de un cliente cautivo, que hace?</h3>
+<p>Comparte el numero de WhatsApp de soporte y la guia visual. El proceso asegura trazabilidad y que la incidencia se atienda correctamente.</p>
+
+<h3>Las conversaciones se pierden cuando el servidor se reinicia?</h3>
+<p>No. Los mensajes se guardan en Supabase y se restauran automaticamente cuando el servidor se reinicia.</p>
+
+<h3>Puedo ver el historial de conversaciones de un cliente?</h3>
+<p>Si eres administrador, puedes ver el historial completo desde el Chat de Agentes. Los tickets y registros estan disponibles para todos los usuarios en el Dashboard CX.</p>
+
+<h3>Como se calcula el NPS?</h3>
+<p>Basado en la encuesta CSAT (1-5) que se envia al cerrar un ticket. Promotores = 5, Pasivos = 4, Detractores = 1-3. NPS = % Promotores - % Detractores.</p>
+</div>
+
+<!-- 10 -->
+<div class="section" id="contacto">
+<div class="section-number">10</div>
+<h2>Contacto interno</h2>
+<p>Para dudas sobre el proceso, soporte tecnico o solicitudes de acceso:</p>
+<div class="callout callout-green">
+<strong>Equipo de Servicio al Cliente</strong>
+<em>Correo: servicioalcliente@grupoavantex.com</em>
+</div>
+</div>
+
+</div>
+
+<div class="footer">
+<img src="https://grupoavantex.com/wp-content/uploads/2022/09/AX_Logo_oficial.png" alt="Avantex">
+<p>Grupo Avantex &mdash; Customer Experience</p>
+<p>Documento interno. Actualizado marzo 2026.</p>
+</div>
+
+<a href="#" class="back-top" id="backTop">&uarr;</a>
+
+<script>
+window.addEventListener('scroll',function(){
+  var btn=document.getElementById('backTop');
+  if(window.scrollY>300)btn.classList.add('show');
+  else btn.classList.remove('show');
+});
+</script>
+</body>
+</html>
