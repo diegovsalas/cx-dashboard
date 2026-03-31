@@ -269,7 +269,7 @@ table.dt tbody tr.tk-row{cursor:pointer;}table.dt tbody tr.tk-row:hover{backgrou
 <div class="tbl-card">
 <div class="tbl-header"><h3 id="canc-count">0 solicitudes</h3></div>
 <div class="tbl-scroll"><table class="dt"><thead><tr>
-<th>Folio</th><th>Fecha</th><th>Cliente</th><th>Propiedad</th><th>Servicio</th><th>Motivo</th><th>Monto</th><th>Status</th><th>Ejecutivo</th>
+<th>Folio</th><th>Fecha</th><th>Cliente</th><th>Propiedad</th><th>Servicio</th><th>Motivo</th><th>Monto</th><th>Status</th><th>Ejecutivo</th><th>Origen</th>
 </tr></thead><tbody id="canc-tbody"></tbody></table></div>
 <div class="pag"><span id="canc-pag-info"></span><div class="pag-btns"><button class="pbtn" id="canc-prev" onclick="cancPgPrev()">← Anterior</button><span id="canc-pag-num" style="padding:0 6px"></span><button class="pbtn" id="canc-next" onclick="cancPgNext()">Siguiente →</button></div></div>
 </div>
@@ -720,7 +720,7 @@ let cancAll=[],cancFiltered=[],cancPg=0;
 const CANC_LIM=50;
 
 function loadCancelaciones(){
-  cancAll=allData.filter(r=>{var t=r.tipo_de_solicitud;return t&&t.toLowerCase().includes('cancelac');});
+  cancAll=allData.filter(r=>{var t=r.tipo_de_solicitud||'';var ti=r.tipo_de_incidencia||'';return t.toLowerCase().includes('cancelac')||ti.toLowerCase().includes('cancelac');});
   cancBuildFilters();cancApply();
 }
 
@@ -744,18 +744,26 @@ function cancApply(){
     if(fs&&r.status!==fs)return false;
     if(fv&&r.tipo_de_servicio!==fv)return false;
     if(fm&&r.mes!==fm)return false;
-    if(q&&!inc(r.folio_ticket,q)&&!inc(r.nombre_del_cliente_nuevo,q)&&!inc(r.propiedad,q)&&!inc(r.motivo_de_cancelacin,q)&&!inc(r.ejecutivo_asignado,q))return false;
+    if(q&&!inc(r.folio_ticket,q)&&!inc(r.folio,q)&&!inc(r.nombre_del_cliente_nuevo,q)&&!inc(r.propiedad,q)&&!inc(r.motivo_de_cancelacin,q)&&!inc(r.ejecutivo_asignado,q)&&!inc(r.telefono,q))return false;
     return true;
   });
   var nf=(fs?1:0)+(fv?1:0)+(fm?1:0);
   document.getElementById('af-canc').textContent=nf?nf+' filtro'+(nf>1?'s':'')+' · '+cancFiltered.length+' de '+cancAll.length:'';
-  // KPIs
+  // KPIs con desglose por status
   var total=cancFiltered.length;
-  var montos=cancFiltered.map(r=>Number(r.facturacin_sin_iva)||0);
-  var montoTotal=montos.reduce((a,b)=>a+b,0);
-  var montoPromedio=total?montoTotal/total:0;
-  var resueltas=cancFiltered.filter(r=>isRes(r.status)).length;
-  document.getElementById('canc-kpis').innerHTML='<div class="kpi c-red"><div class="bar"></div><div class="lbl">Solicitudes</div><div class="sublbl">Total de cancelaciones</div><div class="val">'+total+'</div></div><div class="kpi c-amber"><div class="bar"></div><div class="lbl">Monto Total</div><div class="sublbl">Suma de cancelaciones</div><div class="val">$'+montoTotal.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div></div><div class="kpi c-blue"><div class="bar"></div><div class="lbl">Monto Promedio</div><div class="sublbl">Por solicitud</div><div class="val">$'+montoPromedio.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div></div><div class="kpi c-green"><div class="bar"></div><div class="lbl">Resueltas</div><div class="sublbl">Cancelaciones cerradas</div><div class="val">'+resueltas+'</div></div>';
+  var _s=function(r){return(r.status||'').toLowerCase();};
+  var cancelados=cancFiltered.filter(r=>{var s=_s(r);return s.includes('cancelad')||s.includes('baja');});
+  var retenidos=cancFiltered.filter(r=>_s(r).includes('retenid'));
+  var enProceso=cancFiltered.filter(r=>{var s=_s(r);return s.includes('proceso')||s.includes('nuevo')||s.includes('pendient')||s.includes('sin atender');});
+  var montoCancelado=cancelados.reduce((a,r)=>a+(Number(r.facturacin_sin_iva)||0),0);
+  var montoRetenido=retenidos.reduce((a,r)=>a+(Number(r.facturacin_sin_iva)||0),0);
+  var montoProceso=enProceso.reduce((a,r)=>a+(Number(r.facturacin_sin_iva)||0),0);
+  var montoTotal=cancFiltered.reduce((a,r)=>a+(Number(r.facturacin_sin_iva)||0),0);
+  document.getElementById('canc-kpis').innerHTML=
+    '<div class="kpi c-blue"><div class="bar"></div><div class="lbl">Total Solicitudes</div><div class="sublbl">'+total+' solicitudes · Monto total</div><div class="val">$'+montoTotal.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div></div>'+
+    '<div class="kpi c-red"><div class="bar"></div><div class="lbl">Cancelados</div><div class="sublbl">'+cancelados.length+' solicitudes</div><div class="val">$'+montoCancelado.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div></div>'+
+    '<div class="kpi c-green"><div class="bar"></div><div class="lbl">Retenidos</div><div class="sublbl">'+retenidos.length+' solicitudes</div><div class="val">$'+montoRetenido.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div></div>'+
+    '<div class="kpi c-amber"><div class="bar"></div><div class="lbl">En Proceso</div><div class="sublbl">'+enProceso.length+' solicitudes</div><div class="val">$'+montoProceso.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div></div>';
   cancPg=0;cancRender();
 }
 
@@ -778,9 +786,10 @@ function cancRender(){
     h+='<td style="font-weight:600;color:var(--red)">'+( monto?'$'+monto.toLocaleString('es-MX',{minimumFractionDigits:2}):'—')+'</td>';
     h+='<td>'+(r.status?sBadge(r.status):'<span class="null-v">—</span>')+'</td>';
     h+='<td>'+esc(r.ejecutivo_asignado||'—')+'</td>';
+    h+='<td>'+(r._source==='whatsapp'?'<span class="badge bb"><i class="fa-brands fa-whatsapp"></i> WhatsApp</span>':'CX')+'</td>';
     h+='</tr>';
   });
-  if(!pg.length)h='<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text3)">Sin solicitudes de cancelación</td></tr>';
+  if(!pg.length)h='<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text3)">Sin solicitudes de cancelación</td></tr>';
   document.getElementById('canc-tbody').innerHTML=h;
   document.getElementById('canc-pag-info').textContent=cancFiltered.length?(cancPg*CANC_LIM+1)+'–'+Math.min((cancPg+1)*CANC_LIM,cancFiltered.length)+' de '+cancFiltered.length:'';
   document.getElementById('canc-pag-num').textContent=tp?(cancPg+1)+'/'+tp:'';
