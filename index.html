@@ -924,6 +924,17 @@ function tkOpenModal(idx){
   }
   if(isAdmin())h+='<span class="status-msg" id="tk-status-msg"></span>';
   h+='</div></div>';
+  // Zona editable
+  var curZona=r.zona||'';
+  h+='<div class="detail-item full" style="background:#fafbfc;padding:16px;border-radius:10px;margin-bottom:8px">';
+  h+='<div class="detail-label">Zona</div>';
+  h+='<div style="display:flex;align-items:center;gap:12px;margin-top:4px">';
+  h+='<select class="status-select" id="tk-zona-sel" onchange="tkChangeZona()">';
+  h+='<option value="">Sin asignar</option>';
+  ['Matriz','Centro','Sur','Bajío','Noreste','Noroeste','Pacífico'].forEach(z=>{h+='<option value="'+z+'"'+(curZona===z?' selected':'')+'>'+z+'</option>';});
+  h+='</select>';
+  h+='<span class="status-msg" id="tk-zona-msg"></span>';
+  h+='</div></div>';
   fields.forEach(f=>{
     h+='<div class="detail-item'+(f.full?' full':'')+'">';
     h+='<div class="detail-label">'+f.l+'</div>';
@@ -947,9 +958,26 @@ async function tkChangeStatus(){
     const{error}=await sb.from('tickets').update({estatus:newStatus}).eq('folio',r.folio);
     if(error)throw error;
     r.estatus=newStatus;
-    // Update allData too
     var match=allData.find(d=>d._source==='whatsapp'&&d._tk===r);
     if(match)match.status=newStatus;
+    msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';
+    setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
+  }catch(e){
+    msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
+  }
+}
+
+async function tkChangeZona(){
+  var r=tkFiltered[_tkModalIdx];if(!r)return;
+  var newZona=document.getElementById('tk-zona-sel').value;
+  var msgEl=document.getElementById('tk-zona-msg');
+  msgEl.textContent='Guardando...';msgEl.style.color='var(--blue)';
+  try{
+    const{error}=await sb.from('tickets').update({zona:newZona}).eq('folio',r.folio);
+    if(error)throw error;
+    r.zona=newZona;
+    var match=allData.find(d=>d._source==='whatsapp'&&d._tk===r);
+    if(match)match.zona=newZona;
     msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';
     setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
   }catch(e){
