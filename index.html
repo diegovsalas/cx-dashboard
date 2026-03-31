@@ -139,8 +139,9 @@ table.dt tbody tr.tk-row{cursor:pointer;}table.dt tbody tr.tk-row:hover{backgrou
 <a class="nav-link on" data-page="home" onclick="goPage('home')">Inicio</a>
 <a class="nav-link" data-page="dashboard" onclick="goPage('dashboard')">Dashboard</a>
 <a class="nav-link" data-page="registros" onclick="goPage('registros')">Registros</a>
+<a class="nav-link" data-page="cancelaciones" onclick="goPage('cancelaciones')"><i class="fa-solid fa-file-circle-xmark" style="color:var(--red)"></i> Cancelaciones</a>
 <a class="nav-link" data-page="tickets" onclick="goPage('tickets')"><i class="fa-brands fa-whatsapp" style="color:#25d366"></i> Tickets WhatsApp</a>
-<a class="nav-link" href="https://avantex-bot.onrender.com/dashboard" target="_blank" style="color:var(--blue);border:1px solid var(--blue);border-radius:6px;padding:4px 14px;margin-left:8px"><i class="fa-solid fa-headset"></i> Chat Agentes</a>
+<a class="nav-link" id="link-chat-agentes" href="https://avantex-bot.onrender.com/dashboard" target="_blank" style="color:var(--blue);border:1px solid var(--blue);border-radius:6px;padding:4px 14px;margin-left:8px"><i class="fa-solid fa-headset"></i> Chat Agentes</a>
 </div>
 <div class="nav-right">
 <span class="nav-user" id="nav-user"></span>
@@ -234,6 +235,27 @@ table.dt tbody tr.tk-row{cursor:pointer;}table.dt tbody tr.tk-row:hover{backgrou
 <div id="reg-table"></div>
 </div>
 
+<div class="page-content" id="page-cancelaciones" style="display:none">
+<div style="margin-bottom:16px;"><h2 style="font-size:22px;font-weight:800;"><i class="fa-solid fa-file-circle-xmark" style="color:var(--red)"></i> Solicitudes de Cancelación</h2><p style="font-size:13px;color:var(--text2);margin-top:4px;">Solicitudes de cancelación de servicio</p></div>
+<div class="kpi-row" id="canc-kpis"></div>
+<div class="filter-bar" id="filters-canc">
+<span class="flabel" style="margin:0">Filtros:</span>
+<select id="canc-f-status" onchange="cancApply()"><option value="">Status: Todos</option></select>
+<select id="canc-f-servicio" onchange="cancApply()"><option value="">Servicio: Todos</option></select>
+<select id="canc-f-mes" onchange="cancApply()"><option value="">Mes: Todos</option></select>
+<input class="tbl-search" id="canc-search" placeholder="Buscar..." oninput="cancApply()" style="min-width:200px">
+<button class="btn-clear" onclick="cancClear()">Limpiar</button>
+<span class="active-filters" id="af-canc"></span>
+</div>
+<div class="tbl-card">
+<div class="tbl-header"><h3 id="canc-count">0 solicitudes</h3></div>
+<div class="tbl-scroll"><table class="dt"><thead><tr>
+<th>Folio</th><th>Fecha</th><th>Cliente</th><th>Propiedad</th><th>Servicio</th><th>Motivo</th><th>Monto</th><th>Status</th><th>Ejecutivo</th>
+</tr></thead><tbody id="canc-tbody"></tbody></table></div>
+<div class="pag"><span id="canc-pag-info"></span><div class="pag-btns"><button class="pbtn" id="canc-prev" onclick="cancPgPrev()">← Anterior</button><span id="canc-pag-num" style="padding:0 6px"></span><button class="pbtn" id="canc-next" onclick="cancPgNext()">Siguiente →</button></div></div>
+</div>
+</div>
+
 <div class="page-content" id="page-tickets" style="display:none">
 <div style="margin-bottom:16px;"><h2 style="font-size:22px;font-weight:800;"><i class="fa-brands fa-whatsapp" style="color:#25d366"></i> Tickets WhatsApp</h2><p style="font-size:13px;color:var(--text2);margin-top:4px;">Tickets generados desde el bot de WhatsApp</p></div>
 <div class="filter-bar" id="filters-tickets">
@@ -270,6 +292,8 @@ const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 let allData=[],filtered=[],user=null,curPage='dashboard',chartInstances={},tblPg=0;
+const ADMIN_EMAILS=['servicioalcliente@grupoavantex.com'];
+function isAdmin(){return user&&ADMIN_EMAILS.includes(user.email.toLowerCase());}
 const LIM=50;
 const PAL=['#2563eb','#059669','#d97706','#dc2626','#7c3aed','#ec4899','#0891b2','#65a30d','#ea580c','#6366f1','#14b8a6','#e11d48'];
 let F={tipo_solicitud:'',anio:'',mes:'',tipo_servicio:'',zona:'',status:'',tipo_incidencia:'',ejecutivo:''};
@@ -292,6 +316,8 @@ async function enterApp(){
   document.getElementById('pg-login').style.display='none';
   document.getElementById('pg-app').classList.add('on');
   document.getElementById('nav-user').textContent=user.email;
+  var chatLink=document.getElementById('link-chat-agentes');
+  if(chatLink)chatLink.style.display=isAdmin()?'':'none';
   await loadData();buildFilters();applyFilters();
 }
 
@@ -361,8 +387,9 @@ async function loadData(){
 function goPage(p){
   curPage=p;
   document.querySelectorAll('.nav-link').forEach(el=>{el.classList.toggle('on',el.dataset.page===p);});
-  ['home','dashboard','registros','tickets'].forEach(pg=>{document.getElementById('page-'+pg).style.display=pg===p?'':'none';});
+  ['home','dashboard','registros','cancelaciones','tickets'].forEach(pg=>{document.getElementById('page-'+pg).style.display=pg===p?'':'none';});
   if(p==='registros'){tblPg=0;renderRegistros();}
+  if(p==='cancelaciones')loadCancelaciones();
   if(p==='tickets')loadTickets();
 }
 
@@ -597,18 +624,25 @@ function regOpenModal(idx){
     ];
   }
   var h='<div class="detail-grid">';
-  // Status editable at top
+  // Status - editable solo para admin
   var curStatus=r.status||'';
   h+='<div class="detail-item full" style="background:#fafbfc;padding:16px;border-radius:10px;margin-bottom:8px">';
-  h+='<div class="detail-label">Cambiar Status</div>';
+  h+='<div class="detail-label">Status</div>';
   h+='<div style="display:flex;align-items:center;gap:12px;margin-top:4px">';
-  h+='<select class="status-select" id="reg-status-sel" onchange="regChangeStatus()">';
-  _statusOpts.forEach(s=>{h+='<option value="'+esc(s)+'"'+(curStatus.toLowerCase()===s.toLowerCase()?' selected':'')+'>'+esc(s)+'</option>';});
-  if(curStatus&&!_statusOpts.some(s=>s.toLowerCase()===curStatus.toLowerCase())){h+='<option value="'+esc(curStatus)+'" selected>'+esc(curStatus)+'</option>';}
-  h+='</select>';
-  h+=sBadge(curStatus||'Sin status');
-  h+='<span class="status-msg" id="reg-status-msg"></span>';
+  if(isAdmin()){
+    h+='<select class="status-select" id="reg-status-sel" onchange="regChangeStatus()">';
+    _statusOpts.forEach(s=>{h+='<option value="'+esc(s)+'"'+(curStatus.toLowerCase()===s.toLowerCase()?' selected':'')+'>'+esc(s)+'</option>';});
+    if(curStatus&&!_statusOpts.some(s=>s.toLowerCase()===curStatus.toLowerCase())){h+='<option value="'+esc(curStatus)+'" selected>'+esc(curStatus)+'</option>';}
+    h+='</select>';
+    h+='<span class="status-msg" id="reg-status-msg"></span>';
+  } else {
+    h+=sBadge(curStatus||'Sin status');
+  }
   h+='</div></div>';
+  // Monto de cancelación si aplica
+  if(r.tipo_de_solicitud&&r.tipo_de_solicitud.toLowerCase().includes('cancelac')&&r.monto_de_cancelacion!=null){
+    h+='<div class="detail-item full"><div class="detail-label">Monto de Cancelación</div><div class="detail-val" style="font-size:18px;font-weight:700;color:var(--red)">$'+Number(r.monto_de_cancelacion).toLocaleString('es-MX',{minimumFractionDigits:2})+'</div></div>';
+  }
   fields.forEach(f=>{
     h+='<div class="detail-item'+(f.full?' full':'')+'">';
     h+='<div class="detail-label">'+f.l+'</div>';
@@ -659,6 +693,91 @@ function sBadge(v){var l=v.toLowerCase(),c='bb';if(isRes(v))c='bg';else if(isPen
 function inc(v,q){return v!=null&&String(v).toLowerCase().includes(q);}
 function trn(s,n){return s.length>n?s.slice(0,n)+'…':s;}
 function esc(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+
+// ═══════════════════════════════════════
+// CANCELACIONES
+// ═══════════════════════════════════════
+let cancAll=[],cancFiltered=[],cancPg=0;
+const CANC_LIM=50;
+
+function loadCancelaciones(){
+  cancAll=allData.filter(r=>{var t=r.tipo_de_solicitud;return t&&t.toLowerCase().includes('cancelac');});
+  cancBuildFilters();cancApply();
+}
+
+function cancBuildFilters(){
+  var statuses=[...new Set(cancAll.map(r=>r.status).filter(v=>v!=null&&String(v).trim()!==''))].sort();
+  var servicios=[...new Set(cancAll.map(r=>r.tipo_de_servicio).filter(v=>v!=null&&String(v).trim()!==''))].sort();
+  var meses=[...new Set(cancAll.map(r=>r.mes).filter(v=>v!=null&&String(v).trim()!==''))];
+  var moOrd=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+  meses.sort((a,b)=>{var ia=moOrd.indexOf(a),ib=moOrd.indexOf(b);return(ia<0?99:ia)-(ib<0?99:ib);});
+  document.getElementById('canc-f-status').innerHTML='<option value="">Status: Todos</option>'+statuses.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+  document.getElementById('canc-f-servicio').innerHTML='<option value="">Servicio: Todos</option>'+servicios.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+  document.getElementById('canc-f-mes').innerHTML='<option value="">Mes: Todos</option>'+meses.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+}
+
+function cancApply(){
+  var fs=document.getElementById('canc-f-status').value;
+  var fv=document.getElementById('canc-f-servicio').value;
+  var fm=document.getElementById('canc-f-mes').value;
+  var q=(document.getElementById('canc-search').value||'').toLowerCase().trim();
+  cancFiltered=cancAll.filter(r=>{
+    if(fs&&r.status!==fs)return false;
+    if(fv&&r.tipo_de_servicio!==fv)return false;
+    if(fm&&r.mes!==fm)return false;
+    if(q&&!inc(r.folio_ticket,q)&&!inc(r.nombre_del_cliente_nuevo,q)&&!inc(r.propiedad,q)&&!inc(r.motivo_de_cancelacin,q)&&!inc(r.ejecutivo_asignado,q))return false;
+    return true;
+  });
+  var nf=(fs?1:0)+(fv?1:0)+(fm?1:0);
+  document.getElementById('af-canc').textContent=nf?nf+' filtro'+(nf>1?'s':'')+' · '+cancFiltered.length+' de '+cancAll.length:'';
+  // KPIs
+  var total=cancFiltered.length;
+  var montos=cancFiltered.map(r=>Number(r.monto_de_cancelacion)||0);
+  var montoTotal=montos.reduce((a,b)=>a+b,0);
+  var montoPromedio=total?montoTotal/total:0;
+  var resueltas=cancFiltered.filter(r=>isRes(r.status)).length;
+  document.getElementById('canc-kpis').innerHTML='<div class="kpi c-red"><div class="bar"></div><div class="lbl">Solicitudes</div><div class="sublbl">Total de cancelaciones</div><div class="val">'+total+'</div></div><div class="kpi c-amber"><div class="bar"></div><div class="lbl">Monto Total</div><div class="sublbl">Suma de cancelaciones</div><div class="val">$'+montoTotal.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div></div><div class="kpi c-blue"><div class="bar"></div><div class="lbl">Monto Promedio</div><div class="sublbl">Por solicitud</div><div class="val">$'+montoPromedio.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div></div><div class="kpi c-green"><div class="bar"></div><div class="lbl">Resueltas</div><div class="sublbl">Cancelaciones cerradas</div><div class="val">'+resueltas+'</div></div>';
+  cancPg=0;cancRender();
+}
+
+function cancClear(){document.getElementById('canc-f-status').value='';document.getElementById('canc-f-servicio').value='';document.getElementById('canc-f-mes').value='';document.getElementById('canc-search').value='';cancApply();}
+
+function cancRender(){
+  var tp=Math.ceil(cancFiltered.length/CANC_LIM),pg=cancFiltered.slice(cancPg*CANC_LIM,(cancPg+1)*CANC_LIM);
+  document.getElementById('canc-count').textContent=cancFiltered.length+' solicitud'+(cancFiltered.length!==1?'es':'');
+  var h='';
+  pg.forEach((r,i)=>{
+    var idx=cancPg*CANC_LIM+i;
+    h+='<tr class="tk-row" onclick="cancOpenModal('+idx+')">';
+    h+='<td>'+esc(r.folio_ticket||'—')+'</td>';
+    h+='<td>'+esc(r.fecha_de_la_solicitud||'—')+'</td>';
+    h+='<td>'+esc(trn(r.nombre_del_cliente_nuevo||'—',24))+'</td>';
+    h+='<td>'+esc(trn(r.propiedad||'—',22))+'</td>';
+    h+='<td>'+esc(r.tipo_de_servicio||'—')+'</td>';
+    h+='<td>'+esc(trn(r.motivo_de_cancelacin||'—',26))+'</td>';
+    var monto=Number(r.monto_de_cancelacion)||0;
+    h+='<td style="font-weight:600;color:var(--red)">'+( monto?'$'+monto.toLocaleString('es-MX',{minimumFractionDigits:2}):'—')+'</td>';
+    h+='<td>'+(r.status?sBadge(r.status):'<span class="null-v">—</span>')+'</td>';
+    h+='<td>'+esc(r.ejecutivo_asignado||'—')+'</td>';
+    h+='</tr>';
+  });
+  if(!pg.length)h='<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text3)">Sin solicitudes de cancelación</td></tr>';
+  document.getElementById('canc-tbody').innerHTML=h;
+  document.getElementById('canc-pag-info').textContent=cancFiltered.length?(cancPg*CANC_LIM+1)+'–'+Math.min((cancPg+1)*CANC_LIM,cancFiltered.length)+' de '+cancFiltered.length:'';
+  document.getElementById('canc-pag-num').textContent=tp?(cancPg+1)+'/'+tp:'';
+  document.getElementById('canc-prev').disabled=cancPg===0;
+  document.getElementById('canc-next').disabled=cancPg>=tp-1;
+}
+
+function cancOpenModal(idx){
+  _regModalIdx=idx;
+  var r=cancFiltered[idx];if(!r)return;
+  regDisplayed=cancFiltered;
+  regOpenModal(idx);
+}
+
+function cancPgPrev(){if(cancPg>0){cancPg--;cancRender();}}
+function cancPgNext(){var tp=Math.ceil(cancFiltered.length/CANC_LIM);if(cancPg<tp-1){cancPg++;cancRender();}}
 
 // ═══════════════════════════════════════
 // TICKETS WHATSAPP
@@ -749,14 +868,17 @@ function tkOpenModal(idx){
   var curStatus=r.estatus||'';
   var h='<div class="detail-grid">';
   h+='<div class="detail-item full" style="background:#fafbfc;padding:16px;border-radius:10px;margin-bottom:8px">';
-  h+='<div class="detail-label">Cambiar Status</div>';
+  h+='<div class="detail-label">Status</div>';
   h+='<div style="display:flex;align-items:center;gap:12px;margin-top:4px">';
-  h+='<select class="status-select" id="tk-status-sel" onchange="tkChangeStatus()">';
-  _statusOpts.forEach(s=>{h+='<option value="'+esc(s)+'"'+(curStatus.toLowerCase()===s.toLowerCase()?' selected':'')+'>'+esc(s)+'</option>';});
-  if(curStatus&&!_statusOpts.some(s=>s.toLowerCase()===curStatus.toLowerCase())){h+='<option value="'+esc(curStatus)+'" selected>'+esc(curStatus)+'</option>';}
-  h+='</select>';
-  h+=sBadge(curStatus||'Sin status');
-  h+='<span class="status-msg" id="tk-status-msg"></span>';
+  if(isAdmin()){
+    h+='<select class="status-select" id="tk-status-sel" onchange="tkChangeStatus()">';
+    _statusOpts.forEach(s=>{h+='<option value="'+esc(s)+'"'+(curStatus.toLowerCase()===s.toLowerCase()?' selected':'')+'>'+esc(s)+'</option>';});
+    if(curStatus&&!_statusOpts.some(s=>s.toLowerCase()===curStatus.toLowerCase())){h+='<option value="'+esc(curStatus)+'" selected>'+esc(curStatus)+'</option>';}
+    h+='</select>';
+  } else {
+    h+=sBadge(curStatus||'Sin status');
+  }
+  if(isAdmin())h+='<span class="status-msg" id="tk-status-msg"></span>';
   h+='</div></div>';
   fields.forEach(f=>{
     h+='<div class="detail-item'+(f.full?' full':'')+'">';
