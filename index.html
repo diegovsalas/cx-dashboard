@@ -403,7 +403,8 @@ async function loadData(){
         _anio:anio,mes:mesStr,
         _csat:t.csat,_prioridad:t.prioridad,
         telefono:t.telefono,correo:t.correo,
-        mensaje:t.mensaje,diagnostico:t.diagnostico,causa_raiz:t.causa_raiz
+        mensaje:t.mensaje,diagnostico:t.diagnostico,causa_raiz:t.causa_raiz,
+        comentarios_de_seguimiento:t.comentarios_de_seguimiento||''
       });
     });
     if(data.length<1000)break;tOff+=1000;
@@ -756,7 +757,7 @@ async function regSaveComment(){
     if(isWA){
       var folio=r.folio_ticket||r.folio;
       if(folio){
-        const{error}=await sb.from('tickets').update({comentarios:newComment}).eq('folio',folio);
+        const{error}=await sb.from('tickets').update({comentarios_de_seguimiento:newComment}).eq('folio',folio);
         if(error)throw error;
       }
     } else {
@@ -767,7 +768,7 @@ async function regSaveComment(){
       }
     }
     r.comentarios_de_seguimiento=newComment;
-    if(isWA&&r._tk)r._tk.comentarios=newComment;
+    if(isWA&&r._tk)r._tk.comentarios_de_seguimiento=newComment;
     msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';
     setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
   }catch(e){
