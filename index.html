@@ -446,7 +446,7 @@ function regSearchApply(){tblPg=0;renderRegistros();}
 function renderRegistros(){
   var a=document.getElementById('reg-table');
   var q=(document.getElementById('reg-search-main').value||'').toLowerCase().trim();
-  var data=filtered;
+  var data=q?allData:filtered;
   if(q){data=data.filter(r=>inc(r.folio_ticket,q)||inc(r.folio,q)||inc(r.nombre_del_cliente_nuevo,q)||inc(r.propiedad,q)||inc(r.tipo_de_incidencia,q)||inc(r.submotvio,q)||inc(r.ejecutivo_asignado,q)||inc(r.zona,q)||inc(r.status,q)||inc(r.telefono,q)||inc(r.mensaje,q)||inc(r.tipo_de_servicio,q));}
   regDisplayed=data;
   var cs=[{k:'folio_ticket',l:'Folio'},{k:'fecha_de_la_solicitud',l:'Fecha'},{k:'nombre_del_cliente_nuevo',l:'Cliente'},{k:'propiedad',l:'Propiedad/Empresa'},{k:'tipo_de_incidencia',l:'Tipo'},{k:'submotvio',l:'Sub-Motivo'},{k:'status',l:'Status'},{k:'tipo_de_servicio',l:'Servicio'},{k:'ejecutivo_asignado',l:'Ejecutivo'},{k:'tipo_de_solicitud',l:'Origen'}];
