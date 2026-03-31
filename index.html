@@ -3,7 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Customer Experience — Dashboard</title>
+<title>Avantex — Customer Experience</title>
+<link rel="icon" href="https://grupoavantex.com/wp-content/uploads/2022/09/AX_Logo_oficial.png">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -117,7 +119,7 @@ table.dt tbody tr.tk-row{cursor:pointer;}table.dt tbody tr.tk-row:hover{backgrou
 <body>
 <div class="login-bg" id="pg-login">
 <div class="login-card">
-<div class="logo">📊</div>
+<div class="logo"><img src="https://grupoavantex.com/wp-content/uploads/2022/09/AX_Logo_oficial.png" alt="Avantex" style="height:40px;"></div>
 <h1>Customer Experience</h1>
 <p class="sub">Inicia sesión para continuar</p>
 <label class="flabel">Correo electrónico</label>
@@ -132,13 +134,13 @@ table.dt tbody tr.tk-row{cursor:pointer;}table.dt tbody tr.tk-row:hover{backgrou
 
 <div class="shell" id="pg-app">
 <nav class="navbar">
-<div class="nav-brand"><span>📊</span> Customer Experience</div>
+<div class="nav-brand"><img src="https://grupoavantex.com/wp-content/uploads/2022/09/AX_Logo_oficial.png" alt="Avantex" style="height:28px;"> Customer Experience</div>
 <div class="nav-links">
 <a class="nav-link on" data-page="home" onclick="goPage('home')">Inicio</a>
 <a class="nav-link" data-page="dashboard" onclick="goPage('dashboard')">Dashboard</a>
 <a class="nav-link" data-page="registros" onclick="goPage('registros')">Registros</a>
-<a class="nav-link" data-page="tickets" onclick="goPage('tickets')">Tickets WhatsApp</a>
-<a class="nav-link" href="https://avantex-bot.onrender.com/dashboard" target="_blank" style="color:var(--blue);border:1px solid var(--blue);border-radius:6px;padding:4px 14px;margin-left:8px">💬 Chat Agentes</a>
+<a class="nav-link" data-page="tickets" onclick="goPage('tickets')"><i class="fa-brands fa-whatsapp" style="color:#25d366"></i> Tickets WhatsApp</a>
+<a class="nav-link" href="https://avantex-bot.onrender.com/dashboard" target="_blank" style="color:var(--blue);border:1px solid var(--blue);border-radius:6px;padding:4px 14px;margin-left:8px"><i class="fa-solid fa-headset"></i> Chat Agentes</a>
 </div>
 <div class="nav-right">
 <span class="nav-user" id="nav-user"></span>
@@ -148,24 +150,25 @@ table.dt tbody tr.tk-row{cursor:pointer;}table.dt tbody tr.tk-row:hover{backgrou
 
 <div class="page-content" id="page-home">
 <div class="home-hero">
+<img src="https://grupoavantex.com/wp-content/uploads/2022/09/AX_Logo_oficial.png" alt="Avantex" style="height:56px;margin-bottom:16px;">
 <h1>Bienvenido a Customer Experience</h1>
 <p>Plataforma centralizada para gestionar incidencias, tickets de WhatsApp y métricas de servicio al cliente de Grupo Avantex.</p>
 </div>
 <div class="home-grid">
 <div class="home-card">
-<div class="hicon">📱</div>
+<div class="hicon"><i class="fa-brands fa-whatsapp" style="color:#25d366"></i></div>
 <h3>Reportar por WhatsApp</h3>
 <p>Los clientes pueden reportar incidencias directamente por WhatsApp. El bot guía paso a paso para crear un ticket automático.</p>
 <button class="hbtn" onclick="goPage('tickets')">Ver Tickets</button>
 </div>
 <div class="home-card">
-<div class="hicon">📊</div>
+<div class="hicon"><i class="fa-solid fa-chart-pie" style="color:var(--blue)"></i></div>
 <h3>Dashboard Analítico</h3>
 <p>Visualiza KPIs, gráficas de tendencias, NPS y CSAT en tiempo real. Filtra por servicio, zona, mes y más.</p>
 <button class="hbtn" onclick="goPage('dashboard')">Ir al Dashboard</button>
 </div>
 <div class="home-card">
-<div class="hicon">📋</div>
+<div class="hicon"><i class="fa-solid fa-clipboard-list" style="color:#d97706"></i></div>
 <h3>Gestión de Registros</h3>
 <p>Consulta todos los registros e incidencias, busca por folio o cliente, y actualiza el estatus directamente.</p>
 <button class="hbtn" onclick="goPage('registros')">Ver Registros</button>
@@ -189,22 +192,22 @@ table.dt tbody tr.tk-row{cursor:pointer;}table.dt tbody tr.tk-row:hover{backgrou
 <h2>Funciones disponibles para el cliente por WhatsApp</h2>
 <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;">
 <div style="padding:14px;border:1px solid var(--border);border-radius:10px;">
-<div style="font-size:20px;margin-bottom:6px;">🆕</div>
+<div style="font-size:20px;margin-bottom:6px;"><i class="fa-solid fa-plus-circle" style="color:#25d366"></i></div>
 <h4 style="font-size:13px;font-weight:700;margin-bottom:4px;">Crear Ticket</h4>
 <p style="font-size:11px;color:var(--text2);">Escribe <strong>"Hola"</strong> para iniciar el flujo guiado de reporte de incidencia.</p>
 </div>
 <div style="padding:14px;border:1px solid var(--border);border-radius:10px;">
-<div style="font-size:20px;margin-bottom:6px;">🔍</div>
+<div style="font-size:20px;margin-bottom:6px;"><i class="fa-solid fa-magnifying-glass" style="color:var(--blue)"></i></div>
 <h4 style="font-size:13px;font-weight:700;margin-bottom:4px;">Consultar Ticket</h4>
 <p style="font-size:11px;color:var(--text2);">Escribe <strong>"Consultar"</strong> o su número de folio (ej: TKT-0001) para ver el estatus.</p>
 </div>
 <div style="padding:14px;border:1px solid var(--border);border-radius:10px;">
-<div style="font-size:20px;margin-bottom:6px;">👤</div>
+<div style="font-size:20px;margin-bottom:6px;"><i class="fa-solid fa-headset" style="color:#7c3aed"></i></div>
 <h4 style="font-size:13px;font-weight:700;margin-bottom:4px;">Hablar con Agente</h4>
 <p style="font-size:11px;color:var(--text2);">Escribe <strong>"Agente"</strong> para solicitar atención de una persona real.</p>
 </div>
 <div style="padding:14px;border:1px solid var(--border);border-radius:10px;">
-<div style="font-size:20px;margin-bottom:6px;">📎</div>
+<div style="font-size:20px;margin-bottom:6px;"><i class="fa-solid fa-paperclip" style="color:#d97706"></i></div>
 <h4 style="font-size:13px;font-weight:700;margin-bottom:4px;">Enviar Evidencia</h4>
 <p style="font-size:11px;color:var(--text2);">Envía fotos o documentos que se vinculan automáticamente al ticket activo.</p>
 </div>
@@ -232,7 +235,7 @@ table.dt tbody tr.tk-row{cursor:pointer;}table.dt tbody tr.tk-row:hover{backgrou
 </div>
 
 <div class="page-content" id="page-tickets" style="display:none">
-<div style="margin-bottom:16px;"><h2 style="font-size:22px;font-weight:800;">📱 Tickets WhatsApp</h2><p style="font-size:13px;color:var(--text2);margin-top:4px;">Tickets generados desde el bot de WhatsApp</p></div>
+<div style="margin-bottom:16px;"><h2 style="font-size:22px;font-weight:800;"><i class="fa-brands fa-whatsapp" style="color:#25d366"></i> Tickets WhatsApp</h2><p style="font-size:13px;color:var(--text2);margin-top:4px;">Tickets generados desde el bot de WhatsApp</p></div>
 <div class="filter-bar" id="filters-tickets">
 <span class="flabel" style="margin:0">Filtros:</span>
 <select id="tk-f-estatus" onchange="tkApply()"><option value="">Estatus: Todos</option></select>
