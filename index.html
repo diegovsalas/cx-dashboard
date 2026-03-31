@@ -91,7 +91,27 @@ table.dt tr:hover{background:#f9fafb;}
 .detail-val{font-size:13px;color:var(--text);word-break:break-word;white-space:pre-wrap;}
 .detail-val.empty{color:var(--text3);font-style:italic;}
 table.dt tbody tr.tk-row{cursor:pointer;}table.dt tbody tr.tk-row:hover{background:var(--blue-bg);}
-@media(max-width:900px){.kpi-row{grid-template-columns:repeat(2,1fr);}.chart-row{grid-template-columns:1fr;}.detail-grid{grid-template-columns:1fr;}}
+.status-select{padding:6px 10px;border:2px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;background:var(--surface);color:var(--text);min-width:160px;}
+.status-select:focus{border-color:var(--blue);outline:none;}
+.status-msg{font-size:11px;margin-top:6px;font-weight:600;}
+.home-hero{text-align:center;padding:40px 0 30px;}.home-hero h1{font-size:28px;font-weight:800;margin-bottom:8px;}.home-hero p{font-size:15px;color:var(--text2);max-width:600px;margin:0 auto;}
+.home-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin:30px 0;}
+.home-card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:28px 24px;box-shadow:var(--shadow);text-align:center;transition:transform 0.15s,box-shadow 0.15s;}
+.home-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md);}
+.home-card .hicon{font-size:36px;margin-bottom:12px;}
+.home-card h3{font-size:15px;font-weight:700;margin-bottom:6px;}
+.home-card p{font-size:12px;color:var(--text2);line-height:1.5;}
+.home-card .hbtn{display:inline-block;margin-top:14px;padding:8px 20px;background:var(--blue);color:#fff;border-radius:8px;font-size:12px;font-weight:600;text-decoration:none;cursor:pointer;border:none;font-family:inherit;}
+.home-card .hbtn:hover{background:#1d4ed8;}
+.flow-section{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:32px;margin:20px 0;box-shadow:var(--shadow);}
+.flow-section h2{font-size:18px;font-weight:800;margin-bottom:20px;text-align:center;}
+.flow-steps{display:flex;gap:0;align-items:flex-start;justify-content:center;flex-wrap:wrap;}
+.flow-step{text-align:center;padding:16px 20px;flex:1;min-width:140px;max-width:200px;position:relative;}
+.flow-step .snum{width:36px;height:36px;background:var(--blue);color:#fff;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;margin-bottom:8px;}
+.flow-step h4{font-size:13px;font-weight:700;margin-bottom:4px;}
+.flow-step p{font-size:11px;color:var(--text2);line-height:1.4;}
+.flow-arrow{display:flex;align-items:center;color:var(--text3);font-size:20px;padding-top:20px;}
+@media(max-width:900px){.kpi-row{grid-template-columns:repeat(2,1fr);}.chart-row{grid-template-columns:1fr;}.detail-grid{grid-template-columns:1fr;}.home-grid{grid-template-columns:1fr;}.flow-steps{flex-direction:column;align-items:center;}.flow-arrow{transform:rotate(90deg);}}
 </style>
 </head>
 <body>
@@ -114,7 +134,8 @@ table.dt tbody tr.tk-row{cursor:pointer;}table.dt tbody tr.tk-row:hover{backgrou
 <nav class="navbar">
 <div class="nav-brand"><span>📊</span> Customer Experience</div>
 <div class="nav-links">
-<a class="nav-link on" data-page="dashboard" onclick="goPage('dashboard')">Dashboard</a>
+<a class="nav-link on" data-page="home" onclick="goPage('home')">Inicio</a>
+<a class="nav-link" data-page="dashboard" onclick="goPage('dashboard')">Dashboard</a>
 <a class="nav-link" data-page="registros" onclick="goPage('registros')">Registros</a>
 <a class="nav-link" data-page="tickets" onclick="goPage('tickets')">Tickets WhatsApp</a>
 <a class="nav-link" href="https://avantex-bot.onrender.com/dashboard" target="_blank" style="color:var(--blue);border:1px solid var(--blue);border-radius:6px;padding:4px 14px;margin-left:8px">💬 Chat Agentes</a>
@@ -125,7 +146,73 @@ table.dt tbody tr.tk-row{cursor:pointer;}table.dt tbody tr.tk-row:hover{backgrou
 </div>
 </nav>
 
-<div class="page-content" id="page-dashboard">
+<div class="page-content" id="page-home">
+<div class="home-hero">
+<h1>Bienvenido a Customer Experience</h1>
+<p>Plataforma centralizada para gestionar incidencias, tickets de WhatsApp y métricas de servicio al cliente de Grupo Avantex.</p>
+</div>
+<div class="home-grid">
+<div class="home-card">
+<div class="hicon">📱</div>
+<h3>Reportar por WhatsApp</h3>
+<p>Los clientes pueden reportar incidencias directamente por WhatsApp. El bot guía paso a paso para crear un ticket automático.</p>
+<button class="hbtn" onclick="goPage('tickets')">Ver Tickets</button>
+</div>
+<div class="home-card">
+<div class="hicon">📊</div>
+<h3>Dashboard Analítico</h3>
+<p>Visualiza KPIs, gráficas de tendencias, NPS y CSAT en tiempo real. Filtra por servicio, zona, mes y más.</p>
+<button class="hbtn" onclick="goPage('dashboard')">Ir al Dashboard</button>
+</div>
+<div class="home-card">
+<div class="hicon">📋</div>
+<h3>Gestión de Registros</h3>
+<p>Consulta todos los registros e incidencias, busca por folio o cliente, y actualiza el estatus directamente.</p>
+<button class="hbtn" onclick="goPage('registros')">Ver Registros</button>
+</div>
+</div>
+<div class="flow-section">
+<h2>¿Cómo funciona el reporte de incidencias?</h2>
+<div class="flow-steps">
+<div class="flow-step"><div class="snum">1</div><h4>Contacto</h4><p>El cliente escribe <strong>"Hola"</strong> al WhatsApp de soporte Avantex</p></div>
+<div class="flow-arrow">→</div>
+<div class="flow-step"><div class="snum">2</div><h4>Identificación</h4><p>El bot solicita <strong>nombre, empresa y correo</strong> para registrar al cliente</p></div>
+<div class="flow-arrow">→</div>
+<div class="flow-step"><div class="snum">3</div><h4>Clasificación</h4><p>Selecciona <strong>servicio, tipo de incidencia y categoría</strong> desde un menú interactivo</p></div>
+<div class="flow-arrow">→</div>
+<div class="flow-step"><div class="snum">4</div><h4>Descripción</h4><p>El cliente describe el problema. El bot genera un <strong>folio automático</strong></p></div>
+<div class="flow-arrow">→</div>
+<div class="flow-step"><div class="snum">5</div><h4>Seguimiento</h4><p>El ticket se asigna a un agente. El cliente puede <strong>consultar su estatus</strong> en cualquier momento</p></div>
+</div>
+</div>
+<div class="flow-section" style="margin-top:20px">
+<h2>Funciones disponibles para el cliente por WhatsApp</h2>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;">
+<div style="padding:14px;border:1px solid var(--border);border-radius:10px;">
+<div style="font-size:20px;margin-bottom:6px;">🆕</div>
+<h4 style="font-size:13px;font-weight:700;margin-bottom:4px;">Crear Ticket</h4>
+<p style="font-size:11px;color:var(--text2);">Escribe <strong>"Hola"</strong> para iniciar el flujo guiado de reporte de incidencia.</p>
+</div>
+<div style="padding:14px;border:1px solid var(--border);border-radius:10px;">
+<div style="font-size:20px;margin-bottom:6px;">🔍</div>
+<h4 style="font-size:13px;font-weight:700;margin-bottom:4px;">Consultar Ticket</h4>
+<p style="font-size:11px;color:var(--text2);">Escribe <strong>"Consultar"</strong> o su número de folio (ej: TKT-0001) para ver el estatus.</p>
+</div>
+<div style="padding:14px;border:1px solid var(--border);border-radius:10px;">
+<div style="font-size:20px;margin-bottom:6px;">👤</div>
+<h4 style="font-size:13px;font-weight:700;margin-bottom:4px;">Hablar con Agente</h4>
+<p style="font-size:11px;color:var(--text2);">Escribe <strong>"Agente"</strong> para solicitar atención de una persona real.</p>
+</div>
+<div style="padding:14px;border:1px solid var(--border);border-radius:10px;">
+<div style="font-size:20px;margin-bottom:6px;">📎</div>
+<h4 style="font-size:13px;font-weight:700;margin-bottom:4px;">Enviar Evidencia</h4>
+<p style="font-size:11px;color:var(--text2);">Envía fotos o documentos que se vinculan automáticamente al ticket activo.</p>
+</div>
+</div>
+</div>
+</div>
+
+<div class="page-content" id="page-dashboard" style="display:none">
 <div style="text-align:center;margin-bottom:20px;">
 <h2 id="dashboard-title" style="font-size:24px;font-weight:800;margin-bottom:12px;">📊 Customer Experience Dashboard</h2>
 <div id="tipo-solicitud-tabs" style="display:flex;gap:10px;justify-content:center;flex-wrap:wrap;margin-bottom:16px;"></div>
@@ -271,7 +358,7 @@ async function loadData(){
 function goPage(p){
   curPage=p;
   document.querySelectorAll('.nav-link').forEach(el=>{el.classList.toggle('on',el.dataset.page===p);});
-  ['dashboard','registros','tickets'].forEach(pg=>{document.getElementById('page-'+pg).style.display=pg===p?'':'none';});
+  ['home','dashboard','registros','tickets'].forEach(pg=>{document.getElementById('page-'+pg).style.display=pg===p?'':'none';});
   if(p==='registros'){tblPg=0;renderRegistros();}
   if(p==='tickets')loadTickets();
 }
@@ -470,7 +557,11 @@ function renderRegistros(){
   a.innerHTML=h;
 }
 
+var _regModalIdx=null;
+var _statusOpts=['Nuevo','En proceso','Seguimiento','Pendiente','Resuelto','Cerrado'];
+
 function regOpenModal(idx){
+  _regModalIdx=idx;
   var r=regDisplayed[idx];if(!r)return;
   var isWA=r._source==='whatsapp';
   var title=isWA?'Ticket <span style="color:var(--blue)">'+(esc(r.folio_ticket||r.folio||'—'))+'</span>':'Registro <span style="color:var(--blue)">'+(esc(r.folio_ticket||'—'))+'</span>';
@@ -483,7 +574,7 @@ function regOpenModal(idx){
       {l:'Empresa',v:r.propiedad},{l:'Correo',v:r.correo},
       {l:'Servicio',v:r.tipo_de_servicio},{l:'Tipo',v:r.tipo_de_incidencia},
       {l:'Categoría',v:r.categora},{l:'Subtipo',v:r.submotvio},
-      {l:'Prioridad',v:r._prioridad,badge:'pri'},{l:'Estatus',v:r.status,badge:'st'},
+      {l:'Prioridad',v:r._prioridad,badge:'pri'},
       {l:'Agente',v:r.ejecutivo_asignado},{l:'CSAT',v:r._csat!=null?String(r._csat):null},
       {l:'Mensaje',v:r.mensaje,full:true},
       {l:'Diagnóstico',v:r.diagnostico,full:true},
@@ -496,19 +587,30 @@ function regOpenModal(idx){
       {l:'Tipo Solicitud',v:r.tipo_de_solicitud},{l:'Tipo Incidencia',v:r.tipo_de_incidencia},
       {l:'Sub-Motivo',v:r.submotvio},{l:'Categoría',v:r.categora},
       {l:'Servicio',v:r.tipo_de_servicio},{l:'Zona',v:r.zona},
-      {l:'Status',v:r.status,badge:'st'},{l:'Ejecutivo',v:r.ejecutivo_asignado},
+      {l:'Ejecutivo',v:r.ejecutivo_asignado},
       {l:'Tiempo Respuesta',v:r.tiempo_de_respuesta},{l:'Fecha Solución',v:r.fecha_de_solucion},
       {l:'Carta Convenio',v:r.carta_convenio},{l:'Titular',v:r.titular_del_servicio},
       {l:'Comentarios',v:r.comentarios_de_seguimiento,full:true}
     ];
   }
   var h='<div class="detail-grid">';
+  // Status editable at top
+  var curStatus=r.status||'';
+  h+='<div class="detail-item full" style="background:#fafbfc;padding:16px;border-radius:10px;margin-bottom:8px">';
+  h+='<div class="detail-label">Cambiar Status</div>';
+  h+='<div style="display:flex;align-items:center;gap:12px;margin-top:4px">';
+  h+='<select class="status-select" id="reg-status-sel" onchange="regChangeStatus()">';
+  _statusOpts.forEach(s=>{h+='<option value="'+esc(s)+'"'+(curStatus.toLowerCase()===s.toLowerCase()?' selected':'')+'>'+esc(s)+'</option>';});
+  if(curStatus&&!_statusOpts.some(s=>s.toLowerCase()===curStatus.toLowerCase())){h+='<option value="'+esc(curStatus)+'" selected>'+esc(curStatus)+'</option>';}
+  h+='</select>';
+  h+=sBadge(curStatus||'Sin status');
+  h+='<span class="status-msg" id="reg-status-msg"></span>';
+  h+='</div></div>';
   fields.forEach(f=>{
     h+='<div class="detail-item'+(f.full?' full':'')+'">';
     h+='<div class="detail-label">'+f.l+'</div>';
     if(!f.v&&f.v!==0)h+='<div class="detail-val empty">Sin datos</div>';
     else if(f.badge==='pri')h+='<div class="detail-val">'+tkPriBadge(f.v)+'</div>';
-    else if(f.badge==='st')h+='<div class="detail-val">'+sBadge(f.v)+'</div>';
     else h+='<div class="detail-val">'+esc(String(f.v))+'</div>';
     h+='</div>';
   });
@@ -516,6 +618,38 @@ function regOpenModal(idx){
   document.getElementById('tk-modal-body').innerHTML=h;
   document.getElementById('tk-modal').classList.add('on');
   document.body.style.overflow='hidden';
+}
+
+async function regChangeStatus(){
+  var r=regDisplayed[_regModalIdx];if(!r)return;
+  var newStatus=document.getElementById('reg-status-sel').value;
+  var msgEl=document.getElementById('reg-status-msg');
+  msgEl.textContent='Guardando...';msgEl.style.color='var(--blue)';
+  try{
+    var isWA=r._source==='whatsapp';
+    if(isWA){
+      var folio=r.folio_ticket||r.folio;
+      if(folio){
+        const{error}=await sb.from('tickets').update({estatus:newStatus}).eq('folio',folio);
+        if(error)throw error;
+      }
+    } else {
+      var id=r.id;
+      if(id){
+        const{error}=await sb.from('base_general').update({status:newStatus}).eq('id',id);
+        if(error)throw error;
+      }
+    }
+    // Update local data
+    r.status=newStatus;
+    if(isWA&&r._tk)r._tk.estatus=newStatus;
+    msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';
+    setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
+    // Refresh table behind modal
+    applyFilters();
+  }catch(e){
+    msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
+  }
 }
 
 function sBadge(v){var l=v.toLowerCase(),c='bb';if(isRes(v))c='bg';else if(isPen(v))c='br';else if(l.includes('proceso')||l.includes('seguimiento'))c='ba';return'<span class="badge '+c+'">'+esc(trn(v,22))+'</span>';}
@@ -592,7 +726,9 @@ function tkPriBadge(v){var l=String(v).toLowerCase(),c='bb';if(l.includes('alta'
 function tkPgPrev(){if(tkPg>0){tkPg--;tkRender();}}
 function tkPgNext(){var tp=Math.ceil(tkFiltered.length/TK_LIM);if(tkPg<tp-1){tkPg++;tkRender();}}
 
+var _tkModalIdx=null;
 function tkOpenModal(idx){
+  _tkModalIdx=idx;
   var r=tkFiltered[idx];if(!r)return;
   document.getElementById('tk-modal-title').innerHTML='Ticket <span style="color:var(--blue)">'+esc(r.folio||'—')+'</span>';
   var fields=[
@@ -601,19 +737,29 @@ function tkOpenModal(idx){
     {l:'Empresa',v:r.empresa},{l:'Correo',v:r.correo},
     {l:'Servicio',v:r.servicio},{l:'Tipo',v:r.tipo},
     {l:'Categoria',v:r.categoria},{l:'Subtipo',v:r.subtipo},
-    {l:'Prioridad',v:r.prioridad,badge:'pri'},{l:'Estatus',v:r.estatus,badge:'st'},
+    {l:'Prioridad',v:r.prioridad,badge:'pri'},
     {l:'Agente',v:r.agente},{l:'CSAT',v:r.csat!=null?String(r.csat):null},
     {l:'Mensaje',v:r.mensaje,full:true},
     {l:'Diagnostico',v:r.diagnostico,full:true},
     {l:'Causa Raiz',v:r.causa_raiz,full:true}
   ];
+  var curStatus=r.estatus||'';
   var h='<div class="detail-grid">';
+  h+='<div class="detail-item full" style="background:#fafbfc;padding:16px;border-radius:10px;margin-bottom:8px">';
+  h+='<div class="detail-label">Cambiar Status</div>';
+  h+='<div style="display:flex;align-items:center;gap:12px;margin-top:4px">';
+  h+='<select class="status-select" id="tk-status-sel" onchange="tkChangeStatus()">';
+  _statusOpts.forEach(s=>{h+='<option value="'+esc(s)+'"'+(curStatus.toLowerCase()===s.toLowerCase()?' selected':'')+'>'+esc(s)+'</option>';});
+  if(curStatus&&!_statusOpts.some(s=>s.toLowerCase()===curStatus.toLowerCase())){h+='<option value="'+esc(curStatus)+'" selected>'+esc(curStatus)+'</option>';}
+  h+='</select>';
+  h+=sBadge(curStatus||'Sin status');
+  h+='<span class="status-msg" id="tk-status-msg"></span>';
+  h+='</div></div>';
   fields.forEach(f=>{
     h+='<div class="detail-item'+(f.full?' full':'')+'">';
     h+='<div class="detail-label">'+f.l+'</div>';
     if(!f.v&&f.v!==0)h+='<div class="detail-val empty">Sin datos</div>';
     else if(f.badge==='pri')h+='<div class="detail-val">'+tkPriBadge(f.v)+'</div>';
-    else if(f.badge==='st')h+='<div class="detail-val">'+sBadge(f.v)+'</div>';
     else h+='<div class="detail-val">'+esc(String(f.v))+'</div>';
     h+='</div>';
   });
@@ -621,6 +767,25 @@ function tkOpenModal(idx){
   document.getElementById('tk-modal-body').innerHTML=h;
   document.getElementById('tk-modal').classList.add('on');
   document.body.style.overflow='hidden';
+}
+
+async function tkChangeStatus(){
+  var r=tkFiltered[_tkModalIdx];if(!r)return;
+  var newStatus=document.getElementById('tk-status-sel').value;
+  var msgEl=document.getElementById('tk-status-msg');
+  msgEl.textContent='Guardando...';msgEl.style.color='var(--blue)';
+  try{
+    const{error}=await sb.from('tickets').update({estatus:newStatus}).eq('folio',r.folio);
+    if(error)throw error;
+    r.estatus=newStatus;
+    // Update allData too
+    var match=allData.find(d=>d._source==='whatsapp'&&d._tk===r);
+    if(match)match.status=newStatus;
+    msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';
+    setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
+  }catch(e){
+    msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
+  }
 }
 function tkCloseModal(){document.getElementById('tk-modal').classList.remove('on');document.body.style.overflow='';}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')tkCloseModal();});
