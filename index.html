@@ -360,6 +360,10 @@ async function loadData(){
   allData.forEach(r=>{
     r._source='base_general';
     try{var c=r.cliente_from_nombre_del_cliente;if(typeof c==='string'&&c.startsWith('[')){r.nombre_del_cliente_nuevo=JSON.parse(c)[0];}else if(Array.isArray(c)){r.nombre_del_cliente_nuevo=c[0];}else if(c){r.nombre_del_cliente_nuevo=String(c);}if(!r.nombre_del_cliente_nuevo&&r.titular_del_servicio)r.nombre_del_cliente_nuevo=r.titular_del_servicio;}catch(e){}
+    // Parsear propiedad desde propiedad_from_nombre_del_cliente si propiedad está vacía
+    if(!r.propiedad||String(r.propiedad).trim()===''){
+      try{var p=r.propiedad_from_nombre_del_cliente;if(typeof p==='string'&&p.startsWith('[')){r.propiedad=JSON.parse(p)[0];}else if(Array.isArray(p)){r.propiedad=p[0];}else if(p){r.propiedad=String(p);}}catch(e){}
+    }
     if(r.fecha_de_la_solicitud){
       var fd=String(r.fecha_de_la_solicitud);
       r._anio=fd.slice(0,4);
@@ -679,8 +683,21 @@ function regOpenModal(idx){
   h+='</div></div>';
   // Monto de cancelación si aplica
   var isCancelacion=r.tipo_de_solicitud&&r.tipo_de_solicitud.toLowerCase().includes('cancelac');
-  if(isCancelacion&&r.facturacin_sin_iva!=null){
-    h+='<div class="detail-item full"><div class="detail-label">Facturación sin IVA</div><div class="detail-val" style="font-size:18px;font-weight:700;color:var(--red)">$'+Number(r.facturacin_sin_iva).toLocaleString('es-MX',{minimumFractionDigits:2})+'</div></div>';
+  if(isCancelacion){
+    var montoVal=r.facturacin_sin_iva!=null?Number(r.facturacin_sin_iva):0;
+    h+='<div class="detail-item full" style="background:#fef2f2;padding:16px;border-radius:10px;margin-bottom:8px">';
+    h+='<div class="detail-label">Facturación sin IVA</div>';
+    if(isAdmin()){
+      h+='<div style="display:flex;align-items:center;gap:12px;margin-top:4px">';
+      h+='<span style="font-size:18px;font-weight:700;color:var(--red)">$</span>';
+      h+='<input type="number" step="0.01" min="0" id="reg-monto-input" value="'+(montoVal||'')+'" style="padding:8px 12px;border:2px solid var(--border);border-radius:8px;font-size:16px;font-weight:700;color:var(--red);width:200px;font-family:inherit;" placeholder="0.00">';
+      h+='<button class="btn-save-comment" onclick="regSaveMonto()"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>';
+      h+='<span class="status-msg" id="reg-monto-msg"></span>';
+      h+='</div>';
+    } else {
+      h+='<div class="detail-val" style="font-size:18px;font-weight:700;color:var(--red)">'+(montoVal?'$'+montoVal.toLocaleString('es-MX',{minimumFractionDigits:2}):'Sin dato')+'</div>';
+    }
+    h+='</div>';
   }
   // Status cancelación editable para admin en cancelaciones
   if(isCancelacion){
@@ -775,6 +792,25 @@ async function regSaveComment(){
     msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
   }
   btn.disabled=false;
+}
+
+async function regSaveMonto(){
+  var r=regDisplayed[_regModalIdx];if(!r)return;
+  var val=parseFloat(document.getElementById('reg-monto-input').value)||0;
+  var msgEl=document.getElementById('reg-monto-msg');
+  msgEl.textContent='Guardando...';msgEl.style.color='var(--blue)';
+  try{
+    var id=r.id;
+    if(id){
+      const{error}=await sb.from('base_general').update({facturacin_sin_iva:val}).eq('id',id);
+      if(error)throw error;
+    }
+    r.facturacin_sin_iva=val;
+    msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';
+    setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
+  }catch(e){
+    msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
+  }
 }
 
 async function regChangeStatus(){
