@@ -316,7 +316,8 @@ const ADMIN_EMAILS=['servicioalcliente@grupoavantex.com'];
 function isAdmin(){return user&&ADMIN_EMAILS.includes(user.email.toLowerCase());}
 const LIM=50;
 const PAL=['#2563eb','#059669','#d97706','#dc2626','#7c3aed','#ec4899','#0891b2','#65a30d','#ea580c','#6366f1','#14b8a6','#e11d48'];
-let F={tipo_solicitud:'',anio:'',mes:'',tipo_servicio:'',zona:'',status:'',tipo_incidencia:'',ejecutivo:''};
+var _moNombres=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+let F={tipo_solicitud:'',anio:'',mes:_moNombres[new Date().getMonth()],tipo_servicio:'',zona:'',status:'',tipo_incidencia:'',ejecutivo:''};
 
 async function doLogin(){
   const email=document.getElementById('in-email').value.trim(),pass=document.getElementById('in-pass').value;
