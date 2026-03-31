@@ -666,16 +666,24 @@ function regOpenModal(idx){
       {l:'Departamento',v:r.departamento},{l:'Nombre del Contacto',v:r.nombre_del_contacto},
       {l:'Teléfono del Contacto',v:r.telefono_del_contacto},{l:'Correo del Contacto',v:r.correo_del_contacto},
       {l:'Detalle de la Incidencia',v:r.detalle_de_la_incidencia,full:true},
-      {l:'Análisis de Causa Raíz',v:r.anlisis_de_causa_raz,full:true},
-      {l:'Carta Convenio',v:r.carta_convenio},{l:'Inicio de Contrato',v:r.inicio_de_contrato},
-      {l:'Fecha Tentativa de Cancelación',v:r.fecha_tentativa_de_cancelacin},{l:'Duración del Contrato',v:r.duracion_del_contato?r.duracion_del_contato+' meses':null},
-      {l:'Mes de Cancelación',v:r.mes_de_cancelacion},{l:'LTV',v:r.ltv},
-      {l:'Cantidad de Equipos',v:r.cantidad_de_equipos},{l:'Modelo del Equipo',v:r.modelo_del_equipo},
-      {l:'Contrato Cancelado en Operandium',v:r.contrato_cancelado_en_operandium},{l:'Cita de Recolección',v:r.cita_de_recoleccion},
-      {l:'Equipo Recuperado',v:r.equipo_recuperado},{l:'Fecha Solución',v:r.fecha_de_solucion},
-      {l:'Pendiente de Pago',v:r.pendiente_de_pago},{l:'Condonación',v:r.condonacion},
-      {l:'Titular del Servicio',v:r.titular_del_servicio},{l:'Correo Titular',v:r.correo_titular_del_servicio},
-      {l:'WhatsApp Titular',v:r.whatsapp_titular_del_servicio},
+      {l:'Análisis de Causa Raíz',v:r.anlisis_de_causa_raz,full:true,ed:'anlisis_de_causa_raz',ta:true},
+      {l:'Carta Convenio',v:r.carta_convenio,ed:'carta_convenio',opts:['Si','No']},
+      {l:'Inicio de Contrato',v:r.inicio_de_contrato,ed:'inicio_de_contrato',tp:'date'},
+      {l:'Fecha Tentativa de Cancelación',v:r.fecha_tentativa_de_cancelacin,ed:'fecha_tentativa_de_cancelacin',tp:'date'},
+      {l:'Duración del Contrato',v:r.duracion_del_contato,ed:'duracion_del_contato',tp:'number',suf:' meses'},
+      {l:'Mes de Cancelación',v:r.mes_de_cancelacion,ed:'mes_de_cancelacion'},
+      {l:'LTV',v:r.ltv,ed:'ltv'},
+      {l:'Cantidad de Equipos',v:r.cantidad_de_equipos,ed:'cantidad_de_equipos',tp:'number'},
+      {l:'Modelo del Equipo',v:r.modelo_del_equipo,ed:'modelo_del_equipo'},
+      {l:'Contrato Cancelado en Operandium',v:r.contrato_cancelado_en_operandium,ed:'contrato_cancelado_en_operandium',opts:['','checked']},
+      {l:'Cita de Recolección',v:r.cita_de_recoleccion,ed:'cita_de_recoleccion',tp:'date'},
+      {l:'Equipo Recuperado',v:r.equipo_recuperado,ed:'equipo_recuperado',opts:['','checked']},
+      {l:'Fecha Solución',v:r.fecha_de_solucion,ed:'fecha_de_solucion',tp:'date'},
+      {l:'Pendiente de Pago',v:r.pendiente_de_pago,ed:'pendiente_de_pago',tp:'number'},
+      {l:'Condonación',v:r.condonacion,ed:'condonacion',tp:'number'},
+      {l:'Titular del Servicio',v:r.titular_del_servicio,ed:'titular_del_servicio'},
+      {l:'Correo Titular',v:r.correo_titular_del_servicio,ed:'correo_titular_del_servicio'},
+      {l:'WhatsApp Titular',v:r.whatsapp_titular_del_servicio,ed:'whatsapp_titular_del_servicio'},
       {l:'Comentarios',v:r.comentarios_de_seguimiento,full:true}
     ];
   } else {
@@ -745,13 +753,36 @@ function regOpenModal(idx){
     }
     h+='</div></div>';
   }
+  var _edIdx=0;
   fields.forEach(f=>{
     if(f.l==='Comentarios')return;
     h+='<div class="detail-item'+(f.full?' full':'')+'">';
     h+='<div class="detail-label">'+f.l+'</div>';
-    if(!f.v&&f.v!==0)h+='<div class="detail-val empty">Sin datos</div>';
-    else if(f.badge==='pri')h+='<div class="detail-val">'+tkPriBadge(f.v)+'</div>';
-    else h+='<div class="detail-val">'+esc(String(f.v))+'</div>';
+    if(f.ed&&isAdmin()){
+      var eid='reg-ed-'+(_edIdx++);
+      if(f.opts){
+        h+='<select class="status-select" id="'+eid+'" data-col="'+f.ed+'" onchange="regInlineSave(this)">';
+        f.opts.forEach(o=>{h+='<option value="'+esc(o)+'"'+((f.v||'')==o?' selected':'')+'>'+esc(o||'— Vacío —')+'</option>';});
+        if(f.v&&!f.opts.includes(f.v)){h+='<option value="'+esc(f.v)+'" selected>'+esc(f.v)+'</option>';}
+        h+='</select>';
+      } else if(f.ta){
+        h+='<textarea class="comment-area" id="'+eid+'" style="min-height:80px">'+esc(f.v||'')+'</textarea>';
+        h+='<button class="btn-save-comment" style="margin-top:4px" onclick="regInlineSaveText(\''+eid+'\',\''+f.ed+'\')"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>';
+      } else {
+        var tp=f.tp||'text';
+        var val=f.v!=null?String(f.v).replace(/ meses$/,''):'';
+        h+='<div style="display:flex;align-items:center;gap:8px">';
+        h+='<input type="'+tp+'" class="finput" id="'+eid+'" data-col="'+f.ed+'" value="'+esc(val)+'" style="padding:6px 10px;font-size:13px;max-width:250px;margin:0">';
+        if(f.suf)h+='<span style="font-size:12px;color:var(--gray)">'+f.suf+'</span>';
+        h+='<button class="btn-save-comment" style="padding:6px 12px;margin:0" onclick="regInlineSaveInput(\''+eid+'\',\''+f.ed+'\',\''+(f.tp||'text')+'\')"><i class="fa-solid fa-check"></i></button>';
+        h+='</div>';
+      }
+      h+='<span class="status-msg" id="'+eid+'-msg" style="font-size:10px;margin-top:2px"></span>';
+    } else {
+      if(!f.v&&f.v!==0)h+='<div class="detail-val empty">Sin datos</div>';
+      else if(f.badge==='pri')h+='<div class="detail-val">'+tkPriBadge(f.v)+'</div>';
+      else h+='<div class="detail-val">'+esc(String(f.v)+(f.suf||''))+'</div>';
+    }
     h+='</div>';
   });
   // Comentarios de seguimiento — editable para admin
@@ -821,6 +852,50 @@ async function regSaveComment(){
     msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
   }
   btn.disabled=false;
+}
+
+async function regInlineSave(sel){
+  var r=regDisplayed[_regModalIdx];if(!r||!r.id)return;
+  var col=sel.dataset.col,val=sel.value;
+  var msgEl=document.getElementById(sel.id+'-msg');
+  msgEl.textContent='...';msgEl.style.color='var(--blue)';
+  try{
+    var upd={};upd[col]=val||null;
+    const{error}=await sb.from('base_general').update(upd).eq('id',r.id);
+    if(error)throw error;
+    r[col]=val||null;
+    msgEl.textContent='OK';msgEl.style.color='var(--green)';
+    setTimeout(()=>{msgEl.textContent='';},1500);
+  }catch(e){msgEl.textContent='Error';msgEl.style.color='var(--red)';}
+}
+async function regInlineSaveText(eid,col){
+  var r=regDisplayed[_regModalIdx];if(!r||!r.id)return;
+  var val=document.getElementById(eid).value;
+  var msgEl=document.getElementById(eid+'-msg');
+  msgEl.textContent='Guardando...';msgEl.style.color='var(--blue)';
+  try{
+    var upd={};upd[col]=val||null;
+    const{error}=await sb.from('base_general').update(upd).eq('id',r.id);
+    if(error)throw error;
+    r[col]=val||null;
+    msgEl.textContent='OK';msgEl.style.color='var(--green)';
+    setTimeout(()=>{msgEl.textContent='';},1500);
+  }catch(e){msgEl.textContent='Error';msgEl.style.color='var(--red)';}
+}
+async function regInlineSaveInput(eid,col,tp){
+  var r=regDisplayed[_regModalIdx];if(!r||!r.id)return;
+  var raw=document.getElementById(eid).value;
+  var val=tp==='number'?(raw?parseFloat(raw):null):(raw||null);
+  var msgEl=document.getElementById(eid+'-msg');
+  msgEl.textContent='...';msgEl.style.color='var(--blue)';
+  try{
+    var upd={};upd[col]=val;
+    const{error}=await sb.from('base_general').update(upd).eq('id',r.id);
+    if(error)throw error;
+    r[col]=val;
+    msgEl.textContent='OK';msgEl.style.color='var(--green)';
+    setTimeout(()=>{msgEl.textContent='';},1500);
+  }catch(e){msgEl.textContent='Error';msgEl.style.color='var(--red)';}
 }
 
 async function regSaveMonto(){
