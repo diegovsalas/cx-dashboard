@@ -317,8 +317,10 @@ const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 let allData=[],filtered=[],user=null,curPage='dashboard',chartInstances={},tblPg=0;
-const ADMIN_EMAILS=['servicioalcliente@grupoavantex.com'];
+const ADMIN_EMAILS=['servicioalcliente@grupoavantex.com','diegovelazquez@grupoavantex.com'];
+const SUPERADMIN_EMAIL='diegovelazquez@grupoavantex.com';
 function isAdmin(){return user&&ADMIN_EMAILS.includes(user.email.toLowerCase());}
+function isSuperAdmin(){return user&&user.email.toLowerCase()===SUPERADMIN_EMAIL;}
 const LIM=50;
 const PAL=['#2563eb','#059669','#d97706','#dc2626','#7c3aed','#ec4899','#0891b2','#65a30d','#ea580c','#6366f1','#14b8a6','#e11d48'];
 var _moNombres=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -798,10 +800,42 @@ function regOpenModal(idx){
     else h+='<div class="detail-val empty">Sin comentarios</div>';
   }
   h+='</div>';
+  // Botón eliminar — solo superadmin
+  if(isSuperAdmin()){
+    h+='<div style="margin-top:20px;padding-top:16px;border-top:1px solid #fecaca;text-align:right">';
+    h+='<button onclick="regDeleteRecord()" style="padding:8px 20px;background:var(--red);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit"><i class="fa-solid fa-trash"></i> Eliminar registro</button>';
+    h+='<span class="status-msg" id="reg-delete-msg" style="margin-left:12px"></span>';
+    h+='</div>';
+  }
   h+='</div>';
   document.getElementById('tk-modal-body').innerHTML=h;
   document.getElementById('tk-modal').classList.add('on');
   document.body.style.overflow='hidden';
+}
+
+async function regDeleteRecord(){
+  if(!isSuperAdmin())return;
+  var r=regDisplayed[_regModalIdx];if(!r)return;
+  var label=r.folio_ticket||r.folio||'este registro';
+  if(!confirm('¿Estás seguro de eliminar el registro '+label+'?\n\nEsta acción no se puede deshacer.'))return;
+  var msgEl=document.getElementById('reg-delete-msg');
+  msgEl.textContent='Eliminando...';msgEl.style.color='var(--red)';
+  try{
+    var isWA=r._source==='whatsapp';
+    if(isWA){
+      var folio=r.folio_ticket||r.folio;
+      if(folio){const{error}=await sb.from('tickets').delete().eq('folio',folio);if(error)throw error;}
+    } else {
+      var id=r.id;
+      if(id){const{error}=await sb.from('base_general').delete().eq('id',id);if(error)throw error;}
+    }
+    // Quitar de allData
+    var idx=allData.indexOf(r);if(idx>-1)allData.splice(idx,1);
+    msgEl.textContent='Eliminado';
+    tkCloseModal();applyFilters();
+  }catch(e){
+    msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
+  }
 }
 
 async function regChangeStCanc(){
@@ -1183,10 +1217,36 @@ function tkOpenModal(idx){
     else h+='<div class="detail-val">'+esc(String(f.v))+'</div>';
     h+='</div>';
   });
+  // Botón eliminar — solo superadmin
+  if(isSuperAdmin()){
+    h+='<div style="margin-top:20px;padding-top:16px;border-top:1px solid #fecaca;text-align:right">';
+    h+='<button onclick="tkDeleteRecord()" style="padding:8px 20px;background:var(--red);color:#fff;border:none;border-radius:8px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit"><i class="fa-solid fa-trash"></i> Eliminar ticket</button>';
+    h+='<span class="status-msg" id="tk-delete-msg" style="margin-left:12px"></span>';
+    h+='</div>';
+  }
   h+='</div>';
   document.getElementById('tk-modal-body').innerHTML=h;
   document.getElementById('tk-modal').classList.add('on');
   document.body.style.overflow='hidden';
+}
+
+async function tkDeleteRecord(){
+  if(!isSuperAdmin())return;
+  var r=tkFiltered[_tkModalIdx];if(!r)return;
+  if(!confirm('¿Estás seguro de eliminar el ticket '+r.folio+'?\n\nEsta acción no se puede deshacer.'))return;
+  var msgEl=document.getElementById('tk-delete-msg');
+  msgEl.textContent='Eliminando...';msgEl.style.color='var(--red)';
+  try{
+    const{error}=await sb.from('tickets').delete().eq('folio',r.folio);
+    if(error)throw error;
+    var match=allData.findIndex(d=>d._source==='whatsapp'&&d._tk===r);
+    if(match>-1)allData.splice(match,1);
+    tkAll=tkAll.filter(t=>t!==r);
+    msgEl.textContent='Eliminado';
+    tkCloseModal();tkApply();
+  }catch(e){
+    msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
+  }
 }
 
 async function tkChangeStatus(){
