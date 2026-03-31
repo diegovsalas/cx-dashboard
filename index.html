@@ -944,10 +944,17 @@ function descargarGuia(){
     ctx.fillStyle='#ffffff';ctx.fillRect(0,0,W,H);
     // Green header bar
     ctx.fillStyle='#25d366';ctx.fillRect(0,0,W,120);
-    // Logo Avantex in header
+    // Logo Avantex in header (white pill background so logo is visible)
     if(logoImg){
-      var lh=50,lw=logoImg.width*(lh/logoImg.height);
-      ctx.drawImage(logoImg,W/2-lw/2,10,lw,lh);
+      var lh=44,lw=logoImg.width*(lh/logoImg.height);
+      var px=14,py=8,br=10;
+      var lx=W/2-lw/2-px,ly=12-py;
+      ctx.fillStyle='#ffffff';
+      ctx.beginPath();ctx.roundRect(lx,ly,lw+px*2,lh+py*2,br);ctx.fill();
+      ctx.drawImage(logoImg,W/2-lw/2,12,lw,lh);
+    } else {
+      ctx.fillStyle='#ffffff';ctx.font='bold 28px Inter, Arial, sans-serif';ctx.textAlign='center';
+      ctx.fillText('Grupo Avantex',W/2,42);
     }
     ctx.fillStyle='#ffffff';ctx.font='bold 20px Inter, Arial, sans-serif';ctx.textAlign='center';
     ctx.fillText('Reporte de Incidencias por WhatsApp',W/2,92);
