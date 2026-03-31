@@ -420,7 +420,9 @@ function buildFB(cid){
   const defs=[{key:'tipo_solicitud',label:'Tipo Solicitud',col:'tipo_de_solicitud'},{key:'anio',label:'Año',col:'_anio'},{key:'mes',label:'Mes',col:'mes'},{key:'tipo_servicio',label:'Servicio',col:'tipo_de_servicio'},{key:'zona',label:'Zona',col:'zona'},{key:'status',label:'Status',col:'status'},{key:'tipo_incidencia',label:'Tipo Incidencia',col:'tipo_de_incidencia'},{key:'ejecutivo',label:'Ejecutivo',col:'ejecutivo_asignado'}];
   let h='<span class="flabel" style="margin:0">Filtros:</span>';
   defs.forEach(d=>{
-    let vals=[...new Set(allData.map(r=>r[d.col]).filter(v=>v!=null&&String(v).trim()!==''))];
+    let vals;
+    if(d.key==='status'){vals=[...new Set(allData.flatMap(r=>[r.status,r.status_cancelacion]).filter(v=>v!=null&&String(v).trim()!==''))];}
+    else{vals=[...new Set(allData.map(r=>r[d.col]).filter(v=>v!=null&&String(v).trim()!==''))];}
     // Para año, ordenar descendente (más recientes primero)
     if(d.key==='anio'){
       vals.sort((a,b)=>String(b).localeCompare(String(a)));
@@ -454,7 +456,7 @@ function applyFilters(){
     if(F.tipo_solicitud&&r.tipo_de_solicitud!==F.tipo_solicitud)return false;
     if(F.tipo_servicio&&r.tipo_de_servicio!==F.tipo_servicio)return false;
     if(F.zona&&r.zona!==F.zona)return false;
-    if(F.status&&r.status!==F.status)return false;
+    if(F.status&&r.status!==F.status&&r.status_cancelacion!==F.status)return false;
     if(F.tipo_incidencia&&r.tipo_de_incidencia!==F.tipo_incidencia)return false;
     if(F.ejecutivo&&r.ejecutivo_asignado!==F.ejecutivo)return false;
     return true;
@@ -499,11 +501,13 @@ function setTipoSolicitud(v){
   applyFilters();
 }
 
-function isRes(s){if(!s)return false;var l=s.toLowerCase();return l.includes('cerrad')||l.includes('resuelt')||l.includes('completad')||l.includes('solucionad');}
-function isPen(s){if(!s)return false;var l=s.toLowerCase();return l.includes('pendient')||l.includes('abiert')||l.includes('proceso')||l.includes('seguimiento')||l.includes('nueva');}
+function _esCancelacion(r){var t=(r.tipo_de_solicitud||'').toLowerCase();return t.includes('cancelac');}
+function statusEfectivo(r){return _esCancelacion(r)?(r.status_cancelacion||r.status||''):(r.status||'');}
+function isRes(s){if(!s)return false;var l=s.toLowerCase();return l.includes('cerrad')||l.includes('resuelt')||l.includes('completad')||l.includes('solucionad')||l.includes('retenid')||l.includes('cancelad');}
+function isPen(s){if(!s)return false;var l=s.toLowerCase();return l.includes('pendient')||l.includes('abiert')||l.includes('proceso')||l.includes('seguimiento')||l.includes('nueva')||l.includes('negociac')||l.includes('sin atender');}
 
 function renderKPIs(){
-  var tot=filtered.length,res=filtered.filter(r=>isRes(r.status)).length,pen=filtered.filter(r=>isPen(r.status)).length;
+  var tot=filtered.length,res=filtered.filter(r=>isRes(statusEfectivo(r))).length,pen=filtered.filter(r=>isPen(statusEfectivo(r))).length;
   var ts=filtered.map(r=>{var t=r.tiempo_de_respuesta;if(!t)return null;var n=parseFloat(String(t).replace(/[^\d.]/g,''));return isNaN(n)?null:n;}).filter(v=>v!==null);
   var avg=ts.length?Math.round(ts.reduce((a,b)=>a+b,0)/ts.length):'—';
   document.getElementById('kpis').innerHTML='<div class="kpi-row"><div class="kpi c-blue"><div class="bar"></div><div class="lbl">Total</div><div class="sublbl">Incidencias registradas</div><div class="val">'+tot.toLocaleString()+'</div></div><div class="kpi c-green"><div class="bar"></div><div class="lbl">Resueltas</div><div class="sublbl">Incidencias cerradas</div><div class="val">'+res.toLocaleString()+'</div></div><div class="kpi c-red"><div class="bar"></div><div class="lbl">Pendientes</div><div class="sublbl">Sin resolver</div><div class="val">'+pen.toLocaleString()+'</div></div><div class="kpi c-amber"><div class="bar"></div><div class="lbl">Tiempo de Respuesta</div><div class="sublbl">Promedio en días</div><div class="val">'+avg+'</div></div></div>';
@@ -533,7 +537,7 @@ function renderCharts(){
   chartInstances.c5=mkDonut('c5','tipo_de_servicio');
   chartInstances.c6=mkMonthBar('c6');
   chartInstances.c7=mkColBar('c7','carta_convenio');
-  chartInstances.c8=mkColBar('c8','status');
+  chartInstances.c8=mkColBarStatus('c8');
   chartInstances.c9=mkNPS('c9');
   chartInstances.c10=mkCSATbyService('c10');
 }
@@ -572,6 +576,13 @@ function mkDonut(id,col){
 
 function mkColBar(id,col){
   var d=colCnt(col).slice(0,10);if(!d.length)return null;
+  return new Chart(document.getElementById(id),{type:'bar',data:{labels:d.map(x=>trn(x[0],18)),datasets:[{data:d.map(x=>x[1]),backgroundColor:PAL,borderRadius:5}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10},color:'#9ca3af'},grid:{display:false}},y:{ticks:{font:{size:10},color:'#9ca3af'},grid:{color:'#f3f4f6'}}}}});
+}
+
+function mkColBarStatus(id){
+  var c={};filtered.forEach(r=>{var v=statusEfectivo(r);if(v&&String(v).trim()!=='')c[v]=(c[v]||0)+1;});
+  var d=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,10);
+  if(!d.length)return null;
   return new Chart(document.getElementById(id),{type:'bar',data:{labels:d.map(x=>trn(x[0],18)),datasets:[{data:d.map(x=>x[1]),backgroundColor:PAL,borderRadius:5}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10},color:'#9ca3af'},grid:{display:false}},y:{ticks:{font:{size:10},color:'#9ca3af'},grid:{color:'#f3f4f6'}}}}});
 }
 
