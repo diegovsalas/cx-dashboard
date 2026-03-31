@@ -205,6 +205,9 @@ async function enterApp(){
   await loadData();buildFilters();applyFilters();
 }
 
+var _mesMap={'january':'Enero','february':'Febrero','march':'Marzo','april':'Abril','may':'Mayo','june':'Junio','july':'Julio','august':'Agosto','september':'Septiembre','october':'Octubre','november':'Noviembre','december':'Diciembre','enero':'Enero','febrero':'Febrero','marzo':'Marzo','abril':'Abril','mayo':'Mayo','junio':'Junio','julio':'Julio','agosto':'Agosto','septiembre':'Septiembre','octubre':'Octubre','noviembre':'Noviembre','diciembre':'Diciembre'};
+function _normMes(m){if(!m)return'';var k=m.trim().toLowerCase();return _mesMap[k]||m;}
+
 async function loadData(){
   allData=[];let off=0;
   while(true){
@@ -218,12 +221,15 @@ async function loadData(){
     if(r.fecha_de_la_solicitud){
       var fd=String(r.fecha_de_la_solicitud);
       r._anio=fd.slice(0,4);
-      if(!r.mes||r.mes.trim()===''){
-        var md=parseInt(fd.slice(5,7));if(!isNaN(md)&&md>=1&&md<=12){
-          var mo=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-          r.mes=mo[md-1];
-        }
+      var md=parseInt(fd.slice(5,7));
+      if(!isNaN(md)&&md>=1&&md<=12){
+        var mo=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+        r.mes=mo[md-1];
+      } else if(r.mes){
+        r.mes=_normMes(r.mes);
       }
+    } else if(r.mes){
+      r.mes=_normMes(r.mes);
     }
   });
   // Cargar tickets WhatsApp y mapear a campos unificados
