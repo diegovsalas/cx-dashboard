@@ -636,7 +636,8 @@ function regOpenModal(idx){
   _regModalIdx=idx;
   var r=regDisplayed[idx];if(!r)return;
   var isWA=r._source==='whatsapp';
-  var title=isWA?'Ticket <span style="color:var(--blue)">'+(esc(r.folio_ticket||r.folio||'—'))+'</span>':'Registro <span style="color:var(--blue)">'+(esc(r.folio_ticket||'—'))+'</span>';
+  var isCancelacion=!isWA&&r.tipo_de_solicitud&&r.tipo_de_solicitud.toLowerCase().includes('cancelac');
+  var title=isWA?'Ticket <span style="color:var(--blue)">'+(esc(r.folio_ticket||r.folio||'—'))+'</span>':isCancelacion?'Cancelación <span style="color:var(--red)">'+(esc(r.folio_ticket||'—'))+'</span>':'Registro <span style="color:var(--blue)">'+(esc(r.folio_ticket||'—'))+'</span>';
   document.getElementById('tk-modal-title').innerHTML=title;
   var fields=[];
   if(isWA){
@@ -652,6 +653,31 @@ function regOpenModal(idx){
       {l:'Diagnóstico',v:r.diagnostico,full:true},
       {l:'Causa Raíz',v:r.causa_raiz,full:true}
     ];
+  } else if(isCancelacion){
+    fields=[
+      {l:'Folio / Ticket',v:r.folio_ticket},{l:'Folio',v:r.folio},
+      {l:'Fecha Solicitud',v:r.fecha_de_la_solicitud},{l:'Tipo de Cliente',v:r.tipo_de_cliente},
+      {l:'Cliente',v:r.nombre_del_cliente_nuevo},{l:'Propiedad',v:r.propiedad},
+      {l:'Tipo Solicitud',v:r.tipo_de_solicitud},{l:'Servicio',v:r.tipo_de_servicio},
+      {l:'Motivo de Cancelación',v:r.motivo_de_cancelacin},{l:'Sub-Motivo',v:r.submotvio},
+      {l:'RCA',v:r.rca},{l:'Categoría',v:r.categora},
+      {l:'Zona',v:r.zona},{l:'Ejecutivo Asignado',v:r.ejecutivo_asignado},
+      {l:'Quien Reporta',v:r.quien_reporta},{l:'Correo Avantex',v:r.correo_avantex},
+      {l:'Departamento',v:r.departamento},{l:'Nombre del Contacto',v:r.nombre_del_contacto},
+      {l:'Teléfono del Contacto',v:r.telefono_del_contacto},{l:'Correo del Contacto',v:r.correo_del_contacto},
+      {l:'Detalle de la Incidencia',v:r.detalle_de_la_incidencia,full:true},
+      {l:'Análisis de Causa Raíz',v:r.anlisis_de_causa_raz,full:true},
+      {l:'Carta Convenio',v:r.carta_convenio},{l:'Inicio de Contrato',v:r.inicio_de_contrato},
+      {l:'Fecha Tentativa de Cancelación',v:r.fecha_tentativa_de_cancelacin},{l:'Duración del Contrato',v:r.duracion_del_contato?r.duracion_del_contato+' meses':null},
+      {l:'Mes de Cancelación',v:r.mes_de_cancelacion},{l:'LTV',v:r.ltv},
+      {l:'Cantidad de Equipos',v:r.cantidad_de_equipos},{l:'Modelo del Equipo',v:r.modelo_del_equipo},
+      {l:'Contrato Cancelado en Operandium',v:r.contrato_cancelado_en_operandium},{l:'Cita de Recolección',v:r.cita_de_recoleccion},
+      {l:'Equipo Recuperado',v:r.equipo_recuperado},{l:'Fecha Solución',v:r.fecha_de_solucion},
+      {l:'Pendiente de Pago',v:r.pendiente_de_pago},{l:'Condonación',v:r.condonacion},
+      {l:'Titular del Servicio',v:r.titular_del_servicio},{l:'Correo Titular',v:r.correo_titular_del_servicio},
+      {l:'WhatsApp Titular',v:r.whatsapp_titular_del_servicio},
+      {l:'Comentarios',v:r.comentarios_de_seguimiento,full:true}
+    ];
   } else {
     fields=[
       {l:'Folio',v:r.folio_ticket},{l:'Fecha Solicitud',v:r.fecha_de_la_solicitud},
@@ -660,6 +686,10 @@ function regOpenModal(idx){
       {l:'Sub-Motivo',v:r.submotvio},{l:'Categoría',v:r.categora},
       {l:'Servicio',v:r.tipo_de_servicio},{l:'Zona',v:r.zona},
       {l:'Ejecutivo',v:r.ejecutivo_asignado},
+      {l:'Quien Reporta',v:r.quien_reporta},{l:'Departamento',v:r.departamento},
+      {l:'Nombre del Contacto',v:r.nombre_del_contacto},{l:'Teléfono del Contacto',v:r.telefono_del_contacto},
+      {l:'Correo del Contacto',v:r.correo_del_contacto},
+      {l:'Detalle de la Incidencia',v:r.detalle_de_la_incidencia,full:true},
       {l:'Tiempo Respuesta',v:r.tiempo_de_respuesta},{l:'Fecha Solución',v:r.fecha_de_solucion},
       {l:'Carta Convenio',v:r.carta_convenio},{l:'Titular',v:r.titular_del_servicio},
       {l:'Comentarios',v:r.comentarios_de_seguimiento,full:true}
@@ -682,7 +712,6 @@ function regOpenModal(idx){
   }
   h+='</div></div>';
   // Monto de cancelación si aplica
-  var isCancelacion=r.tipo_de_solicitud&&r.tipo_de_solicitud.toLowerCase().includes('cancelac');
   if(isCancelacion){
     var montoVal=r.facturacin_sin_iva!=null?Number(r.facturacin_sin_iva):0;
     h+='<div class="detail-item full" style="background:#fef2f2;padding:16px;border-radius:10px;margin-bottom:8px">';
