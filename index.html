@@ -115,8 +115,7 @@ table.dt tbody tr.tk-row{cursor:pointer;}table.dt tbody tr.tk-row:hover{backgrou
 <div class="nav-brand"><span>📊</span> Customer Experience</div>
 <div class="nav-links">
 <a class="nav-link on" data-page="dashboard" onclick="goPage('dashboard')">Dashboard</a>
-<a class="nav-link" data-page="consulta" onclick="goPage('consulta')">Consulta de Status</a>
-<a class="nav-link" data-page="registros" onclick="goPage('registros')">Todos los Registros</a>
+<a class="nav-link" data-page="registros" onclick="goPage('registros')">Registros</a>
 <a class="nav-link" data-page="tickets" onclick="goPage('tickets')">Tickets WhatsApp</a>
 <a class="nav-link" href="https://avantex-bot.onrender.com/dashboard" target="_blank" style="color:var(--blue);border:1px solid var(--blue);border-radius:6px;padding:4px 14px;margin-left:8px">💬 Chat Agentes</a>
 </div>
@@ -136,17 +135,11 @@ table.dt tbody tr.tk-row{cursor:pointer;}table.dt tbody tr.tk-row:hover{backgrou
 <div id="charts-area"></div>
 </div>
 
-<div class="page-content" id="page-consulta" style="display:none">
-<div class="consulta-hero"><h2>Consulta el Status de tu Incidencia</h2><p>Busca por folio, cliente, propiedad o tipo de incidencia</p></div>
-<div class="consulta-search-box">
-<input id="consulta-input" placeholder="Ej: FOLIO-001, Sucursal Centro, Derrame..." onkeydown="if(event.key==='Enter')doConsulta()">
-<button onclick="doConsulta()">Buscar</button>
-</div>
-<div class="filter-bar" id="filters-consulta"></div>
-<div id="consulta-results"></div>
-</div>
-
 <div class="page-content" id="page-registros" style="display:none">
+<div class="consulta-search-box" style="max-width:700px;margin:10px auto 18px">
+<input id="reg-search-main" placeholder="Buscar por folio, cliente, propiedad, tipo, teléfono..." onkeydown="if(event.key==='Enter')regSearchApply()" oninput="regSearchApply()">
+<button onclick="regSearchApply()">Buscar</button>
+</div>
 <div class="filter-bar" id="filters-reg"></div>
 <div id="reg-table"></div>
 </div>
@@ -186,7 +179,7 @@ const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 // ═══════════════════════════════════════
 
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
-let allData=[],filtered=[],user=null,curPage='dashboard',chartInstances={},tblPg=0,conPg=0;
+let allData=[],filtered=[],user=null,curPage='dashboard',chartInstances={},tblPg=0;
 const LIM=50;
 const PAL=['#2563eb','#059669','#d97706','#dc2626','#7c3aed','#ec4899','#0891b2','#65a30d','#ea580c','#6366f1','#14b8a6','#e11d48'];
 let F={tipo_solicitud:'',anio:'',mes:'',tipo_servicio:'',zona:'',status:'',tipo_incidencia:'',ejecutivo:''};
@@ -272,12 +265,12 @@ async function loadData(){
 function goPage(p){
   curPage=p;
   document.querySelectorAll('.nav-link').forEach(el=>{el.classList.toggle('on',el.dataset.page===p);});
-  ['dashboard','consulta','registros','tickets'].forEach(pg=>{document.getElementById('page-'+pg).style.display=pg===p?'':'none';});
+  ['dashboard','registros','tickets'].forEach(pg=>{document.getElementById('page-'+pg).style.display=pg===p?'':'none';});
   if(p==='registros'){tblPg=0;renderRegistros();}
   if(p==='tickets')loadTickets();
 }
 
-function buildFilters(){['filters-dash','filters-consulta','filters-reg'].forEach(id=>buildFB(id));}
+function buildFilters(){['filters-dash','filters-reg'].forEach(id=>buildFB(id));}
 
 function buildFB(cid){
   const el=document.getElementById(cid);
@@ -327,7 +320,7 @@ function applyFilters(){
   document.querySelectorAll('.active-filters').forEach(el=>{el.textContent=n?n+' filtro'+(n>1?'s':'')+' · '+filtered.length+' de '+allData.length+' registros':'';});
   updateDashboardTitle();
   renderTipoSolicitudTabs();
-  renderKPIs();renderCharts();tblPg=0;conPg=0;
+  renderKPIs();renderCharts();tblPg=0;
   if(curPage==='registros')renderRegistros();
 }
 
@@ -447,44 +440,76 @@ function mkMonthBar(id){
   return new Chart(document.getElementById(id),{type:'bar',data:{labels:s.map(x=>x[0]),datasets:[{data:s.map(x=>x[1]),backgroundColor:'#2563eb',borderRadius:5}]},options:{responsive:true,plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10},color:'#9ca3af'},grid:{display:false}},y:{ticks:{font:{size:10},color:'#9ca3af'},grid:{color:'#f3f4f6'}}}}});
 }
 
-function doConsulta(){
-  var q=(document.getElementById('consulta-input').value||'').toLowerCase().trim(),res=filtered;
-  if(q){res=res.filter(r=>inc(r.folio_ticket,q)||inc(r.nombre_del_cliente_nuevo,q)||inc(r.propiedad,q)||inc(r.tipo_de_incidencia,q)||inc(r.submotvio,q)||inc(r.ejecutivo_asignado,q)||inc(r.zona,q)||inc(r.status,q)||inc(r.folio,q)||inc(r.telefono,q)||inc(r.mensaje,q));}
-  conPg=0;renderCon(res);
-}
-
-function renderCon(data){
-  var a=document.getElementById('consulta-results');
-  if(!data.length){a.innerHTML='<div class="tbl-card"><p style="text-align:center;padding:30px;color:var(--text3)">No se encontraron resultados.</p></div>';return;}
-  var cs=[{k:'folio_ticket',l:'Folio'},{k:'fecha_de_la_solicitud',l:'Fecha'},{k:'nombre_del_cliente_nuevo',l:'Cliente'},{k:'propiedad',l:'Propiedad'},{k:'tipo_de_incidencia',l:'Tipo'},{k:'submotvio',l:'Sub-Motivo'},{k:'status',l:'Status'},{k:'ejecutivo_asignado',l:'Ejecutivo'},{k:'zona',l:'Zona'},{k:'tiempo_de_respuesta',l:'Días'},{k:'fecha_de_solucion',l:'Solución'},{k:'comentarios_de_seguimiento',l:'Comentarios'}];
-  var tp=Math.ceil(data.length/LIM),pg=data.slice(conPg*LIM,(conPg+1)*LIM);
-  var h='<div class="tbl-card"><div class="tbl-header"><h3>'+data.length+' resultado'+(data.length!==1?'s':'')+'</h3></div><div class="tbl-scroll"><table class="dt"><thead><tr>';
-  cs.forEach(c=>{h+='<th>'+c.l+'</th>';});h+='</tr></thead><tbody>';
-  pg.forEach(r=>{h+='<tr>';cs.forEach(c=>{var v=r[c.k];if(v==null||String(v).trim()===''){h+='<td class="null-v">—</td>';return;}v=String(v);if(c.k==='status'){h+='<td>'+sBadge(v)+'</td>';return;}if(c.k==='comentarios_de_seguimiento'){h+='<td title="'+esc(v)+'">'+esc(trn(v,35))+'</td>';return;}h+='<td>'+esc(trn(v,28))+'</td>';});h+='</tr>';});
-  h+='</tbody></table></div><div class="pag"><span>'+(conPg*LIM+1)+'–'+Math.min((conPg+1)*LIM,data.length)+' de '+data.length+'</span><div class="pag-btns"><button class="pbtn" '+(conPg===0?'disabled':'')+' onclick="conPg--;doConsulta()">← Anterior</button><span style="padding:0 6px">'+(tp?conPg+1+'/'+tp:'')+'</span><button class="pbtn" '+(conPg>=tp-1?'disabled':'')+' onclick="conPg++;doConsulta()">Siguiente →</button></div></div></div>';
-  a.innerHTML=h;
-}
+let regDisplayed=[];
+function regSearchApply(){tblPg=0;renderRegistros();}
 
 function renderRegistros(){
   var a=document.getElementById('reg-table');
-  var cs=[{k:'folio_ticket',l:'Folio'},{k:'fecha_de_la_solicitud',l:'Fecha'},{k:'nombre_del_cliente_nuevo',l:'Cliente'},{k:'propiedad',l:'Propiedad'},{k:'tipo_de_incidencia',l:'Tipo'},{k:'submotvio',l:'Sub-Motivo'},{k:'status',l:'Status'},{k:'zona',l:'Zona'},{k:'tipo_de_servicio',l:'Servicio'},{k:'ejecutivo_asignado',l:'Ejecutivo'},{k:'tiempo_de_respuesta',l:'Días'}];
-  var tp=Math.ceil(filtered.length/LIM),pg=filtered.slice(tblPg*LIM,(tblPg+1)*LIM);
-  var h='<div class="tbl-card"><div class="tbl-header"><h3>'+filtered.length.toLocaleString()+' registros</h3><input class="tbl-search" id="reg-search" placeholder="Buscar en resultados..." oninput="searchReg()"></div><div class="tbl-scroll"><table class="dt"><thead><tr>';
-  cs.forEach(c=>{h+='<th>'+c.l+'</th>';});h+='</tr></thead><tbody id="reg-tbody">';
+  var q=(document.getElementById('reg-search-main').value||'').toLowerCase().trim();
+  var data=filtered;
+  if(q){data=data.filter(r=>inc(r.folio_ticket,q)||inc(r.folio,q)||inc(r.nombre_del_cliente_nuevo,q)||inc(r.propiedad,q)||inc(r.tipo_de_incidencia,q)||inc(r.submotvio,q)||inc(r.ejecutivo_asignado,q)||inc(r.zona,q)||inc(r.status,q)||inc(r.telefono,q)||inc(r.mensaje,q)||inc(r.tipo_de_servicio,q));}
+  regDisplayed=data;
+  var cs=[{k:'folio_ticket',l:'Folio'},{k:'fecha_de_la_solicitud',l:'Fecha'},{k:'nombre_del_cliente_nuevo',l:'Cliente'},{k:'propiedad',l:'Propiedad/Empresa'},{k:'tipo_de_incidencia',l:'Tipo'},{k:'submotvio',l:'Sub-Motivo'},{k:'status',l:'Status'},{k:'tipo_de_servicio',l:'Servicio'},{k:'ejecutivo_asignado',l:'Ejecutivo'},{k:'tipo_de_solicitud',l:'Origen'}];
+  var tp=Math.ceil(data.length/LIM),pg=data.slice(tblPg*LIM,(tblPg+1)*LIM);
+  var h='<div class="tbl-card"><div class="tbl-header"><h3>'+data.length.toLocaleString()+' registro'+(data.length!==1?'s':'')+'</h3></div><div class="tbl-scroll"><table class="dt"><thead><tr>';
+  cs.forEach(c=>{h+='<th>'+c.l+'</th>';});h+='</tr></thead><tbody>';
   if(!pg.length){h+='<tr><td colspan="'+cs.length+'" style="text-align:center;padding:30px;color:var(--text3)">Sin registros</td></tr>';}
-  pg.forEach(r=>{h+='<tr>';cs.forEach(c=>{var v=r[c.k];if(v==null){h+='<td class="null-v">—</td>';return;}v=String(v);if(c.k==='status'){h+='<td>'+sBadge(v)+'</td>';return;}h+='<td>'+esc(trn(v,28))+'</td>';});h+='</tr>';});
-  h+='</tbody></table></div><div class="pag"><span>'+(filtered.length?tblPg*LIM+1+'–'+Math.min((tblPg+1)*LIM,filtered.length)+' de '+filtered.length:'')+'</span><div class="pag-btns"><button class="pbtn" '+(tblPg===0?'disabled':'')+' onclick="tblPg--;renderRegistros()">← Anterior</button><span style="padding:0 6px">'+(tp?tblPg+1+'/'+tp:'')+'</span><button class="pbtn" '+(tblPg>=tp-1?'disabled':'')+' onclick="tblPg++;renderRegistros()">Siguiente →</button></div></div></div>';
+  pg.forEach((r,i)=>{
+    var idx=tblPg*LIM+i;
+    h+='<tr class="tk-row" onclick="regOpenModal('+idx+')">';
+    cs.forEach(c=>{var v=r[c.k];if(v==null||String(v).trim()===''){h+='<td class="null-v">—</td>';return;}v=String(v);if(c.k==='status'){h+='<td>'+sBadge(v)+'</td>';return;}if(c.k==='tipo_de_solicitud'&&v==='Ticket WhatsApp'){h+='<td><span class="badge bb">📱 WhatsApp</span></td>';return;}h+='<td>'+esc(trn(v,26))+'</td>';});
+    h+='</tr>';
+  });
+  h+='</tbody></table></div><div class="pag"><span>'+(data.length?tblPg*LIM+1+'–'+Math.min((tblPg+1)*LIM,data.length)+' de '+data.length:'')+'</span><div class="pag-btns"><button class="pbtn" '+(tblPg===0?'disabled':'')+' onclick="tblPg--;renderRegistros()">← Anterior</button><span style="padding:0 6px">'+(tp?tblPg+1+'/'+tp:'')+'</span><button class="pbtn" '+(tblPg>=tp-1?'disabled':'')+' onclick="tblPg++;renderRegistros()">Siguiente →</button></div></div></div>';
   a.innerHTML=h;
 }
 
-function searchReg(){
-  var q=(document.getElementById('reg-search').value||'').toLowerCase();
-  var cs=[{k:'folio_ticket',l:'Folio'},{k:'fecha_de_la_solicitud',l:'Fecha'},{k:'nombre_del_cliente_nuevo',l:'Cliente'},{k:'propiedad',l:'Propiedad'},{k:'tipo_de_incidencia',l:'Tipo'},{k:'submotvio',l:'Sub-Motivo'},{k:'status',l:'Status'},{k:'zona',l:'Zona'},{k:'tipo_de_servicio',l:'Servicio'},{k:'ejecutivo_asignado',l:'Ejecutivo'},{k:'tiempo_de_respuesta',l:'Días'}];
-  var data=filtered;
-  if(q){data=data.filter(r=>inc(r.folio_ticket,q)||inc(r.nombre_del_cliente_nuevo,q)||inc(r.propiedad,q)||inc(r.tipo_de_incidencia,q)||inc(r.status,q)||inc(r.zona,q));}
-  var pg=data.slice(0,LIM),tbody=document.getElementById('reg-tbody');if(!tbody)return;
-  var h='';pg.forEach(r=>{h+='<tr>';cs.forEach(c=>{var v=r[c.k];if(v==null){h+='<td class="null-v">—</td>';return;}v=String(v);if(c.k==='status'){h+='<td>'+sBadge(v)+'</td>';return;}h+='<td>'+esc(trn(v,28))+'</td>';});h+='</tr>';});
-  tbody.innerHTML=h;
+function regOpenModal(idx){
+  var r=regDisplayed[idx];if(!r)return;
+  var isWA=r._source==='whatsapp';
+  var title=isWA?'Ticket <span style="color:var(--blue)">'+(esc(r.folio_ticket||r.folio||'—'))+'</span>':'Registro <span style="color:var(--blue)">'+(esc(r.folio_ticket||'—'))+'</span>';
+  document.getElementById('tk-modal-title').innerHTML=title;
+  var fields=[];
+  if(isWA){
+    fields=[
+      {l:'Folio',v:r.folio_ticket},{l:'Fecha',v:r.fecha_de_la_solicitud},
+      {l:'Teléfono',v:r.telefono},{l:'Nombre',v:r.nombre_del_cliente_nuevo},
+      {l:'Empresa',v:r.propiedad},{l:'Correo',v:r.correo},
+      {l:'Servicio',v:r.tipo_de_servicio},{l:'Tipo',v:r.tipo_de_incidencia},
+      {l:'Categoría',v:r.categora},{l:'Subtipo',v:r.submotvio},
+      {l:'Prioridad',v:r._prioridad,badge:'pri'},{l:'Estatus',v:r.status,badge:'st'},
+      {l:'Agente',v:r.ejecutivo_asignado},{l:'CSAT',v:r._csat!=null?String(r._csat):null},
+      {l:'Mensaje',v:r.mensaje,full:true},
+      {l:'Diagnóstico',v:r.diagnostico,full:true},
+      {l:'Causa Raíz',v:r.causa_raiz,full:true}
+    ];
+  } else {
+    fields=[
+      {l:'Folio',v:r.folio_ticket},{l:'Fecha Solicitud',v:r.fecha_de_la_solicitud},
+      {l:'Cliente',v:r.nombre_del_cliente_nuevo},{l:'Propiedad',v:r.propiedad},
+      {l:'Tipo Solicitud',v:r.tipo_de_solicitud},{l:'Tipo Incidencia',v:r.tipo_de_incidencia},
+      {l:'Sub-Motivo',v:r.submotvio},{l:'Categoría',v:r.categora},
+      {l:'Servicio',v:r.tipo_de_servicio},{l:'Zona',v:r.zona},
+      {l:'Status',v:r.status,badge:'st'},{l:'Ejecutivo',v:r.ejecutivo_asignado},
+      {l:'Tiempo Respuesta',v:r.tiempo_de_respuesta},{l:'Fecha Solución',v:r.fecha_de_solucion},
+      {l:'Carta Convenio',v:r.carta_convenio},{l:'Titular',v:r.titular_del_servicio},
+      {l:'Comentarios',v:r.comentarios_de_seguimiento,full:true}
+    ];
+  }
+  var h='<div class="detail-grid">';
+  fields.forEach(f=>{
+    h+='<div class="detail-item'+(f.full?' full':'')+'">';
+    h+='<div class="detail-label">'+f.l+'</div>';
+    if(!f.v&&f.v!==0)h+='<div class="detail-val empty">Sin datos</div>';
+    else if(f.badge==='pri')h+='<div class="detail-val">'+tkPriBadge(f.v)+'</div>';
+    else if(f.badge==='st')h+='<div class="detail-val">'+sBadge(f.v)+'</div>';
+    else h+='<div class="detail-val">'+esc(String(f.v))+'</div>';
+    h+='</div>';
+  });
+  h+='</div>';
+  document.getElementById('tk-modal-body').innerHTML=h;
+  document.getElementById('tk-modal').classList.add('on');
+  document.body.style.overflow='hidden';
 }
 
 function sBadge(v){var l=v.toLowerCase(),c='bb';if(isRes(v))c='bg';else if(isPen(v))c='br';else if(l.includes('proceso')||l.includes('seguimiento'))c='ba';return'<span class="badge '+c+'">'+esc(trn(v,22))+'</span>';}
