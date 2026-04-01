@@ -646,8 +646,8 @@ function regOpenModal(idx){
   if(isWA){
     fields=[
       {l:'Folio',v:r.folio_ticket},{l:'Fecha',v:r.fecha_de_la_solicitud},
-      {l:'Teléfono',v:r.telefono},{l:'Nombre',v:r.nombre_del_cliente_nuevo},
-      {l:'Empresa',v:r.propiedad},{l:'Correo',v:r.correo},
+      {l:'Teléfono',v:r.telefono},{l:'Nombre',v:r.nombre_del_cliente_nuevo,ed:'nombre',sa:true,wa:true},
+      {l:'Empresa',v:r.propiedad,ed:'empresa',sa:true,wa:true},{l:'Correo',v:r.correo},
       {l:'Servicio',v:r.tipo_de_servicio},{l:'Tipo',v:r.tipo_de_incidencia},
       {l:'Categoría',v:r.categora},{l:'Subtipo',v:r.submotvio},
       {l:'Prioridad',v:r._prioridad,badge:'pri'},
@@ -660,7 +660,7 @@ function regOpenModal(idx){
     fields=[
       {l:'Folio / Ticket',v:r.folio_ticket},{l:'Folio',v:r.folio},
       {l:'Fecha Solicitud',v:r.fecha_de_la_solicitud},{l:'Tipo de Cliente',v:r.tipo_de_cliente},
-      {l:'Cliente',v:r.nombre_del_cliente_nuevo},{l:'Propiedad',v:r.propiedad},
+      {l:'Cliente',v:r.nombre_del_cliente_nuevo,ed:'nombre_del_cliente_nuevo',sa:true},{l:'Propiedad',v:r.propiedad,ed:'propiedad',sa:true},
       {l:'Tipo Solicitud',v:r.tipo_de_solicitud},{l:'Servicio',v:r.tipo_de_servicio},
       {l:'Motivo de Cancelación',v:r.motivo_de_cancelacin},{l:'Sub-Motivo',v:r.submotvio},
       {l:'RCA',v:r.rca},{l:'Categoría',v:r.categora},
@@ -692,7 +692,7 @@ function regOpenModal(idx){
   } else {
     fields=[
       {l:'Folio',v:r.folio_ticket},{l:'Fecha Solicitud',v:r.fecha_de_la_solicitud},
-      {l:'Cliente',v:r.nombre_del_cliente_nuevo},{l:'Propiedad',v:r.propiedad},
+      {l:'Cliente',v:r.nombre_del_cliente_nuevo,ed:'nombre_del_cliente_nuevo',sa:true},{l:'Propiedad',v:r.propiedad,ed:'propiedad',sa:true},
       {l:'Tipo Solicitud',v:r.tipo_de_solicitud},{l:'Tipo Incidencia',v:r.tipo_de_incidencia},
       {l:'Sub-Motivo',v:r.submotvio},{l:'Categoría',v:r.categora},
       {l:'Servicio',v:r.tipo_de_servicio},{l:'Zona',v:r.zona},
@@ -761,7 +761,7 @@ function regOpenModal(idx){
     if(f.l==='Comentarios')return;
     h+='<div class="detail-item'+(f.full?' full':'')+'">';
     h+='<div class="detail-label">'+f.l+'</div>';
-    if(f.ed&&isAdmin()){
+    if(f.ed&&(f.sa?isSuperAdmin():isAdmin())){
       var eid='reg-ed-'+(_edIdx++);
       if(f.opts){
         h+='<select class="status-select" id="'+eid+'" data-col="'+f.ed+'" onchange="regInlineSave(this)">';
@@ -918,21 +918,29 @@ async function regInlineSaveText(eid,col){
   }catch(e){msgEl.textContent='Error';msgEl.style.color='var(--red)';}
 }
 async function regInlineSaveInput(eid,col,tp){
-  var r=regDisplayed[_regModalIdx];if(!r||!r.id)return;
+  var r=regDisplayed[_regModalIdx];if(!r)return;
   var raw=document.getElementById(eid).value;
   var val=tp==='number'?(raw?parseFloat(raw):null):(raw||null);
   var msgEl=document.getElementById(eid+'-msg');
   msgEl.textContent='...';msgEl.style.color='var(--blue)';
   try{
+    var isWA=r._source==='whatsapp';
     var upd={};upd[col]=val;
-    // Si es fecha_de_solucion, calcular tiempo_de_respuesta automáticamente
-    if(col==='fecha_de_solucion'&&val&&r.fecha_de_la_solicitud){
-      var d1=new Date(r.fecha_de_la_solicitud),d2=new Date(val);
-      var dias=Math.round((d2-d1)/(1000*60*60*24));
-      if(dias>=0){upd.tiempo_de_respuesta=dias;r.tiempo_de_respuesta=dias;}
+    if(isWA){
+      var folio=r.folio_ticket||r.folio;
+      const{error}=await sb.from('tickets').update(upd).eq('folio',folio);
+      if(error)throw error;
+      if(r._tk)r._tk[col]=val;
+    } else {
+      // Si es fecha_de_solucion, calcular tiempo_de_respuesta automáticamente
+      if(col==='fecha_de_solucion'&&val&&r.fecha_de_la_solicitud){
+        var d1=new Date(r.fecha_de_la_solicitud),d2=new Date(val);
+        var dias=Math.round((d2-d1)/(1000*60*60*24));
+        if(dias>=0){upd.tiempo_de_respuesta=dias;r.tiempo_de_respuesta=dias;}
+      }
+      const{error}=await sb.from('base_general').update(upd).eq('id',r.id);
+      if(error)throw error;
     }
-    const{error}=await sb.from('base_general').update(upd).eq('id',r.id);
-    if(error)throw error;
     r[col]=val;
     if(col==='fecha_de_solucion'&&upd.tiempo_de_respuesta!=null){
       msgEl.textContent='OK · '+upd.tiempo_de_respuesta+' días';
