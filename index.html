@@ -1024,9 +1024,7 @@ var _cancMesInicial=true;
 function cancBuildFilters(){
   var stCanc=[...new Set(cancAll.map(r=>r.status_cancelacion).filter(v=>v!=null&&String(v).trim()!==''))].sort();
   var servicios=[...new Set(cancAll.map(r=>r.tipo_de_servicio).filter(v=>v!=null&&String(v).trim()!==''))].sort();
-  var meses=[...new Set(cancAll.map(r=>r.mes).filter(v=>v!=null&&String(v).trim()!==''))];
   var moOrd=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  meses.sort((a,b)=>{var ia=moOrd.indexOf(a),ib=moOrd.indexOf(b);return(ia<0?99:ia)-(ib<0?99:ib);});
   var anios=[...new Set(cancAll.map(r=>r._anio).filter(v=>v!=null&&String(v).trim()!==''))].sort((a,b)=>String(b).localeCompare(String(a)));
   document.getElementById('canc-f-stcanc').innerHTML='<option value="">Status Cancelación: Todos</option>'+stCanc.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
   document.getElementById('canc-f-servicio').innerHTML='<option value="">Servicio: Todos</option>'+servicios.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
@@ -1034,7 +1032,7 @@ function cancBuildFilters(){
   document.getElementById('canc-f-anio').innerHTML='<option value="">Año: Todos</option>'+anios.map(v=>'<option value="'+esc(v)+'"'+((_cancMesInicial&&v===anioActual)?' selected':'')+'>'+esc(v)+'</option>').join('');
   // Mes actual preseleccionado la primera vez
   var mesActual=moOrd[new Date().getMonth()];
-  document.getElementById('canc-f-mes').innerHTML='<option value="">Mes: Todos</option>'+meses.map(v=>'<option value="'+esc(v)+'"'+((_cancMesInicial&&v===mesActual)?' selected':'')+'>'+esc(v)+'</option>').join('');
+  document.getElementById('canc-f-mes').innerHTML='<option value="">Mes: Todos</option>'+moOrd.map(v=>'<option value="'+v+'"'+((_cancMesInicial&&v===mesActual)?' selected':'')+'>'+v+'</option>').join('');
   if(_cancMesInicial){document.getElementById('canc-f-mes').value=mesActual;document.getElementById('canc-f-anio').value=anioActual;_cancMesInicial=false;}
 }
 
