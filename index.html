@@ -268,6 +268,7 @@ table.dt tbody tr.tk-row{cursor:pointer;}table.dt tbody tr.tk-row:hover{backgrou
 <span class="flabel" style="margin:0">Filtros:</span>
 <select id="canc-f-stcanc" onchange="cancApply()"><option value="">Status Cancelación: Todos</option></select>
 <select id="canc-f-servicio" onchange="cancApply()"><option value="">Servicio: Todos</option></select>
+<select id="canc-f-anio" onchange="cancApply()"><option value="">Año: Todos</option></select>
 <select id="canc-f-mes" onchange="cancApply()"><option value="">Mes: Todos</option></select>
 <input class="tbl-search" id="canc-search" placeholder="Buscar..." oninput="cancApply()" style="min-width:200px">
 <button class="btn-clear" onclick="cancClear()">Limpiar</button>
@@ -1026,27 +1027,32 @@ function cancBuildFilters(){
   var meses=[...new Set(cancAll.map(r=>r.mes).filter(v=>v!=null&&String(v).trim()!==''))];
   var moOrd=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   meses.sort((a,b)=>{var ia=moOrd.indexOf(a),ib=moOrd.indexOf(b);return(ia<0?99:ia)-(ib<0?99:ib);});
+  var anios=[...new Set(cancAll.map(r=>r._anio).filter(v=>v!=null&&String(v).trim()!==''))].sort((a,b)=>String(b).localeCompare(String(a)));
   document.getElementById('canc-f-stcanc').innerHTML='<option value="">Status Cancelación: Todos</option>'+stCanc.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
   document.getElementById('canc-f-servicio').innerHTML='<option value="">Servicio: Todos</option>'+servicios.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+  var anioActual=String(new Date().getFullYear());
+  document.getElementById('canc-f-anio').innerHTML='<option value="">Año: Todos</option>'+anios.map(v=>'<option value="'+esc(v)+'"'+((_cancMesInicial&&v===anioActual)?' selected':'')+'>'+esc(v)+'</option>').join('');
   // Mes actual preseleccionado la primera vez
   var mesActual=moOrd[new Date().getMonth()];
   document.getElementById('canc-f-mes').innerHTML='<option value="">Mes: Todos</option>'+meses.map(v=>'<option value="'+esc(v)+'"'+((_cancMesInicial&&v===mesActual)?' selected':'')+'>'+esc(v)+'</option>').join('');
-  if(_cancMesInicial){document.getElementById('canc-f-mes').value=mesActual;_cancMesInicial=false;}
+  if(_cancMesInicial){document.getElementById('canc-f-mes').value=mesActual;document.getElementById('canc-f-anio').value=anioActual;_cancMesInicial=false;}
 }
 
 function cancApply(){
   var fsc=document.getElementById('canc-f-stcanc').value;
   var fv=document.getElementById('canc-f-servicio').value;
+  var fa=document.getElementById('canc-f-anio').value;
   var fm=document.getElementById('canc-f-mes').value;
   var q=(document.getElementById('canc-search').value||'').toLowerCase().trim();
   cancFiltered=cancAll.filter(r=>{
     if(fsc&&r.status_cancelacion!==fsc)return false;
     if(fv&&r.tipo_de_servicio!==fv)return false;
+    if(fa&&r._anio!==fa)return false;
     if(fm&&r.mes!==fm)return false;
     if(q&&!inc(r.folio_ticket,q)&&!inc(r.folio,q)&&!inc(r.nombre_del_cliente_nuevo,q)&&!inc(r.propiedad,q)&&!inc(r.motivo_de_cancelacin,q)&&!inc(r.ejecutivo_asignado,q)&&!inc(r.telefono,q))return false;
     return true;
   });
-  var nf=(fsc?1:0)+(fv?1:0)+(fm?1:0);
+  var nf=(fsc?1:0)+(fv?1:0)+(fa?1:0)+(fm?1:0);
   document.getElementById('af-canc').textContent=nf?nf+' filtro'+(nf>1?'s':'')+' · '+cancFiltered.length+' de '+cancAll.length:'';
   // KPIs con desglose por status_cancelacion
   var total=cancFiltered.length;
@@ -1066,7 +1072,7 @@ function cancApply(){
   cancPg=0;cancRender();
 }
 
-function cancClear(){document.getElementById('canc-f-stcanc').value='';document.getElementById('canc-f-servicio').value='';document.getElementById('canc-f-mes').value='';document.getElementById('canc-search').value='';cancApply();}
+function cancClear(){document.getElementById('canc-f-stcanc').value='';document.getElementById('canc-f-servicio').value='';document.getElementById('canc-f-anio').value='';document.getElementById('canc-f-mes').value='';document.getElementById('canc-search').value='';cancApply();}
 
 function cancRender(){
   var tp=Math.ceil(cancFiltered.length/CANC_LIM),pg=cancFiltered.slice(cancPg*CANC_LIM,(cancPg+1)*CANC_LIM);
