@@ -406,8 +406,11 @@ async function loadData(){
         status:t.estatus,
         ejecutivo_asignado:t.agente,
         tipo_de_servicio:t.servicio,
-        tipo_de_solicitud:'Ticket WhatsApp',
-        zona:'',
+        tipo_de_solicitud:(t.tipo&&t.tipo.toLowerCase().includes('cancelac'))?'Solicitud de Cancelación':'Ticket WhatsApp',
+        motivo_de_cancelacin:t.tipo&&t.tipo.toLowerCase().includes('cancelac')?t.mensaje:'',
+        status_cancelacion:t.tipo&&t.tipo.toLowerCase().includes('cancelac')?(t.estatus==='Nuevo'?'Negociacion':t.estatus):'',
+        facturacin_sin_iva:t.facturacin_sin_iva||null,
+        zona:t.zona||'',
         _anio:anio,mes:mesStr,
         _csat:t.csat,_prioridad:t.prioridad,
         telefono:t.telefono,correo:t.correo,
@@ -640,7 +643,7 @@ function regOpenModal(idx){
   _regModalIdx=idx;
   var r=regDisplayed[idx];if(!r)return;
   var isWA=r._source==='whatsapp';
-  var isCancelacion=!isWA&&r.tipo_de_solicitud&&r.tipo_de_solicitud.toLowerCase().includes('cancelac');
+  var isCancelacion=r.tipo_de_solicitud&&r.tipo_de_solicitud.toLowerCase().includes('cancelac');
   var title=isWA?'Ticket <span style="color:var(--blue)">'+(esc(r.folio_ticket||r.folio||'—'))+'</span>':isCancelacion?'Cancelación <span style="color:var(--red)">'+(esc(r.folio_ticket||'—'))+'</span>':'Registro <span style="color:var(--blue)">'+(esc(r.folio_ticket||'—'))+'</span>';
   document.getElementById('tk-modal-title').innerHTML=title;
   var fields=[];
@@ -846,10 +849,18 @@ async function regChangeStCanc(){
   var msgEl=document.getElementById('reg-stcanc-msg');
   msgEl.textContent='Guardando...';msgEl.style.color='var(--blue)';
   try{
-    var id=r.id;
-    if(id){
-      const{error}=await sb.from('base_general').update({status_cancelacion:newVal}).eq('id',id);
+    var isWA=r._source==='whatsapp';
+    if(isWA){
+      var folio=r.folio_ticket||r.folio;
+      const{error}=await sb.from('tickets').update({status_cancelacion:newVal}).eq('folio',folio);
       if(error)throw error;
+      if(r._tk)r._tk.status_cancelacion=newVal;
+    } else {
+      var id=r.id;
+      if(id){
+        const{error}=await sb.from('base_general').update({status_cancelacion:newVal}).eq('id',id);
+        if(error)throw error;
+      }
     }
     r.status_cancelacion=newVal;
     msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';
@@ -959,10 +970,18 @@ async function regSaveMonto(){
   var msgEl=document.getElementById('reg-monto-msg');
   msgEl.textContent='Guardando...';msgEl.style.color='var(--blue)';
   try{
-    var id=r.id;
-    if(id){
-      const{error}=await sb.from('base_general').update({facturacin_sin_iva:val}).eq('id',id);
+    var isWA=r._source==='whatsapp';
+    if(isWA){
+      var folio=r.folio_ticket||r.folio;
+      const{error}=await sb.from('tickets').update({facturacin_sin_iva:val}).eq('folio',folio);
       if(error)throw error;
+      if(r._tk)r._tk.facturacin_sin_iva=val;
+    } else {
+      var id=r.id;
+      if(id){
+        const{error}=await sb.from('base_general').update({facturacin_sin_iva:val}).eq('id',id);
+        if(error)throw error;
+      }
     }
     r.facturacin_sin_iva=val;
     msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';
