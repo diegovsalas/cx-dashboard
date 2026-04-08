@@ -1,0 +1,1214 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Avantex - Sistema WhatsApp Bot & Dashboard CX</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        :root {
+            --charcoal: #3D4148;
+            --charcoal-dark: #2a2e33;
+            --charcoal-light: #4a4f56;
+            --blue: #0D8BF2;
+            --blue-dark: #0a6fc2;
+            --blue-light: #3aa3f5;
+            --green: #25d366;
+            --green-dark: #1da851;
+            --white: #ffffff;
+            --gray-100: #f4f5f7;
+            --gray-200: #e2e4e8;
+            --gray-300: #c1c4ca;
+            --gray-400: #8b8f96;
+            --orange: #f59e0b;
+            --red: #ef4444;
+            --purple: #8b5cf6;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            background: var(--charcoal-dark);
+            color: var(--white);
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        .presentation {
+            height: 100vh;
+            position: relative;
+        }
+
+        .slide {
+            display: none;
+            height: 100vh;
+            padding: 60px 80px;
+            position: relative;
+            overflow-y: auto;
+        }
+
+        .slide.active { display: flex; flex-direction: column; }
+
+        /* Navigation */
+        .nav-controls {
+            position: fixed;
+            bottom: 30px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 20px;
+            z-index: 100;
+            background: rgba(42, 46, 51, 0.9);
+            padding: 10px 24px;
+            border-radius: 40px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .nav-btn {
+            background: var(--blue);
+            border: none;
+            color: white;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            cursor: pointer;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .nav-btn:hover { background: var(--blue-dark); transform: scale(1.1); }
+        .nav-btn:disabled { opacity: 0.3; cursor: default; transform: none; }
+
+        .slide-counter {
+            font-size: 14px;
+            font-weight: 500;
+            color: var(--gray-300);
+            min-width: 60px;
+            text-align: center;
+        }
+
+        .progress-bar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 3px;
+            background: var(--blue);
+            transition: width 0.4s ease;
+            z-index: 100;
+        }
+
+        /* Slide Styles */
+        .slide-header {
+            margin-bottom: 40px;
+        }
+
+        .slide-header h2 {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .slide-header h2 i { color: var(--blue); font-size: 30px; }
+        .slide-header .subtitle {
+            font-size: 16px;
+            color: var(--gray-400);
+            font-weight: 400;
+        }
+
+        .slide-body { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+
+        /* Title Slide */
+        .title-slide {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: linear-gradient(135deg, var(--charcoal-dark) 0%, var(--charcoal) 50%, #1a3a5c 100%);
+        }
+
+        .title-slide .logo {
+            width: 220px;
+            margin-bottom: 40px;
+            filter: drop-shadow(0 4px 20px rgba(0,0,0,0.3));
+        }
+
+        .title-slide h1 {
+            font-size: 48px;
+            font-weight: 800;
+            margin-bottom: 16px;
+            background: linear-gradient(135deg, var(--white), var(--blue-light));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .title-slide .tagline {
+            font-size: 22px;
+            color: var(--gray-300);
+            font-weight: 300;
+            margin-bottom: 40px;
+        }
+
+        .title-slide .badges {
+            display: flex;
+            gap: 16px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .badge {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.12);
+            padding: 10px 20px;
+            border-radius: 30px;
+            font-size: 14px;
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .badge i { font-size: 16px; }
+        .badge.wa { color: var(--green); }
+        .badge.dash { color: var(--blue); }
+        .badge.db { color: var(--orange); }
+
+        /* Content Cards */
+        .cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 16px;
+            padding: 28px;
+            transition: all 0.3s;
+        }
+
+        .card:hover { background: rgba(255,255,255,0.08); transform: translateY(-2px); }
+
+        .card .card-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 22px;
+            margin-bottom: 16px;
+        }
+
+        .card .card-icon.blue { background: rgba(13,139,242,0.15); color: var(--blue); }
+        .card .card-icon.green { background: rgba(37,211,102,0.15); color: var(--green); }
+        .card .card-icon.orange { background: rgba(245,158,11,0.15); color: var(--orange); }
+        .card .card-icon.purple { background: rgba(139,92,246,0.15); color: var(--purple); }
+        .card .card-icon.red { background: rgba(239,68,68,0.15); color: var(--red); }
+
+        .card h3 { font-size: 18px; font-weight: 600; margin-bottom: 8px; }
+        .card p { font-size: 14px; color: var(--gray-400); line-height: 1.6; }
+        .card .card-detail { font-size: 13px; color: var(--blue-light); margin-top: 10px; font-weight: 500; }
+
+        /* Flow Diagram */
+        .flow-container {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 20px 0;
+        }
+
+        .flow-step {
+            background: rgba(13,139,242,0.1);
+            border: 1px solid rgba(13,139,242,0.25);
+            padding: 14px 20px;
+            border-radius: 12px;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: center;
+            min-width: 120px;
+        }
+
+        .flow-step.green-step {
+            background: rgba(37,211,102,0.1);
+            border-color: rgba(37,211,102,0.25);
+        }
+
+        .flow-step.orange-step {
+            background: rgba(245,158,11,0.1);
+            border-color: rgba(245,158,11,0.25);
+        }
+
+        .flow-arrow {
+            color: var(--gray-400);
+            font-size: 18px;
+        }
+
+        /* Table */
+        .styled-table {
+            width: 100%;
+            border-collapse: separate;
+            border-spacing: 0;
+            border-radius: 12px;
+            overflow: hidden;
+            margin-top: 10px;
+        }
+
+        .styled-table th {
+            background: rgba(13,139,242,0.15);
+            padding: 14px 20px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            color: var(--blue-light);
+        }
+
+        .styled-table td {
+            padding: 12px 20px;
+            font-size: 14px;
+            border-bottom: 1px solid rgba(255,255,255,0.05);
+            color: var(--gray-200);
+        }
+
+        .styled-table tr:nth-child(even) td { background: rgba(255,255,255,0.02); }
+        .styled-table tr:hover td { background: rgba(255,255,255,0.05); }
+
+        .tag {
+            display: inline-block;
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .tag.blue { background: rgba(13,139,242,0.2); color: var(--blue-light); }
+        .tag.green { background: rgba(37,211,102,0.2); color: var(--green); }
+        .tag.orange { background: rgba(245,158,11,0.2); color: var(--orange); }
+        .tag.red { background: rgba(239,68,68,0.2); color: var(--red); }
+        .tag.purple { background: rgba(139,92,246,0.2); color: var(--purple); }
+
+        /* Two columns layout */
+        .two-cols {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+            align-items: start;
+        }
+
+        .col-section h3 {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 16px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .col-section h3 i { color: var(--blue); }
+
+        /* List styles */
+        .feature-list {
+            list-style: none;
+            display: flex;
+            flex-direction: column;
+            gap: 12px;
+        }
+
+        .feature-list li {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+            font-size: 15px;
+            color: var(--gray-200);
+            line-height: 1.5;
+        }
+
+        .feature-list li i {
+            color: var(--blue);
+            margin-top: 3px;
+            min-width: 18px;
+        }
+
+        .feature-list li.green-item i { color: var(--green); }
+        .feature-list li.orange-item i { color: var(--orange); }
+
+        /* KPI boxes */
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+            margin-top: 10px;
+        }
+
+        .kpi-box {
+            background: rgba(255,255,255,0.05);
+            border: 1px solid rgba(255,255,255,0.08);
+            border-radius: 14px;
+            padding: 24px;
+            text-align: center;
+        }
+
+        .kpi-box .kpi-icon {
+            font-size: 28px;
+            margin-bottom: 12px;
+        }
+
+        .kpi-box .kpi-label {
+            font-size: 13px;
+            color: var(--gray-400);
+            margin-bottom: 6px;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .kpi-box .kpi-value {
+            font-size: 26px;
+            font-weight: 700;
+        }
+
+        /* NPS Visual */
+        .nps-scale {
+            display: flex;
+            gap: 0;
+            margin: 20px 0;
+            border-radius: 12px;
+            overflow: hidden;
+        }
+
+        .nps-segment {
+            flex: 1;
+            padding: 20px;
+            text-align: center;
+        }
+
+        .nps-segment.detractor { background: rgba(239,68,68,0.2); }
+        .nps-segment.passive { background: rgba(245,158,11,0.2); }
+        .nps-segment.promoter { background: rgba(37,211,102,0.2); }
+
+        .nps-segment .nps-label {
+            font-size: 14px;
+            font-weight: 600;
+            margin-bottom: 6px;
+        }
+
+        .nps-segment .nps-scores {
+            font-size: 28px;
+            font-weight: 700;
+        }
+
+        .nps-segment .nps-desc {
+            font-size: 12px;
+            color: var(--gray-400);
+            margin-top: 4px;
+        }
+
+        /* Highlight box */
+        .highlight-box {
+            background: rgba(13,139,242,0.08);
+            border: 1px solid rgba(13,139,242,0.2);
+            border-radius: 12px;
+            padding: 20px 24px;
+            margin-top: 16px;
+        }
+
+        .highlight-box.green-box {
+            background: rgba(37,211,102,0.08);
+            border-color: rgba(37,211,102,0.2);
+        }
+
+        .highlight-box.orange-box {
+            background: rgba(245,158,11,0.08);
+            border-color: rgba(245,158,11,0.2);
+        }
+
+        .highlight-box p {
+            font-size: 15px;
+            line-height: 1.6;
+            color: var(--gray-200);
+        }
+
+        .highlight-box strong { color: var(--white); }
+
+        /* Architecture diagram */
+        .arch-container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 30px;
+            flex-wrap: wrap;
+            padding: 30px 0;
+        }
+
+        .arch-node {
+            background: rgba(255,255,255,0.06);
+            border: 2px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 24px 30px;
+            text-align: center;
+            min-width: 180px;
+        }
+
+        .arch-node i { font-size: 36px; margin-bottom: 12px; display: block; }
+        .arch-node.wa-node { border-color: rgba(37,211,102,0.4); }
+        .arch-node.wa-node i { color: var(--green); }
+        .arch-node.api-node { border-color: rgba(13,139,242,0.4); }
+        .arch-node.api-node i { color: var(--blue); }
+        .arch-node.db-node { border-color: rgba(245,158,11,0.4); }
+        .arch-node.db-node i { color: var(--orange); }
+        .arch-node.dash-node { border-color: rgba(139,92,246,0.4); }
+        .arch-node.dash-node i { color: var(--purple); }
+
+        .arch-node h4 { font-size: 16px; font-weight: 600; margin-bottom: 4px; }
+        .arch-node p { font-size: 12px; color: var(--gray-400); }
+
+        .arch-arrow {
+            font-size: 24px;
+            color: var(--gray-400);
+        }
+
+        /* Closing slide */
+        .closing-slide {
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            background: linear-gradient(135deg, var(--charcoal-dark) 0%, #1a3a5c 50%, var(--charcoal) 100%);
+        }
+
+        .closing-slide h2 {
+            font-size: 42px;
+            font-weight: 800;
+            margin-bottom: 16px;
+        }
+
+        .closing-slide p {
+            font-size: 18px;
+            color: var(--gray-300);
+            max-width: 600px;
+            line-height: 1.6;
+        }
+
+        .contact-links {
+            display: flex;
+            gap: 16px;
+            margin-top: 30px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .contact-link {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            background: rgba(255,255,255,0.08);
+            padding: 12px 20px;
+            border-radius: 10px;
+            font-size: 14px;
+            color: var(--gray-200);
+            text-decoration: none;
+            border: 1px solid rgba(255,255,255,0.1);
+        }
+
+        .contact-link i { color: var(--blue); }
+
+        /* Slide number watermark */
+        .slide-number {
+            position: absolute;
+            bottom: 20px;
+            right: 30px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.15);
+            font-weight: 600;
+        }
+
+        /* Keyboard hint */
+        .kb-hint {
+            position: fixed;
+            bottom: 80px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 12px;
+            color: var(--gray-400);
+            z-index: 100;
+            opacity: 0.6;
+        }
+
+        /* Responsive */
+        @media (max-width: 900px) {
+            .slide { padding: 40px 30px; }
+            .title-slide h1 { font-size: 32px; }
+            .two-cols { grid-template-columns: 1fr; }
+            .kpi-grid { grid-template-columns: repeat(2, 1fr); }
+            .arch-container { flex-direction: column; }
+            .arch-arrow { transform: rotate(90deg); }
+            .cards-grid { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="progress-bar" id="progressBar"></div>
+
+    <div class="presentation" id="presentation">
+
+        <!-- SLIDE 1: Title -->
+        <div class="slide title-slide active" data-slide="1">
+            <img src="https://grupoavantex.com/wp-content/uploads/2022/09/AX_Logo_oficial.png" alt="Avantex" class="logo">
+            <h1>Sistema WhatsApp Bot & Dashboard CX</h1>
+            <p class="tagline">Plataforma integral de atenci&oacute;n al cliente v&iacute;a WhatsApp</p>
+            <div class="badges">
+                <div class="badge wa"><i class="fa-brands fa-whatsapp"></i> Bot WhatsApp</div>
+                <div class="badge dash"><i class="fa-solid fa-chart-line"></i> Dashboard CX</div>
+                <div class="badge"><i class="fa-solid fa-headset"></i> Chat de Agentes</div>
+                <div class="badge db"><i class="fa-solid fa-database"></i> Supabase</div>
+            </div>
+            <span class="slide-number">1 / 15</span>
+        </div>
+
+        <!-- SLIDE 2: Architecture -->
+        <div class="slide" data-slide="2">
+            <div class="slide-header">
+                <h2><i class="fa-solid fa-sitemap"></i> Arquitectura del Sistema</h2>
+                <p class="subtitle">Componentes principales y flujo de datos</p>
+            </div>
+            <div class="slide-body">
+                <div class="arch-container">
+                    <div class="arch-node wa-node">
+                        <i class="fa-brands fa-whatsapp"></i>
+                        <h4>WhatsApp Bot</h4>
+                        <p>+52 449 156 1238</p>
+                        <p>Meta Cloud API</p>
+                    </div>
+                    <div class="arch-arrow"><i class="fa-solid fa-arrows-left-right"></i></div>
+                    <div class="arch-node api-node">
+                        <i class="fa-solid fa-server"></i>
+                        <h4>Backend Node.js</h4>
+                        <p>avantex-bot.onrender.com</p>
+                        <p>Express + WebSocket</p>
+                    </div>
+                    <div class="arch-arrow"><i class="fa-solid fa-arrows-left-right"></i></div>
+                    <div class="arch-node db-node">
+                        <i class="fa-solid fa-database"></i>
+                        <h4>Supabase</h4>
+                        <p>PostgreSQL</p>
+                        <p>Base de datos</p>
+                    </div>
+                </div>
+                <div class="arch-container" style="margin-top: 10px;">
+                    <div class="arch-node dash-node">
+                        <i class="fa-solid fa-chart-pie"></i>
+                        <h4>Dashboard CX</h4>
+                        <p>cx-dashboard-54yw.onrender.com</p>
+                        <p>Analytics & KPIs</p>
+                    </div>
+                    <div class="arch-arrow"><i class="fa-solid fa-arrows-left-right"></i></div>
+                    <div class="arch-node api-node">
+                        <i class="fa-solid fa-comments"></i>
+                        <h4>Chat de Agentes</h4>
+                        <p>avantex-bot.onrender.com/dashboard</p>
+                        <p>Live Chat & Kanban</p>
+                    </div>
+                </div>
+            </div>
+            <span class="slide-number">2 / 15</span>
+        </div>
+
+        <!-- SLIDE 3: WhatsApp Bot Overview -->
+        <div class="slide" data-slide="3">
+            <div class="slide-header">
+                <h2><i class="fa-brands fa-whatsapp" style="color: var(--green)"></i> Bot de WhatsApp</h2>
+                <p class="subtitle">Canal principal de contacto con clientes</p>
+            </div>
+            <div class="slide-body">
+                <div class="two-cols">
+                    <div class="col-section">
+                        <h3><i class="fa-solid fa-robot"></i> Funcionalidades</h3>
+                        <ul class="feature-list">
+                            <li><i class="fa-solid fa-check-circle"></i> Recepci&oacute;n de quejas e incidencias 24/7</li>
+                            <li><i class="fa-solid fa-check-circle"></i> Flujo conversacional guiado paso a paso</li>
+                            <li><i class="fa-solid fa-check-circle"></i> Generaci&oacute;n autom&aacute;tica de tickets con folio</li>
+                            <li><i class="fa-solid fa-check-circle"></i> Soporte para 3 servicios: Aromatex, Pestex, Weldex</li>
+                            <li><i class="fa-solid fa-check-circle"></i> Detecci&oacute;n de intenci&oacute;n de cancelaci&oacute;n</li>
+                            <li><i class="fa-solid fa-check-circle"></i> Encuestas CSAT post-resoluci&oacute;n</li>
+                        </ul>
+                    </div>
+                    <div class="col-section">
+                        <h3><i class="fa-solid fa-clock"></i> Horario de Atenci&oacute;n</h3>
+                        <div class="highlight-box">
+                            <p><i class="fa-solid fa-calendar-week" style="color: var(--blue); margin-right: 8px;"></i> <strong>Lunes a Viernes:</strong> 7:30 AM - 6:00 PM</p>
+                        </div>
+                        <div class="highlight-box" style="margin-top: 12px;">
+                            <p><i class="fa-solid fa-calendar-day" style="color: var(--blue); margin-right: 8px;"></i> <strong>S&aacute;bados:</strong> 9:00 AM - 12:00 PM</p>
+                        </div>
+                        <div class="highlight-box orange-box" style="margin-top: 12px;">
+                            <p><i class="fa-solid fa-moon" style="color: var(--orange); margin-right: 8px;"></i> Fuera de horario: mensaje autom&aacute;tico informando horario de atenci&oacute;n</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <span class="slide-number">3 / 15</span>
+        </div>
+
+        <!-- SLIDE 4: Customer Flow -->
+        <div class="slide" data-slide="4">
+            <div class="slide-header">
+                <h2><i class="fa-solid fa-route"></i> Flujo de Incidencias</h2>
+                <p class="subtitle">Proceso paso a paso del registro de una queja o incidencia</p>
+            </div>
+            <div class="slide-body">
+                <div class="flow-container">
+                    <div class="flow-step green-step"><i class="fa-brands fa-whatsapp"></i><br>Cliente env&iacute;a<br><strong>"Hola"</strong></div>
+                    <div class="flow-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                    <div class="flow-step"><i class="fa-solid fa-user"></i><br><strong>Nombre</strong><br>completo</div>
+                    <div class="flow-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                    <div class="flow-step"><i class="fa-solid fa-building"></i><br><strong>Empresa</strong><br>del cliente</div>
+                    <div class="flow-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                    <div class="flow-step"><i class="fa-solid fa-location-dot"></i><br><strong>Propiedad</strong><br>/ Sucursal</div>
+                </div>
+                <div class="flow-container" style="margin-top: 8px;">
+                    <div class="flow-step"><i class="fa-solid fa-concierge-bell"></i><br><strong>Servicio</strong><br>Aromatex / Pestex / Weldex</div>
+                    <div class="flow-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                    <div class="flow-step"><i class="fa-solid fa-list-check"></i><br><strong>Tipo de</strong><br>incidencia</div>
+                    <div class="flow-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                    <div class="flow-step"><i class="fa-solid fa-pen-to-square"></i><br><strong>Descripci&oacute;n</strong><br>del problema</div>
+                    <div class="flow-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                    <div class="flow-step orange-step"><i class="fa-solid fa-ticket"></i><br><strong>Ticket</strong><br>generado con folio</div>
+                </div>
+                <div class="highlight-box green-box" style="margin-top: 30px;">
+                    <p><i class="fa-solid fa-circle-info" style="color: var(--green); margin-right: 8px;"></i>
+                    El bot gu&iacute;a al cliente con mensajes interactivos (botones y listas) para una experiencia fluida y sin errores.</p>
+                </div>
+            </div>
+            <span class="slide-number">4 / 15</span>
+        </div>
+
+        <!-- SLIDE 5: Services -->
+        <div class="slide" data-slide="5">
+            <div class="slide-header">
+                <h2><i class="fa-solid fa-concierge-bell"></i> Servicios Disponibles</h2>
+                <p class="subtitle">Tres l&iacute;neas de servicio con tipos de incidencia espec&iacute;ficos</p>
+            </div>
+            <div class="slide-body">
+                <div class="cards-grid">
+                    <div class="card">
+                        <div class="card-icon blue"><i class="fa-solid fa-spray-can-sparkles"></i></div>
+                        <h3>Aromatex</h3>
+                        <p>Servicio de aromatizaci&oacute;n profesional para espacios comerciales e industriales.</p>
+                        <div class="card-detail">Tipos: Equipo no funciona, Aroma incorrecto, Falta de recarga, Mantenimiento, Otro</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon green"><i class="fa-solid fa-bug-slash"></i></div>
+                        <h3>Pestex</h3>
+                        <p>Control de plagas profesional con soluciones integrales para todo tipo de espacios.</p>
+                        <div class="card-detail">Tipos: Plaga detectada, Servicio no realizado, Reagendar, Certificado, Otro</div>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon orange"><i class="fa-solid fa-wrench"></i></div>
+                        <h3>Weldex</h3>
+                        <p>Servicios de mantenimiento, intendencia y plataforma digital Weldu.</p>
+                        <div class="card-detail">Tipos: Intendencia, Mantenimiento, App Weldu, Otro</div>
+                    </div>
+                </div>
+            </div>
+            <span class="slide-number">5 / 15</span>
+        </div>
+
+        <!-- SLIDE 6: Cancellation Flow -->
+        <div class="slide" data-slide="6">
+            <div class="slide-header">
+                <h2><i class="fa-solid fa-xmark-circle" style="color: var(--red)"></i> Flujo de Cancelaciones</h2>
+                <p class="subtitle">Detecci&oacute;n inteligente de intenci&oacute;n de cancelaci&oacute;n</p>
+            </div>
+            <div class="slide-body">
+                <div class="flow-container">
+                    <div class="flow-step" style="background: rgba(239,68,68,0.1); border-color: rgba(239,68,68,0.3);">
+                        <i class="fa-solid fa-comment-dots"></i><br><strong>Detectar</strong><br>intenci&oacute;n de cancelar</div>
+                    <div class="flow-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                    <div class="flow-step"><i class="fa-solid fa-circle-question"></i><br><strong>Confirmar</strong><br>cancelaci&oacute;n</div>
+                    <div class="flow-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                    <div class="flow-step"><i class="fa-solid fa-user"></i><br><strong>Nombre</strong></div>
+                    <div class="flow-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                    <div class="flow-step"><i class="fa-solid fa-building"></i><br><strong>Empresa</strong></div>
+                </div>
+                <div class="flow-container" style="margin-top: 8px;">
+                    <div class="flow-step"><i class="fa-solid fa-concierge-bell"></i><br><strong>Servicio</strong></div>
+                    <div class="flow-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                    <div class="flow-step"><i class="fa-solid fa-message"></i><br><strong>Motivo</strong><br>de cancelaci&oacute;n</div>
+                    <div class="flow-arrow"><i class="fa-solid fa-chevron-right"></i></div>
+                    <div class="flow-step orange-step"><i class="fa-solid fa-ticket"></i><br><strong>Ticket</strong><br>con folio generado</div>
+                </div>
+                <div class="highlight-box" style="margin-top: 30px;">
+                    <p><i class="fa-solid fa-brain" style="color: var(--blue); margin-right: 8px;"></i>
+                    El sistema utiliza IA (Gemini 1.5 Flash) para detectar autom&aacute;ticamente cuando un cliente expresa intenci&oacute;n de cancelar el servicio, activando el flujo correspondiente.</p>
+                </div>
+            </div>
+            <span class="slide-number">6 / 15</span>
+        </div>
+
+        <!-- SLIDE 7: Auto-assignment -->
+        <div class="slide" data-slide="7">
+            <div class="slide-header">
+                <h2><i class="fa-solid fa-user-gear"></i> Asignaci&oacute;n Autom&aacute;tica</h2>
+                <p class="subtitle">Distribuci&oacute;n inteligente de tickets a agentes</p>
+            </div>
+            <div class="slide-body">
+                <table class="styled-table">
+                    <thead>
+                        <tr>
+                            <th>Tipo de Ticket</th>
+                            <th>Agente Asignado</th>
+                            <th>Rol</th>
+                            <th>Notificaci&oacute;n</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><span class="tag blue">Incidencia</span></td>
+                            <td><strong>anakaren</strong></td>
+                            <td>Atenci&oacute;n al Cliente</td>
+                            <td><i class="fa-brands fa-whatsapp" style="color: var(--green); margin-right: 6px;"></i> WhatsApp</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag red">Cancelaci&oacute;n</span></td>
+                            <td><strong>nallelyquiroz</strong></td>
+                            <td>Retenci&oacute;n</td>
+                            <td><i class="fa-brands fa-whatsapp" style="color: var(--green); margin-right: 6px;"></i> WhatsApp</td>
+                        </tr>
+                        <tr>
+                            <td><span class="tag orange">Escalamiento</span></td>
+                            <td><strong>diegovelazquez</strong></td>
+                            <td>Superadmin</td>
+                            <td><i class="fa-brands fa-whatsapp" style="color: var(--green); margin-right: 6px;"></i> WhatsApp</td>
+                        </tr>
+                    </tbody>
+                </table>
+                <div class="two-cols" style="margin-top: 30px;">
+                    <div class="highlight-box green-box">
+                        <p><i class="fa-brands fa-whatsapp" style="color: var(--green); margin-right: 8px;"></i>
+                        <strong>Notificaci&oacute;n al agente:</strong> Se env&iacute;a mensaje autom&aacute;tico v&iacute;a WhatsApp al agente asignado con los datos del ticket, incluyendo nombre del cliente, empresa, servicio y descripci&oacute;n.</p>
+                    </div>
+                    <div class="highlight-box">
+                        <p><i class="fa-solid fa-bell" style="color: var(--blue); margin-right: 8px;"></i>
+                        <strong>Chat en tiempo real:</strong> El agente puede ver y responder al cliente desde el panel de chat de agentes con comunicaci&oacute;n bidireccional.</p>
+                    </div>
+                </div>
+            </div>
+            <span class="slide-number">7 / 15</span>
+        </div>
+
+        <!-- SLIDE 8: CSAT & NPS -->
+        <div class="slide" data-slide="8">
+            <div class="slide-header">
+                <h2><i class="fa-solid fa-star"></i> CSAT & NPS</h2>
+                <p class="subtitle">Medici&oacute;n de satisfacci&oacute;n y lealtad del cliente</p>
+            </div>
+            <div class="slide-body">
+                <div class="two-cols">
+                    <div class="col-section">
+                        <h3><i class="fa-solid fa-face-smile"></i> Encuesta CSAT</h3>
+                        <ul class="feature-list">
+                            <li><i class="fa-solid fa-paper-plane"></i> Se env&iacute;a autom&aacute;ticamente al resolver un ticket</li>
+                            <li><i class="fa-solid fa-hand-pointer"></i> Botones interactivos del 1 al 5 (sin template de Meta)</li>
+                            <li><i class="fa-solid fa-database"></i> Respuesta almacenada en Supabase</li>
+                            <li><i class="fa-solid fa-chart-bar"></i> Resultados visibles en el Dashboard CX</li>
+                        </ul>
+                        <div class="highlight-box" style="margin-top: 16px;">
+                            <p style="text-align: center; font-size: 28px; letter-spacing: 8px;">
+                                <span style="opacity:0.4">1</span>
+                                <span style="opacity:0.5">2</span>
+                                <span style="opacity:0.6">3</span>
+                                <span style="opacity:0.8">4</span>
+                                <span style="color: var(--green); font-weight:700;">5</span>
+                            </p>
+                            <p style="text-align: center; font-size: 13px; color: var(--gray-400); margin-top: 6px;">Escala de satisfacci&oacute;n</p>
+                        </div>
+                    </div>
+                    <div class="col-section">
+                        <h3><i class="fa-solid fa-gauge-high"></i> C&aacute;lculo NPS</h3>
+                        <div class="nps-scale">
+                            <div class="nps-segment detractor">
+                                <div class="nps-label" style="color: var(--red);">Detractores</div>
+                                <div class="nps-scores">1 - 3</div>
+                                <div class="nps-desc">Insatisfechos</div>
+                            </div>
+                            <div class="nps-segment passive">
+                                <div class="nps-label" style="color: var(--orange);">Pasivos</div>
+                                <div class="nps-scores">4</div>
+                                <div class="nps-desc">Neutrales</div>
+                            </div>
+                            <div class="nps-segment promoter">
+                                <div class="nps-label" style="color: var(--green);">Promotores</div>
+                                <div class="nps-scores">5</div>
+                                <div class="nps-desc">Leales</div>
+                            </div>
+                        </div>
+                        <div class="highlight-box">
+                            <p><strong>F&oacute;rmula NPS:</strong><br>
+                            <code style="color: var(--blue-light);">NPS = % Promotores - % Detractores</code><br>
+                            <span style="font-size: 13px; color: var(--gray-400);">Rango: -100 a +100</span></p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <span class="slide-number">8 / 15</span>
+        </div>
+
+        <!-- SLIDE 9: Dashboard CX Overview -->
+        <div class="slide" data-slide="9">
+            <div class="slide-header">
+                <h2><i class="fa-solid fa-chart-line"></i> Dashboard CX</h2>
+                <p class="subtitle">cx-dashboard-54yw.onrender.com &mdash; Panel de anal&iacute;tica y gesti&oacute;n</p>
+            </div>
+            <div class="slide-body">
+                <div class="cards-grid" style="grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));">
+                    <div class="card">
+                        <div class="card-icon blue"><i class="fa-solid fa-house"></i></div>
+                        <h3>Inicio</h3>
+                        <p>P&aacute;gina de bienvenida con gu&iacute;a r&aacute;pida de navegaci&oacute;n del sistema.</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon purple"><i class="fa-solid fa-chart-pie"></i></div>
+                        <h3>Dashboard</h3>
+                        <p>KPIs en tiempo real, gr&aacute;ficas de tendencia, distribuci&oacute;n por servicio y estado.</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon green"><i class="fa-solid fa-table-list"></i></div>
+                        <h3>Registros</h3>
+                        <p>Tabla completa de todos los registros con filtros, b&uacute;squeda y edici&oacute;n inline.</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon red"><i class="fa-solid fa-ban"></i></div>
+                        <h3>Cancelaciones</h3>
+                        <p>Seguimiento de cancelaciones con montos, estados y motivos detallados.</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon orange"><i class="fa-solid fa-ticket"></i></div>
+                        <h3>Tickets WhatsApp</h3>
+                        <p>Todos los tickets generados por el bot con detalles y estatus en tiempo real.</p>
+                    </div>
+                </div>
+            </div>
+            <span class="slide-number">9 / 15</span>
+        </div>
+
+        <!-- SLIDE 10: Dashboard KPIs -->
+        <div class="slide" data-slide="10">
+            <div class="slide-header">
+                <h2><i class="fa-solid fa-gauge"></i> KPIs del Dashboard</h2>
+                <p class="subtitle">M&eacute;tricas clave para la toma de decisiones</p>
+            </div>
+            <div class="slide-body">
+                <div class="kpi-grid">
+                    <div class="kpi-box">
+                        <div class="kpi-icon" style="color: var(--blue);"><i class="fa-solid fa-ticket"></i></div>
+                        <div class="kpi-label">Total Tickets</div>
+                        <div class="kpi-value" style="color: var(--blue);">---</div>
+                    </div>
+                    <div class="kpi-box">
+                        <div class="kpi-icon" style="color: var(--green);"><i class="fa-solid fa-circle-check"></i></div>
+                        <div class="kpi-label">Resueltos</div>
+                        <div class="kpi-value" style="color: var(--green);">---</div>
+                    </div>
+                    <div class="kpi-box">
+                        <div class="kpi-icon" style="color: var(--orange);"><i class="fa-solid fa-clock"></i></div>
+                        <div class="kpi-label">Pendientes</div>
+                        <div class="kpi-value" style="color: var(--orange);">---</div>
+                    </div>
+                    <div class="kpi-box">
+                        <div class="kpi-icon" style="color: var(--purple);"><i class="fa-solid fa-star"></i></div>
+                        <div class="kpi-label">NPS Score</div>
+                        <div class="kpi-value" style="color: var(--purple);">---</div>
+                    </div>
+                </div>
+                <div class="two-cols" style="margin-top: 30px;">
+                    <div class="col-section">
+                        <h3><i class="fa-solid fa-chart-column"></i> Gr&aacute;ficas Disponibles</h3>
+                        <ul class="feature-list">
+                            <li><i class="fa-solid fa-chart-area"></i> Tendencia de tickets por mes</li>
+                            <li><i class="fa-solid fa-chart-pie"></i> Distribuci&oacute;n por servicio (Aromatex, Pestex, Weldex)</li>
+                            <li><i class="fa-solid fa-chart-bar"></i> Estado de tickets (Abierto, En Proceso, Resuelto)</li>
+                            <li><i class="fa-solid fa-chart-line"></i> Evoluci&oacute;n del NPS en el tiempo</li>
+                            <li><i class="fa-solid fa-chart-simple"></i> CSAT promedio por periodo</li>
+                        </ul>
+                    </div>
+                    <div class="col-section">
+                        <h3><i class="fa-solid fa-filter"></i> Filtros</h3>
+                        <ul class="feature-list">
+                            <li><i class="fa-solid fa-calendar"></i> Rango de fechas personalizable</li>
+                            <li><i class="fa-solid fa-concierge-bell"></i> Por servicio</li>
+                            <li><i class="fa-solid fa-signal"></i> Por estado del ticket</li>
+                            <li><i class="fa-solid fa-user"></i> Por agente asignado</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <span class="slide-number">10 / 15</span>
+        </div>
+
+        <!-- SLIDE 11: Roles & Permissions -->
+        <div class="slide" data-slide="11">
+            <div class="slide-header">
+                <h2><i class="fa-solid fa-shield-halved"></i> Roles y Permisos</h2>
+                <p class="subtitle">Control de acceso basado en roles</p>
+            </div>
+            <div class="slide-body">
+                <div class="cards-grid" style="grid-template-columns: repeat(3, 1fr);">
+                    <div class="card" style="border-top: 3px solid var(--purple);">
+                        <div class="card-icon purple"><i class="fa-solid fa-crown"></i></div>
+                        <h3>Superadmin</h3>
+                        <p style="margin-bottom: 12px;">Acceso total al sistema con privilegios m&aacute;ximos.</p>
+                        <ul class="feature-list">
+                            <li><i class="fa-solid fa-check" style="color: var(--purple)"></i> Todos los m&oacute;dulos</li>
+                            <li><i class="fa-solid fa-check" style="color: var(--purple)"></i> Editar registros</li>
+                            <li><i class="fa-solid fa-check" style="color: var(--purple)"></i> Gesti&oacute;n de agentes</li>
+                            <li><i class="fa-solid fa-check" style="color: var(--purple)"></i> Analytics completo</li>
+                        </ul>
+                        <div class="card-detail"><i class="fa-solid fa-envelope"></i> diegovelazquez@...</div>
+                    </div>
+                    <div class="card" style="border-top: 3px solid var(--blue);">
+                        <div class="card-icon blue"><i class="fa-solid fa-user-tie"></i></div>
+                        <h3>Admin</h3>
+                        <p style="margin-bottom: 12px;">Gesti&oacute;n operativa del d&iacute;a a d&iacute;a.</p>
+                        <ul class="feature-list">
+                            <li><i class="fa-solid fa-check" style="color: var(--blue)"></i> Dashboard & KPIs</li>
+                            <li><i class="fa-solid fa-check" style="color: var(--blue)"></i> Editar registros</li>
+                            <li><i class="fa-solid fa-check" style="color: var(--blue)"></i> Gestionar tickets</li>
+                            <li><i class="fa-solid fa-check" style="color: var(--blue)"></i> Analytics</li>
+                        </ul>
+                        <div class="card-detail"><i class="fa-solid fa-envelope"></i> servicioalcliente@...</div>
+                    </div>
+                    <div class="card" style="border-top: 3px solid var(--gray-400);">
+                        <div class="card-icon" style="background: rgba(255,255,255,0.08); color: var(--gray-300);"><i class="fa-solid fa-eye"></i></div>
+                        <h3>Consulta</h3>
+                        <p style="margin-bottom: 12px;">Acceso de solo lectura para visualizaci&oacute;n.</p>
+                        <ul class="feature-list">
+                            <li><i class="fa-solid fa-check" style="color: var(--gray-400)"></i> Ver registros</li>
+                            <li><i class="fa-solid fa-check" style="color: var(--gray-400)"></i> Ver dashboard</li>
+                            <li><i class="fa-solid fa-xmark" style="color: var(--red)"></i> Sin edici&oacute;n</li>
+                            <li><i class="fa-solid fa-xmark" style="color: var(--red)"></i> Sin gesti&oacute;n</li>
+                        </ul>
+                        <div class="card-detail"><i class="fa-solid fa-envelope"></i> Otros correos</div>
+                    </div>
+                </div>
+            </div>
+            <span class="slide-number">11 / 15</span>
+        </div>
+
+        <!-- SLIDE 12: Editable Fields -->
+        <div class="slide" data-slide="12">
+            <div class="slide-header">
+                <h2><i class="fa-solid fa-pen-to-square"></i> Campos Editables</h2>
+                <p class="subtitle">Gesti&oacute;n flexible de registros desde el dashboard</p>
+            </div>
+            <div class="slide-body">
+                <div class="two-cols">
+                    <div class="col-section">
+                        <h3><i class="fa-solid fa-ticket"></i> Tickets / Registros</h3>
+                        <table class="styled-table">
+                            <thead>
+                                <tr><th>Campo</th><th>Tipo</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><strong>Estado</strong></td><td><span class="tag blue">Selector</span> Abierto / En Proceso / Resuelto</td></tr>
+                                <tr><td><strong>Comentarios</strong></td><td><span class="tag green">Texto libre</span> Notas del agente</td></tr>
+                                <tr><td><strong>Agente asignado</strong></td><td><span class="tag purple">Selector</span> Reasignaci&oacute;n</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    <div class="col-section">
+                        <h3><i class="fa-solid fa-ban"></i> Cancelaciones</h3>
+                        <table class="styled-table">
+                            <thead>
+                                <tr><th>Campo</th><th>Tipo</th></tr>
+                            </thead>
+                            <tbody>
+                                <tr><td><strong>Estado cancelaci&oacute;n</strong></td><td><span class="tag red">Selector</span> Pendiente / Retenido / Cancelado</td></tr>
+                                <tr><td><strong>Monto</strong></td><td><span class="tag orange">Num&eacute;rico</span> Valor econ&oacute;mico</td></tr>
+                                <tr><td><strong>Comentarios</strong></td><td><span class="tag green">Texto libre</span> Seguimiento</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+                <div class="highlight-box" style="margin-top: 30px;">
+                    <p><i class="fa-solid fa-shield-halved" style="color: var(--blue); margin-right: 8px;"></i>
+                    <strong>Permisos:</strong> Solo los roles Admin y Superadmin pueden editar campos. El rol Consulta tiene acceso de solo lectura.</p>
+                </div>
+            </div>
+            <span class="slide-number">12 / 15</span>
+        </div>
+
+        <!-- SLIDE 13: Agent Chat -->
+        <div class="slide" data-slide="13">
+            <div class="slide-header">
+                <h2><i class="fa-solid fa-comments"></i> Chat de Agentes</h2>
+                <p class="subtitle">avantex-bot.onrender.com/dashboard &mdash; Gesti&oacute;n de conversaciones en tiempo real</p>
+            </div>
+            <div class="slide-body">
+                <div class="cards-grid" style="grid-template-columns: repeat(2, 1fr);">
+                    <div class="card">
+                        <div class="card-icon green"><i class="fa-solid fa-message"></i></div>
+                        <h3>Chat en Vivo</h3>
+                        <p>Comunicaci&oacute;n bidireccional en tiempo real entre agentes y clientes v&iacute;a WhatsApp. Los agentes pueden ver y responder mensajes directamente.</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon blue"><i class="fa-solid fa-columns"></i></div>
+                        <h3>Vista Kanban</h3>
+                        <p>Organizaci&oacute;n visual de conversaciones por estado: Nuevas, En Atenci&oacute;n, Resueltas. Drag and drop para cambiar estado.</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon purple"><i class="fa-solid fa-users-gear"></i></div>
+                        <h3>Gesti&oacute;n de Agentes</h3>
+                        <p>Administraci&oacute;n de agentes activos, asignaci&oacute;n de conversaciones, monitoreo de carga de trabajo.</p>
+                    </div>
+                    <div class="card">
+                        <div class="card-icon orange"><i class="fa-solid fa-bell"></i></div>
+                        <h3>Notificaciones</h3>
+                        <p>Alertas en tiempo real de nuevos mensajes, tickets asignados y escalamientos pendientes por atender.</p>
+                    </div>
+                </div>
+            </div>
+            <span class="slide-number">13 / 15</span>
+        </div>
+
+        <!-- SLIDE 14: Client Guide -->
+        <div class="slide" data-slide="14">
+            <div class="slide-header">
+                <h2><i class="fa-solid fa-book-open"></i> Gu&iacute;a del Cliente</h2>
+                <p class="subtitle">Material descargable para clientes</p>
+            </div>
+            <div class="slide-body">
+                <div class="two-cols">
+                    <div class="col-section">
+                        <h3><i class="fa-solid fa-image"></i> Imagen con C&oacute;digo QR</h3>
+                        <ul class="feature-list">
+                            <li><i class="fa-solid fa-ruler-combined"></i> Formato: <strong>800 x 800 px</strong> (cuadrado)</li>
+                            <li><i class="fa-solid fa-qrcode"></i> C&oacute;digo QR que enlaza directo al WhatsApp del bot</li>
+                            <li><i class="fa-solid fa-palette"></i> Dise&ntilde;o con branding Avantex</li>
+                            <li><i class="fa-solid fa-download"></i> Descargable desde el Dashboard CX</li>
+                            <li><i class="fa-solid fa-share-nodes"></i> Lista para compartir por correo, redes o impresi&oacute;n</li>
+                        </ul>
+                        <div class="highlight-box green-box" style="margin-top: 20px;">
+                            <p><i class="fa-brands fa-whatsapp" style="color: var(--green); margin-right: 8px;"></i>
+                            El QR lleva directamente a la conversaci&oacute;n de WhatsApp con el n&uacute;mero <strong>+52 449 156 1238</strong>, facilitando el primer contacto del cliente.</p>
+                        </div>
+                    </div>
+                    <div class="col-section" style="display: flex; align-items: center; justify-content: center;">
+                        <div style="background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.1); border-radius: 20px; padding: 40px; text-align: center; width: 300px;">
+                            <i class="fa-solid fa-qrcode" style="font-size: 120px; color: var(--gray-300); margin-bottom: 20px; display: block;"></i>
+                            <p style="font-size: 14px; color: var(--gray-400);">Gu&iacute;a del Cliente</p>
+                            <p style="font-size: 12px; color: var(--gray-400); margin-top: 4px;">800 x 800 px</p>
+                            <div style="margin-top: 16px; background: var(--blue); color: white; padding: 10px 20px; border-radius: 8px; font-size: 14px; font-weight: 500; display: inline-flex; align-items: center; gap: 8px;">
+                                <i class="fa-solid fa-download"></i> Descargar Gu&iacute;a
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <span class="slide-number">14 / 15</span>
+        </div>
+
+        <!-- SLIDE 15: Closing -->
+        <div class="slide closing-slide" data-slide="15">
+            <img src="https://grupoavantex.com/wp-content/uploads/2022/09/AX_Logo_oficial.png" alt="Avantex" class="logo" style="width: 180px; margin-bottom: 30px;">
+            <h2>Sistema Integral de Atenci&oacute;n al Cliente</h2>
+            <p>Automatizaci&oacute;n completa del ciclo de atenci&oacute;n: desde la recepci&oacute;n de incidencias hasta la medici&oacute;n de satisfacci&oacute;n, con trazabilidad total.</p>
+            <div class="contact-links">
+                <a class="contact-link" href="https://wa.me/524491561238" target="_blank">
+                    <i class="fa-brands fa-whatsapp" style="color: var(--green);"></i> +52 449 156 1238
+                </a>
+                <a class="contact-link" href="https://cx-dashboard-54yw.onrender.com" target="_blank">
+                    <i class="fa-solid fa-chart-line"></i> Dashboard CX
+                </a>
+                <a class="contact-link" href="https://avantex-bot.onrender.com/dashboard" target="_blank">
+                    <i class="fa-solid fa-comments"></i> Chat de Agentes
+                </a>
+                <a class="contact-link" href="https://grupoavantex.com" target="_blank">
+                    <i class="fa-solid fa-globe"></i> grupoavantex.com
+                </a>
+            </div>
+            <span class="slide-number">15 / 15</span>
+        </div>
+
+    </div>
+
+    <!-- Navigation -->
+    <div class="kb-hint">Usa las flechas del teclado <kbd>&larr;</kbd> <kbd>&rarr;</kbd> para navegar</div>
+    <div class="nav-controls">
+        <button class="nav-btn" id="prevBtn" onclick="changeSlide(-1)" disabled>
+            <i class="fa-solid fa-chevron-left"></i>
+        </button>
+        <span class="slide-counter" id="slideCounter">1 / 15</span>
+        <button class="nav-btn" id="nextBtn" onclick="changeSlide(1)">
+            <i class="fa-solid fa-chevron-right"></i>
+        </button>
+    </div>
+
+    <script>
+        let currentSlide = 1;
+        const totalSlides = document.querySelectorAll('.slide').length;
+
+        function showSlide(n) {
+            const slides = document.querySelectorAll('.slide');
+            slides.forEach(s => s.classList.remove('active'));
+            slides[n - 1].classList.add('active');
+            currentSlide = n;
+
+            document.getElementById('slideCounter').textContent = n + ' / ' + totalSlides;
+            document.getElementById('prevBtn').disabled = (n === 1);
+            document.getElementById('nextBtn').disabled = (n === totalSlides);
+            document.getElementById('progressBar').style.width = ((n / totalSlides) * 100) + '%';
+        }
+
+        function changeSlide(dir) {
+            const next = currentSlide + dir;
+            if (next >= 1 && next <= totalSlides) {
+                showSlide(next);
+            }
+        }
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowRight' || e.key === 'ArrowDown' || e.key === ' ') {
+                e.preventDefault();
+                changeSlide(1);
+            } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                e.preventDefault();
+                changeSlide(-1);
+            } else if (e.key === 'Home') {
+                e.preventDefault();
+                showSlide(1);
+            } else if (e.key === 'End') {
+                e.preventDefault();
+                showSlide(totalSlides);
+            }
+        });
+
+        // Touch support
+        let touchStartX = 0;
+        document.addEventListener('touchstart', e => { touchStartX = e.changedTouches[0].screenX; });
+        document.addEventListener('touchend', e => {
+            const diff = touchStartX - e.changedTouches[0].screenX;
+            if (Math.abs(diff) > 50) {
+                changeSlide(diff > 0 ? 1 : -1);
+            }
+        });
+
+        // Hide keyboard hint after first navigation
+        let hintHidden = false;
+        document.addEventListener('keydown', function() {
+            if (!hintHidden) {
+                document.querySelector('.kb-hint').style.opacity = '0';
+                hintHidden = true;
+            }
+        });
+    </script>
+</body>
+</html>
