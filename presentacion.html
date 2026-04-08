@@ -9,81 +9,132 @@
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
-:root{--bg:#1a1d23;--surface:#23272f;--border:#333840;--blue:#0D8BF2;--green:#25d366;--white:#f0f2f5;--muted:#8b8f96;--red:#ef4444;--amber:#f59e0b;--purple:#8b5cf6}
-body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--white);overflow:hidden;height:100vh}
-.slide{display:none;height:100vh;padding:50px 70px;overflow-y:auto;position:relative}
-.slide.active{display:flex;flex-direction:column}
-.slide-1{background:linear-gradient(135deg,#1a1d23 0%,#23272f 50%,#1a1d23 100%);justify-content:center;align-items:center;text-align:center}
-.slide-1 img{height:50px;margin-bottom:24px}
-.slide-1 h1{font-size:clamp(32px,5vw,52px);font-weight:800;margin-bottom:12px;background:linear-gradient(135deg,var(--white),var(--blue));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
-.slide-1 p{font-size:18px;color:var(--muted);max-width:600px;margin-bottom:32px}
-.badges{display:flex;gap:12px;flex-wrap:wrap;justify-content:center}
-.badge-item{padding:8px 18px;border-radius:100px;font-size:12px;font-weight:600;border:1px solid var(--border)}
-.badge-wa{background:rgba(37,211,102,.1);color:var(--green);border-color:rgba(37,211,102,.3)}
-.badge-blue{background:rgba(13,139,242,.1);color:var(--blue);border-color:rgba(13,139,242,.3)}
-.badge-purple{background:rgba(139,92,246,.1);color:var(--purple);border-color:rgba(139,92,246,.3)}
-h2{font-size:26px;font-weight:800;margin-bottom:24px;display:flex;align-items:center;gap:10px}
-h2 i{color:var(--blue)}
-h3{font-size:15px;font-weight:700;color:var(--blue);margin:16px 0 8px;text-transform:uppercase;letter-spacing:1px}
-.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:20px;flex:1}
-.grid-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px}
-.card{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:22px}
-.card-title{font-size:14px;font-weight:700;margin-bottom:10px;display:flex;align-items:center;gap:8px}
-.card-title i{font-size:16px}
-.card p,.card li{font-size:13px;color:var(--muted);line-height:1.6}
-.card ul{list-style:none;padding:0}
-.card li{padding:3px 0}
-.card li::before{content:'→';color:var(--blue);margin-right:8px;font-weight:700}
-.flow{display:flex;align-items:center;gap:0;flex-wrap:wrap;margin:12px 0}
-.flow-step{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 14px;font-size:11px;font-weight:600;text-align:center;min-width:90px}
-.flow-arrow{color:var(--blue);font-size:14px;padding:0 4px}
-.tag{display:inline-block;padding:3px 10px;border-radius:6px;font-size:11px;font-weight:600}
-.tag-green{background:rgba(37,211,102,.15);color:var(--green)}
-.tag-blue{background:rgba(13,139,242,.15);color:var(--blue)}
-.tag-red{background:rgba(239,68,68,.15);color:var(--red)}
-.tag-amber{background:rgba(245,158,11,.15);color:var(--amber)}
-.tag-purple{background:rgba(139,92,246,.15);color:var(--purple)}
-table{width:100%;border-collapse:collapse;font-size:12px;margin:8px 0}
-th{background:var(--surface);color:var(--blue);padding:8px 12px;text-align:left;font-weight:700;font-size:11px;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--blue)}
-td{padding:7px 12px;border-bottom:1px solid var(--border);color:var(--muted)}
-td strong{color:var(--white)}
-.wa-num{display:inline-flex;align-items:center;gap:8px;background:rgba(37,211,102,.1);border:1px solid rgba(37,211,102,.3);padding:6px 16px;border-radius:100px;font-weight:700;color:var(--green);font-size:14px}
-.nav{position:fixed;bottom:24px;right:30px;display:flex;gap:10px;z-index:99}
-.nav button{width:44px;height:44px;border-radius:50%;border:1px solid var(--border);background:var(--surface);color:var(--white);font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:all .2s}
-.nav button:hover{background:var(--blue);border-color:var(--blue)}
-.counter{position:fixed;bottom:30px;left:30px;font-size:12px;color:var(--muted);font-weight:600;z-index:99}
-.progress{position:fixed;top:0;left:0;height:3px;background:var(--blue);z-index:100;transition:width .3s}
-.footer-note{position:absolute;bottom:20px;left:70px;font-size:11px;color:var(--muted)}
-@media(max-width:800px){.slide{padding:30px 24px}.grid-2,.grid-3{grid-template-columns:1fr}.flow{gap:4px}.flow-step{min-width:70px;font-size:10px}}
+body{font-family:'Inter',system-ui,sans-serif;background:#fff;color:#37352f;line-height:1.7;-webkit-font-smoothing:antialiased}
+.page{max-width:860px;margin:0 auto;padding:60px 40px 100px}
+
+/* Notion-style typography */
+h1{font-size:40px;font-weight:700;margin-bottom:8px;letter-spacing:-.02em}
+h2{font-size:28px;font-weight:700;margin:56px 0 16px;padding-bottom:8px;border-bottom:1px solid #e5e5e5;letter-spacing:-.01em}
+h3{font-size:18px;font-weight:600;margin:28px 0 10px;color:#37352f}
+p{margin-bottom:12px;font-size:15px;color:#37352f}
+.subtitle{font-size:18px;color:#787774;margin-bottom:32px}
+.emoji{font-size:28px;margin-right:8px;vertical-align:middle}
+
+/* Cover */
+.cover{background:linear-gradient(135deg,#1a1d23,#2d3139);border-radius:12px;padding:48px 40px;margin-bottom:40px;color:#fff;position:relative;overflow:hidden}
+.cover::after{content:'';position:absolute;bottom:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#0D8BF2,#25d366)}
+.cover img{height:36px;margin-bottom:20px;filter:brightness(10)}
+.cover h1{color:#fff;font-size:36px}
+.cover p{color:rgba(255,255,255,.6)}
+.cover-badges{display:flex;gap:10px;margin-top:20px;flex-wrap:wrap}
+.cover-badge{padding:6px 14px;border-radius:100px;font-size:12px;font-weight:600;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.15);color:rgba(255,255,255,.8)}
+
+/* Callout (Notion style) */
+.callout{display:flex;gap:14px;padding:18px 20px;border-radius:8px;margin:16px 0;font-size:14px;line-height:1.6}
+.callout-icon{font-size:22px;flex-shrink:0;margin-top:2px}
+.callout-blue{background:#e8f4fd;border:1px solid #d3e8f8}
+.callout-green{background:#edf9ee;border:1px solid #d4efd6}
+.callout-yellow{background:#fef9e7;border:1px solid #f5eac6}
+.callout-red{background:#fdf0ef;border:1px solid #f5d5d2}
+.callout-gray{background:#f7f6f3;border:1px solid #e9e8e4}
+
+/* Table */
+table{width:100%;border-collapse:collapse;margin:16px 0;font-size:14px}
+th{text-align:left;padding:8px 12px;font-weight:600;font-size:12px;color:#787774;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #e5e5e5;background:#f7f6f3}
+td{padding:8px 12px;border-bottom:1px solid #efefef;color:#37352f}
+td strong{font-weight:600}
+
+/* Tags */
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:12px;font-weight:500}
+.tag-blue{background:#d3e5ef;color:#183b56}
+.tag-green{background:#dbeddb;color:#1a3a1a}
+.tag-red{background:#f5d5d2;color:#5a1d1d}
+.tag-yellow{background:#f5eac6;color:#4a3d0a}
+.tag-purple{background:#e0d4f7;color:#3b2372}
+.tag-gray{background:#e9e8e4;color:#4a4a46}
+
+/* Flow diagram */
+.flow{display:flex;align-items:center;gap:0;flex-wrap:wrap;margin:14px 0}
+.flow-step{padding:6px 14px;border-radius:6px;font-size:12px;font-weight:600;background:#f7f6f3;border:1px solid #e5e5e5;color:#37352f}
+.flow-step.highlight{background:#0D8BF2;color:#fff;border-color:#0D8BF2}
+.flow-step.red{background:#eb5757;color:#fff;border-color:#eb5757}
+.flow-arrow{color:#c4c4c4;padding:0 4px;font-size:12px}
+
+/* Two column */
+.columns{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:16px 0}
+.columns-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin:16px 0}
+@media(max-width:700px){.columns,.columns-3{grid-template-columns:1fr}}
+
+/* Card */
+.card{border:1px solid #e5e5e5;border-radius:8px;padding:20px}
+.card-title{font-size:14px;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+
+/* List */
+ul{list-style:none;padding:0;margin:8px 0}
+li{padding:4px 0;font-size:14px;display:flex;align-items:flex-start;gap:8px}
+li::before{content:'•';color:#0D8BF2;font-weight:700;flex-shrink:0;margin-top:1px}
+
+/* Toggle (Notion style) */
+.toggle{border:1px solid #e5e5e5;border-radius:8px;margin:10px 0;overflow:hidden}
+.toggle-header{padding:12px 16px;cursor:pointer;font-weight:600;font-size:14px;display:flex;align-items:center;gap:8px;background:#f7f6f3;user-select:none}
+.toggle-header:hover{background:#efefef}
+.toggle-header i.arrow{transition:transform .2s;font-size:10px;color:#787774}
+.toggle-header.open i.arrow{transform:rotate(90deg)}
+.toggle-body{display:none;padding:14px 16px;font-size:14px;border-top:1px solid #e5e5e5}
+.toggle-body.open{display:block}
+
+/* Divider */
+hr{border:none;border-top:1px solid #e5e5e5;margin:32px 0}
+
+/* WA number */
+.wa-box{display:inline-flex;align-items:center;gap:10px;background:#edf9ee;border:1px solid #d4efd6;padding:10px 20px;border-radius:8px;font-weight:700;color:#1a3a1a;font-size:16px;margin:12px 0}
+
+/* Back to top */
+.back-top{position:fixed;bottom:24px;right:24px;width:40px;height:40px;border-radius:8px;background:#37352f;color:#fff;border:none;font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity .3s;z-index:50}
+.back-top.show{opacity:1}
+.back-top:hover{background:#0D8BF2}
+
+/* TOC */
+.toc{background:#f7f6f3;border-radius:8px;padding:20px 24px;margin:24px 0}
+.toc-title{font-size:12px;text-transform:uppercase;letter-spacing:1px;color:#787774;font-weight:600;margin-bottom:10px}
+.toc a{display:block;padding:4px 0;color:#37352f;text-decoration:none;font-size:14px;transition:color .15s}
+.toc a:hover{color:#0D8BF2}
+.toc a span{color:#787774;margin-right:8px}
 </style>
 </head>
 <body>
 
-<div class="progress" id="progress"></div>
+<div class="page">
 
-<!-- SLIDE 1: PORTADA -->
-<div class="slide slide-1 active" id="s1">
+<!-- COVER -->
+<div class="cover">
 <img src="https://grupoavantex.com/wp-content/uploads/2022/09/AX_Logo_oficial.png" alt="Avantex">
 <h1>Bot WhatsApp & Dashboard CX</h1>
 <p>Nuevo sistema de atención al cliente para reportes de incidencias, quejas y cancelaciones</p>
-<div class="badges">
-<span class="badge-item badge-wa"><i class="fa-brands fa-whatsapp"></i> Bot WhatsApp</span>
-<span class="badge-item badge-blue"><i class="fa-solid fa-chart-pie"></i> Dashboard CX</span>
-<span class="badge-item badge-purple"><i class="fa-solid fa-headset"></i> Chat Agentes</span>
+<div class="cover-badges">
+<span class="cover-badge"><i class="fa-brands fa-whatsapp"></i> Bot WhatsApp</span>
+<span class="cover-badge"><i class="fa-solid fa-chart-pie"></i> Dashboard CX</span>
+<span class="cover-badge"><i class="fa-solid fa-headset"></i> Chat Agentes</span>
+<span class="cover-badge"><i class="fa-solid fa-database"></i> Supabase</span>
 </div>
-<div style="margin-top:40px">
-<div class="wa-num"><i class="fa-brands fa-whatsapp"></i> +52 449 156 1238</div>
-</div>
-<div class="footer-note">Grupo Avantex — Customer Experience · Abril 2026</div>
 </div>
 
-<!-- SLIDE 2: CÓMO FUNCIONA -->
-<div class="slide" id="s2">
-<h2><i class="fa-brands fa-whatsapp"></i> ¿Cómo funciona?</h2>
-<div class="grid-2">
-<div>
-<div class="card">
-<div class="card-title"><i class="fa-solid fa-ticket" style="color:var(--green)"></i> Flujo de Incidencias</div>
+<!-- TOC -->
+<div class="toc">
+<div class="toc-title">Contenido</div>
+<a href="#flujo"><span>01</span> Flujo del Bot</a>
+<a href="#dashboard"><span>02</span> Dashboard CX & Chat de Agentes</a>
+<a href="#roles"><span>03</span> Roles, Permisos y Asignación</a>
+<a href="#equipo"><span>04</span> ¿Qué debe hacer el equipo?</a>
+</div>
+
+<!-- SECTION 1 -->
+<h2 id="flujo"><span class="emoji">📱</span> Flujo del Bot</h2>
+
+<div class="wa-box"><i class="fa-brands fa-whatsapp" style="color:#25d366;font-size:22px"></i> +52 449 156 1238</div>
+
+<h3>Flujo de incidencias / quejas</h3>
+<p>Cuando un cliente escribe <strong>"Hola"</strong> al WhatsApp de soporte:</p>
 <div class="flow">
 <div class="flow-step">Hola</div><span class="flow-arrow">→</span>
 <div class="flow-step">Nombre</div><span class="flow-arrow">→</span>
@@ -92,13 +143,19 @@ td strong{color:var(--white)}
 <div class="flow-step">Servicio</div><span class="flow-arrow">→</span>
 <div class="flow-step">Tipo</div><span class="flow-arrow">→</span>
 <div class="flow-step">Descripción</div><span class="flow-arrow">→</span>
-<div class="flow-step" style="background:var(--blue);color:#fff;border-color:var(--blue)">Folio</div>
+<div class="flow-step highlight">Folio ✅</div>
 </div>
-<p style="margin-top:10px">Servicios: <span class="tag tag-blue">Aromatex</span> <span class="tag tag-green">Pestex</span> <span class="tag tag-purple">Weldex</span></p>
-<p style="margin-top:6px">El cliente puede consultar su ticket, enviar evidencia o pedir agente en cualquier momento.</p>
+
+<div class="callout callout-blue">
+<div class="callout-icon">💡</div>
+<div>
+<strong>Servicios disponibles:</strong> <span class="tag tag-blue">Aromatex</span> <span class="tag tag-green">Pestex</span> <span class="tag tag-purple">Weldex</span><br>
+El bot detecta si el cliente ya reportó antes y lo reconoce automáticamente por su número de teléfono.
 </div>
-<div class="card" style="margin-top:12px">
-<div class="card-title"><i class="fa-solid fa-file-circle-xmark" style="color:var(--red)"></i> Flujo de Cancelaciones</div>
+</div>
+
+<h3>Flujo de cancelaciones</h3>
+<p>El bot detecta automáticamente palabras como "cancelar", "baja", "rescindir":</p>
 <div class="flow">
 <div class="flow-step">"Quiero cancelar"</div><span class="flow-arrow">→</span>
 <div class="flow-step">Confirmar</div><span class="flow-arrow">→</span>
@@ -106,197 +163,193 @@ td strong{color:var(--white)}
 <div class="flow-step">Empresa</div><span class="flow-arrow">→</span>
 <div class="flow-step">Servicio</div><span class="flow-arrow">→</span>
 <div class="flow-step">Motivo</div><span class="flow-arrow">→</span>
-<div class="flow-step" style="background:var(--red);color:#fff;border-color:var(--red)">Folio</div>
+<div class="flow-step red">Folio 🔴</div>
 </div>
-<p style="margin-top:10px">Se detecta automáticamente la intención de cancelar. Se envían cláusulas de carta convenio.</p>
+
+<div class="callout callout-red">
+<div class="callout-icon">⚠️</div>
+<div>Se le informan las cláusulas de carta convenio (30 días de anticipación, penalización anticipada de 2 meses). El ticket se crea con prioridad <strong>Alta</strong> y se asigna a <strong>nallelyquiroz</strong>.</div>
 </div>
-</div>
-<div>
+
+<h3>Otras funciones del bot</h3>
+<div class="columns">
 <div class="card">
-<div class="card-title"><i class="fa-solid fa-user-check" style="color:var(--amber)"></i> Asignación Automática</div>
-<table>
-<tr><th>Tipo</th><th>Agente</th><th>Notificación</th></tr>
-<tr><td><strong>Incidencias / Quejas</strong></td><td>anakaren</td><td><span class="tag tag-green"><i class="fa-brands fa-whatsapp"></i> WhatsApp</span></td></tr>
-<tr><td><strong>Cambio de aroma</strong></td><td>anakaren</td><td><span class="tag tag-green"><i class="fa-brands fa-whatsapp"></i> WhatsApp</span></td></tr>
-<tr><td><strong>Cancelaciones</strong></td><td>nallelyquiroz</td><td><span class="tag tag-green"><i class="fa-brands fa-whatsapp"></i> WhatsApp</span></td></tr>
-<tr><td><strong>Pide agente</strong></td><td>anakaren</td><td><span class="tag tag-green"><i class="fa-brands fa-whatsapp"></i> WhatsApp</span></td></tr>
-<tr><td><strong>Escalado (kanban)</strong></td><td>diegovelazquez</td><td><span class="tag tag-green"><i class="fa-brands fa-whatsapp"></i> WhatsApp</span></td></tr>
-</table>
+<div class="card-title">🔍 Consultar ticket</div>
+<p>El cliente escribe <strong>"Consultar"</strong> o su folio (ej: A0015) para ver el estatus.</p>
 </div>
-<div class="card" style="margin-top:12px">
-<div class="card-title"><i class="fa-solid fa-clock" style="color:var(--muted)"></i> Horario de Atención</div>
-<ul>
-<li><strong>Lunes a viernes:</strong> 7:30 a.m. a 6:00 p.m.</li>
-<li><strong>Sábados:</strong> 9:00 a.m. a 12:00 p.m.</li>
-<li><strong>Domingos:</strong> No disponible</li>
-</ul>
-<p style="margin-top:8px">Fuera de horario, el ticket se registra y el agente lo atiende el siguiente día hábil. El cliente recibe confirmación.</p>
+<div class="card">
+<div class="card-title">👤 Hablar con agente</div>
+<p>Escribe <strong>"Agente"</strong> para conectarse con una persona real.</p>
 </div>
-<div class="card" style="margin-top:12px">
-<div class="card-title"><i class="fa-solid fa-star" style="color:var(--amber)"></i> CSAT & NPS</div>
-<p>Encuesta 1-5 al cerrar ticket:</p>
-<p style="margin-top:4px">
-<span class="tag tag-green">5 = Promotor</span>
-<span class="tag tag-amber">4 = Pasivo</span>
-<span class="tag tag-red">1-3 = Detractor</span>
-</p>
-<p style="margin-top:6px"><strong>NPS = % Promotores − % Detractores</strong></p>
+<div class="card">
+<div class="card-title">📎 Enviar evidencia</div>
+<p>Envía fotos o documentos que se vinculan automáticamente al ticket activo.</p>
 </div>
-</div>
+<div class="card">
+<div class="card-title">⭐ Encuesta CSAT</div>
+<p>Al cerrar un ticket se envía encuesta de satisfacción (escala 1-5).</p>
 </div>
 </div>
 
-<!-- SLIDE 3: DASHBOARD -->
-<div class="slide" id="s3">
-<h2><i class="fa-solid fa-chart-pie"></i> Dashboard CX & Chat de Agentes</h2>
-<div class="grid-2">
+<div class="callout callout-yellow">
+<div class="callout-icon">⏰</div>
 <div>
-<div class="card">
-<div class="card-title"><i class="fa-solid fa-house" style="color:var(--blue)"></i> Dashboard CX — cx-dashboard-54yw.onrender.com</div>
+<strong>Horario de atención:</strong><br>
+Lunes a viernes: 7:30 a.m. a 6:00 p.m. · Sábados: 9:00 a.m. a 12:00 p.m.<br>
+Fuera de horario, el ticket se registra y el agente lo atiende el siguiente día hábil.
+</div>
+</div>
+
+<hr>
+
+<!-- SECTION 2 -->
+<h2 id="dashboard"><span class="emoji">📊</span> Dashboard CX & Chat de Agentes</h2>
+
+<h3>Dashboard CX</h3>
+<p><span class="tag tag-gray">cx-dashboard-54yw.onrender.com</span></p>
 <table>
 <tr><th>Sección</th><th>Contenido</th></tr>
 <tr><td><strong>Inicio</strong></td><td>Guía del proceso, número WhatsApp, QR, descarga de guía visual para clientes</td></tr>
-<tr><td><strong>Dashboard</strong></td><td>KPIs (total, resueltas, pendientes, tiempo respuesta), gráficas por tipo/servicio/zona/mes, NPS, CSAT</td></tr>
-<tr><td><strong>Registros</strong></td><td>Todos los registros con búsqueda global, filtros, modal de detalle editable</td></tr>
-<tr><td><strong>Cancelaciones</strong></td><td>KPIs de monto (Cancelado/Retenido/En negociación), filtros por status/año/mes</td></tr>
-<tr><td><strong>Tickets WhatsApp</strong></td><td>Tickets del bot con zona editable, modal con todos los campos</td></tr>
+<tr><td><strong>Dashboard</strong></td><td>KPIs (total, resueltas, pendientes, tiempo respuesta), gráficas por tipo/servicio/zona/mes, NPS, CSAT por servicio</td></tr>
+<tr><td><strong>Registros</strong></td><td>Todos los registros con búsqueda global y filtros. Clic para ver detalle completo y editar</td></tr>
+<tr><td><strong>Cancelaciones</strong></td><td>KPIs de monto desglosado (Cancelado / Retenido / En negociación), filtros por status, servicio, año, mes</td></tr>
+<tr><td><strong>Tickets WhatsApp</strong></td><td>Tickets generados desde el bot con zona editable, modal de detalle completo</td></tr>
 </table>
-</div>
-<div class="card" style="margin-top:12px">
-<div class="card-title"><i class="fa-solid fa-headset" style="color:var(--purple)"></i> Chat de Agentes — avantex-bot.onrender.com/dashboard</div>
-<ul>
-<li><strong>Chat:</strong> Conversaciones en tiempo real con clientes</li>
-<li><strong>Kanban:</strong> Tickets por columnas (Nuevo → En proceso → Resuelto)</li>
-<li><strong>Stats:</strong> KPIs en tiempo real, NPS, CSAT, conversaciones activas</li>
-<li><strong>Tomar control:</strong> El agente toma la conversación del bot</li>
-<li><strong>CSAT:</strong> Enviar encuesta de satisfacción al cliente</li>
-<li><strong>Diagnóstico:</strong> Al cerrar se pide diagnóstico y causa raíz</li>
-</ul>
-</div>
-</div>
-<div>
+
+<h3>Chat de Agentes</h3>
+<p><span class="tag tag-gray">avantex-bot.onrender.com/dashboard</span></p>
+<div class="columns">
 <div class="card">
-<div class="card-title"><i class="fa-solid fa-shield-halved" style="color:var(--amber)"></i> Roles y Permisos</div>
-<table>
-<tr><th>Rol</th><th>Usuario</th><th>Puede hacer</th></tr>
-<tr><td><span class="tag tag-red">Superadmin</span></td><td>diegovelazquez@</td><td>Todo + eliminar registros + editar nombres</td></tr>
-<tr><td><span class="tag tag-blue">Admin</span></td><td>servicioalcliente@</td><td>Editar status, comentarios, montos, Chat Agentes</td></tr>
-<tr><td><span class="tag tag-amber">Consulta</span></td><td>cobranza@, comercial@</td><td>Solo lectura en dashboards</td></tr>
-</table>
+<div class="card-title">💬 Chat</div>
+<p>Conversaciones en tiempo real con clientes. El agente toma control del bot y responde directamente.</p>
 </div>
-<div class="card" style="margin-top:12px">
-<div class="card-title"><i class="fa-solid fa-pen-to-square" style="color:var(--green)"></i> Campos Editables (Admin)</div>
-<div class="grid-3" style="margin-top:8px">
-<div>
-<h3 style="margin-top:0">Tickets</h3>
-<ul>
-<li>Status</li>
-<li>Zona</li>
-<li>Comentarios</li>
-<li>Fecha solución</li>
-</ul>
+<div class="card">
+<div class="card-title">📋 Kanban</div>
+<p>Tickets organizados por columnas: Nuevo → En proceso → Resuelto. Asignar agentes y mover tickets.</p>
 </div>
-<div>
-<h3 style="margin-top:0">Cancelaciones</h3>
-<ul>
-<li>Status cancelación</li>
-<li>Monto (facturación)</li>
-<li>Carta convenio</li>
-<li>19 campos más</li>
-</ul>
+<div class="card">
+<div class="card-title">📈 Stats</div>
+<p>KPIs en tiempo real: tickets nuevos, en proceso, cerrados, NPS, CSAT, conversaciones activas.</p>
 </div>
-<div>
-<h3 style="margin-top:0">Al cerrar</h3>
-<ul>
-<li>Diagnóstico *</li>
-<li>Causa raíz *</li>
-<li>Fecha solución (auto)</li>
-<li>Tiempo respuesta (auto)</li>
-</ul>
-</div>
-</div>
-<p style="margin-top:8px;font-size:11px">* Obligatorios para marcar como Resuelto o Cerrado</p>
-</div>
-</div>
+<div class="card">
+<div class="card-title">🔔 Alertas</div>
+<p>Notificación sonora y visual cuando un cliente solicita agente. Push en navegador.</p>
 </div>
 </div>
 
-<!-- SLIDE 4: QUÉ HACER -->
-<div class="slide" id="s4">
-<h2><i class="fa-solid fa-bullhorn"></i> ¿Qué debe hacer el equipo?</h2>
-<div class="grid-2">
-<div>
-<div class="card" style="border-color:var(--green)">
-<div class="card-title"><i class="fa-solid fa-phone" style="color:var(--green)"></i> Si un cliente te contacta con una queja</div>
-<p>Oriéntalo a escribir <strong>"Hola"</strong> al WhatsApp de soporte:</p>
-<div style="margin:12px 0"><div class="wa-num"><i class="fa-brands fa-whatsapp"></i> +52 449 156 1238</div></div>
-<p>Puedes descargar la <strong>guía visual</strong> desde la página de Inicio del Dashboard CX y compartírsela por WhatsApp.</p>
+<div class="callout callout-green">
+<div class="callout-icon">📲</div>
+<div><strong>NPS (Net Promoter Score):</strong> Basado en encuesta CSAT 1-5.<br>
+<span class="tag tag-green">5 = Promotor</span> <span class="tag tag-yellow">4 = Pasivo</span> <span class="tag tag-red">1-3 = Detractor</span><br>
+<strong>NPS = % Promotores − % Detractores</strong></div>
 </div>
-<div class="card" style="margin-top:12px;border-color:var(--blue)">
-<div class="card-title"><i class="fa-solid fa-users" style="color:var(--blue)"></i> Por área</div>
+
+<hr>
+
+<!-- SECTION 3 -->
+<h2 id="roles"><span class="emoji">🔐</span> Roles, Permisos y Asignación</h2>
+
+<h3>Roles de usuario</h3>
 <table>
-<tr><th>Área</th><th>Acción</th></tr>
-<tr><td><strong>Administración / Cobranza</strong></td><td>Compartir número al cliente que llama</td></tr>
-<tr><td><strong>Operaciones / Técnicos</strong></td><td>Compartir número cuando reciban queja en campo</td></tr>
-<tr><td><strong>Ventas / Comercial</strong></td><td>Compartir guía visual a clientes cautivos</td></tr>
-<tr><td><strong>Servicio al Cliente</strong></td><td>Monitorear dashboard, atender chat, cerrar tickets</td></tr>
+<tr><th>Rol</th><th>Usuario</th><th>Permisos</th></tr>
+<tr><td><span class="tag tag-red">Superadmin</span></td><td>diegovelazquez@grupoavantex.com</td><td>Todo + eliminar registros/chats + editar nombres de clientes</td></tr>
+<tr><td><span class="tag tag-blue">Admin</span></td><td>servicioalcliente@grupoavantex.com</td><td>Editar status, comentarios, montos, acceso a Chat Agentes</td></tr>
+<tr><td><span class="tag tag-yellow">Consulta</span></td><td>cobranza@, comercial@, otros</td><td>Solo lectura: ver dashboards, registros, tickets</td></tr>
 </table>
+
+<h3>Asignación automática de agentes</h3>
+<table>
+<tr><th>Tipo de ticket</th><th>Agente asignado</th><th>Notificación</th></tr>
+<tr><td><strong>Incidencias, quejas, cambio de aroma</strong></td><td>anakaren</td><td><span class="tag tag-green"><i class="fa-brands fa-whatsapp"></i> WhatsApp</span></td></tr>
+<tr><td><strong>Cliente pide agente humano</strong></td><td>anakaren</td><td><span class="tag tag-green"><i class="fa-brands fa-whatsapp"></i> WhatsApp</span></td></tr>
+<tr><td><strong>Cancelaciones de servicio</strong></td><td>nallelyquiroz</td><td><span class="tag tag-green"><i class="fa-brands fa-whatsapp"></i> WhatsApp</span></td></tr>
+<tr><td><strong>Escalado desde kanban</strong></td><td>diegovelazquez</td><td><span class="tag tag-green"><i class="fa-brands fa-whatsapp"></i> WhatsApp</span></td></tr>
+</table>
+
+<div class="callout callout-blue">
+<div class="callout-icon">🔔</div>
+<div>Cada agente recibe un <strong>WhatsApp</strong> con los datos del cliente (nombre, empresa, folio, prioridad, últimos mensajes) y un <strong>link directo</strong> al dashboard para responder.</div>
+</div>
+
+<h3>Al cerrar un ticket (obligatorio)</h3>
+<div class="columns-3">
+<div class="card">
+<div class="card-title">🔍 Diagnóstico</div>
+<p>¿Qué se encontró o se hizo para resolver?</p>
+</div>
+<div class="card">
+<div class="card-title">🎯 Causa raíz</div>
+<p>¿Qué originó el problema?</p>
+</div>
+<div class="card">
+<div class="card-title">📅 Automático</div>
+<p>Fecha de solución y tiempo de respuesta se calculan solos.</p>
 </div>
 </div>
+
+<hr>
+
+<!-- SECTION 4 -->
+<h2 id="equipo"><span class="emoji">📣</span> ¿Qué debe hacer el equipo?</h2>
+
+<div class="callout callout-green">
+<div class="callout-icon">✅</div>
 <div>
-<div class="card" style="border-color:var(--amber)">
-<div class="card-title"><i class="fa-solid fa-circle-exclamation" style="color:var(--amber)"></i> Importante</div>
+<strong>Regla principal:</strong> Cuando un cliente te contacte (por llamada, en campo, por correo) para reportar una queja o incidencia, oriéntalo a escribir <strong>"Hola"</strong> al WhatsApp de soporte.<br><br>
+<div class="wa-box" style="margin:8px 0"><i class="fa-brands fa-whatsapp" style="color:#25d366;font-size:20px"></i> +52 449 156 1238</div>
+</div>
+</div>
+
+<table>
+<tr><th>Área</th><th>¿Qué hacer?</th></tr>
+<tr><td><strong>Administración / Cobranza</strong></td><td>Compartir el número al cliente que llama con queja o cancelación</td></tr>
+<tr><td><strong>Operaciones / Técnicos</strong></td><td>Compartir el número cuando reciban queja en campo</td></tr>
+<tr><td><strong>Ventas / Comercial</strong></td><td>Compartir la guía visual descargable a clientes cautivos</td></tr>
+<tr><td><strong>Servicio al Cliente</strong></td><td>Monitorear dashboard, atender chat en vivo, cerrar tickets con diagnóstico</td></tr>
+</table>
+
+<div class="callout callout-yellow">
+<div class="callout-icon">💡</div>
+<div>
+<strong>Puntos clave:</strong>
 <ul>
-<li>Todos los reportes deben canalizarse por <strong>WhatsApp</strong></li>
 <li>El bot genera <strong>folio automático</strong> con trazabilidad completa</li>
-<li>Los agentes reciben <strong>notificación WhatsApp</strong> cuando se les asigna un cliente</li>
-<li>Los tickets <strong>nunca se pierden</strong> — quedan en Supabase aunque el servidor se reinicie</li>
-<li>Al cerrar un ticket se pide <strong>diagnóstico</strong> y <strong>causa raíz</strong></li>
-<li>Se envía <strong>encuesta CSAT</strong> (1-5) al cliente para medir satisfacción</li>
+<li>Los tickets <strong>nunca se pierden</strong> — quedan respaldados en la base de datos</li>
+<li>Los agentes reciben <strong>notificación WhatsApp</strong> inmediata</li>
+<li>Al cerrar un ticket se pide <strong>diagnóstico y causa raíz</strong> (obligatorio)</li>
+<li>Se envía <strong>encuesta de satisfacción</strong> (1-5) al cliente</li>
+<li>La <strong>guía visual</strong> para clientes se descarga desde el Dashboard (Inicio)</li>
 </ul>
-</div>
-<div class="card" style="margin-top:12px;border-color:var(--purple)">
-<div class="card-title"><i class="fa-solid fa-link" style="color:var(--purple)"></i> Links</div>
-<table>
-<tr><td><i class="fa-brands fa-whatsapp" style="color:var(--green)"></i> <strong>WhatsApp Bot</strong></td><td>wa.me/524491561238</td></tr>
-<tr><td><i class="fa-solid fa-chart-pie" style="color:var(--blue)"></i> <strong>Dashboard CX</strong></td><td>cx-dashboard-54yw.onrender.com</td></tr>
-<tr><td><i class="fa-solid fa-headset" style="color:var(--purple)"></i> <strong>Chat Agentes</strong></td><td>avantex-bot.onrender.com/dashboard</td></tr>
-<tr><td><i class="fa-solid fa-book-open" style="color:var(--amber)"></i> <strong>Guía</strong></td><td>cx-dashboard-54yw.onrender.com/guia.html</td></tr>
-</table>
-</div>
-<div style="text-align:center;margin-top:20px">
-<img src="https://grupoavantex.com/wp-content/uploads/2022/09/AX_Logo_oficial.png" alt="Avantex" style="height:30px;opacity:.5">
-<p style="font-size:11px;color:var(--muted);margin-top:6px">Customer Experience · Grupo Avantex · 2026</p>
-</div>
-</div>
 </div>
 </div>
 
-<!-- NAVIGATION -->
-<div class="counter" id="counter">1 / 4</div>
-<div class="nav">
-<button onclick="prev()" id="btnPrev" style="opacity:.3"><i class="fa-solid fa-chevron-left"></i></button>
-<button onclick="next()" id="btnNext"><i class="fa-solid fa-chevron-right"></i></button>
+<h3>Links del sistema</h3>
+<table>
+<tr><td><i class="fa-brands fa-whatsapp" style="color:#25d366"></i> <strong>WhatsApp Bot</strong></td><td><a href="https://wa.me/524491561238" target="_blank">wa.me/524491561238</a></td></tr>
+<tr><td><i class="fa-solid fa-chart-pie" style="color:#0D8BF2"></i> <strong>Dashboard CX</strong></td><td><a href="https://cx-dashboard-54yw.onrender.com" target="_blank">cx-dashboard-54yw.onrender.com</a></td></tr>
+<tr><td><i class="fa-solid fa-headset" style="color:#8b5cf6"></i> <strong>Chat Agentes</strong></td><td><a href="https://avantex-bot.onrender.com/dashboard" target="_blank">avantex-bot.onrender.com/dashboard</a></td></tr>
+<tr><td><i class="fa-solid fa-book-open" style="color:#f59e0b"></i> <strong>Guía pública</strong></td><td><a href="https://cx-dashboard-54yw.onrender.com/guia.html" target="_blank">cx-dashboard-54yw.onrender.com/guia.html</a></td></tr>
+</table>
+
+<div style="text-align:center;margin-top:48px;padding:24px;border-top:1px solid #e5e5e5">
+<img src="https://grupoavantex.com/wp-content/uploads/2022/09/AX_Logo_oficial.png" alt="Avantex" style="height:28px;opacity:.4">
+<p style="font-size:12px;color:#787774;margin-top:8px">Customer Experience · Grupo Avantex · Abril 2026</p>
 </div>
+
+</div>
+
+<button class="back-top" id="backTop" onclick="window.scrollTo({top:0,behavior:'smooth'})">&uarr;</button>
 
 <script>
-let cur=0;const total=4;
-function go(n){
-  if(n<0||n>=total)return;
-  document.getElementById('s'+(cur+1)).classList.remove('active');
-  cur=n;
-  document.getElementById('s'+(cur+1)).classList.add('active');
-  document.getElementById('counter').textContent=(cur+1)+' / '+total;
-  document.getElementById('progress').style.width=((cur+1)/total*100)+'%';
-  document.getElementById('btnPrev').style.opacity=cur===0?'.3':'1';
-  document.getElementById('btnNext').style.opacity=cur===total-1?'.3':'1';
-}
-function next(){go(cur+1)}
-function prev(){go(cur-1)}
-document.addEventListener('keydown',e=>{if(e.key==='ArrowRight'||e.key===' ')next();if(e.key==='ArrowLeft')prev();});
-let tx=0;document.addEventListener('touchstart',e=>{tx=e.touches[0].clientX});
-document.addEventListener('touchend',e=>{var d=e.changedTouches[0].clientX-tx;if(d<-50)next();if(d>50)prev();});
-go(0);
+window.addEventListener('scroll',function(){
+  document.getElementById('backTop').classList.toggle('show',window.scrollY>300);
+});
+document.querySelectorAll('.toggle-header').forEach(h=>{
+  h.addEventListener('click',()=>{
+    h.classList.toggle('open');
+    h.nextElementSibling.classList.toggle('open');
+  });
+});
 </script>
 </body>
 </html>
