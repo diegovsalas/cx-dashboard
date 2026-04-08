@@ -995,25 +995,43 @@ async function regChangeStatus(){
   var r=regDisplayed[_regModalIdx];if(!r)return;
   var newStatus=document.getElementById('reg-status-sel').value;
   var msgEl=document.getElementById('reg-status-msg');
+  var isCierreStatus=newStatus.toLowerCase()==='resuelto'||newStatus.toLowerCase()==='cerrado';
+  // Si es cierre, pedir diagnóstico y causa raíz
+  if(isCierreStatus){
+    var diagActual=r.diagnostico||r.diagnostico_cx||'';
+    var causaActual=r.causa_raiz||r.anlisis_de_causa_raz||'';
+    var diag=prompt('Diagnóstico:\n(Describe qué se encontró o qué se hizo para resolver)',diagActual);
+    if(diag===null){msgEl.textContent='Cancelado';msgEl.style.color='var(--amber)';return;}
+    var causa=prompt('Causa raíz:\n(¿Qué originó el problema?)',causaActual);
+    if(causa===null){msgEl.textContent='Cancelado';msgEl.style.color='var(--amber)';return;}
+    if(!diag.trim()||!causa.trim()){msgEl.textContent='Diagnóstico y causa raíz son obligatorios';msgEl.style.color='var(--red)';return;}
+  }
   msgEl.textContent='Guardando...';msgEl.style.color='var(--blue)';
   try{
     var isWA=r._source==='whatsapp';
     if(isWA){
       var folio=r.folio_ticket||r.folio;
       if(folio){
-        const{error}=await sb.from('tickets').update({estatus:newStatus}).eq('folio',folio);
+        var upd={estatus:newStatus};
+        if(isCierreStatus){upd.diagnostico=diag;upd.causa_raiz=causa;}
+        const{error}=await sb.from('tickets').update(upd).eq('folio',folio);
         if(error)throw error;
+        if(r._tk){r._tk.estatus=newStatus;if(isCierreStatus){r._tk.diagnostico=diag;r._tk.causa_raiz=causa;}}
       }
     } else {
       var id=r.id;
       if(id){
-        const{error}=await sb.from('base_general').update({status:newStatus}).eq('id',id);
+        var upd={status:newStatus};
+        if(isCierreStatus){upd.diagnostico=diag;upd.anlisis_de_causa_raz=causa;upd.fecha_de_solucion=new Date().toISOString().slice(0,10);
+          if(r.fecha_de_la_solicitud){var d1=new Date(r.fecha_de_la_solicitud),d2=new Date();upd.tiempo_de_respuesta=Math.round((d2-d1)/(1000*60*60*24));}
+        }
+        const{error}=await sb.from('base_general').update(upd).eq('id',id);
         if(error)throw error;
       }
     }
-    // Update local data
     r.status=newStatus;
     if(isWA&&r._tk)r._tk.estatus=newStatus;
+    if(isCierreStatus){r.diagnostico=diag;r.causa_raiz=causa;r.anlisis_de_causa_raz=causa;}
     msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';
     setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
     // Refresh table behind modal
