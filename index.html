@@ -320,6 +320,7 @@ const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 let allData=[],filtered=[],user=null,curPage='dashboard',chartInstances={},tblPg=0;
 const ADMIN_EMAILS=['servicioalcliente@grupoavantex.com','diegovelazquez@grupoavantex.com'];
+function _refreshVista(){if(curPage==='cancelaciones')cancApply();else if(curPage==='registros')renderRegistros();else if(curPage==='tickets')tkApply();else applyFilters();}
 const SUPERADMIN_EMAIL='diegovelazquez@grupoavantex.com';
 function isAdmin(){return user&&ADMIN_EMAILS.includes(user.email.toLowerCase());}
 function isSuperAdmin(){return user&&user.email.toLowerCase()===SUPERADMIN_EMAIL;}
@@ -863,7 +864,7 @@ async function regChangeStCanc(){
       }
     }
     r.status_cancelacion=newVal;
-    msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';
+    msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';_refreshVista();
     setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
   }catch(e){
     msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
@@ -893,7 +894,7 @@ async function regSaveComment(){
     }
     r.comentarios_de_seguimiento=newComment;
     if(isWA&&r._tk)r._tk.comentarios_de_seguimiento=newComment;
-    msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';
+    msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';_refreshVista();
     setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
   }catch(e){
     msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
@@ -911,7 +912,7 @@ async function regInlineSave(sel){
     const{error}=await sb.from('base_general').update(upd).eq('id',r.id);
     if(error)throw error;
     r[col]=val||null;
-    msgEl.textContent='OK';msgEl.style.color='var(--green)';
+    msgEl.textContent='OK';msgEl.style.color='var(--green)';_refreshVista();
     setTimeout(()=>{msgEl.textContent='';},1500);
   }catch(e){msgEl.textContent='Error';msgEl.style.color='var(--red)';}
 }
@@ -925,7 +926,7 @@ async function regInlineSaveText(eid,col){
     const{error}=await sb.from('base_general').update(upd).eq('id',r.id);
     if(error)throw error;
     r[col]=val||null;
-    msgEl.textContent='OK';msgEl.style.color='var(--green)';
+    msgEl.textContent='OK';msgEl.style.color='var(--green)';_refreshVista();
     setTimeout(()=>{msgEl.textContent='';},1500);
   }catch(e){msgEl.textContent='Error';msgEl.style.color='var(--red)';}
 }
@@ -984,7 +985,7 @@ async function regSaveMonto(){
       }
     }
     r.facturacin_sin_iva=val;
-    msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';
+    msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';_refreshVista();
     setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
   }catch(e){
     msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
@@ -1032,7 +1033,7 @@ async function regChangeStatus(){
     r.status=newStatus;
     if(isWA&&r._tk)r._tk.estatus=newStatus;
     if(isCierreStatus){r.diagnostico=diag;r.causa_raiz=causa;r.anlisis_de_causa_raz=causa;}
-    msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';
+    msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';_refreshVista();
     setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
     // Refresh table behind modal
     applyFilters();
@@ -1310,7 +1311,7 @@ async function tkChangeStatus(){
     r.estatus=newStatus;
     var match=allData.find(d=>d._source==='whatsapp'&&d._tk===r);
     if(match)match.status=newStatus;
-    msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';
+    msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';_refreshVista();
     setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
   }catch(e){
     msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
@@ -1328,7 +1329,7 @@ async function tkChangeZona(){
     r.zona=newZona;
     var match=allData.find(d=>d._source==='whatsapp'&&d._tk===r);
     if(match)match.zona=newZona;
-    msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';
+    msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';_refreshVista();
     setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
   }catch(e){
     msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
