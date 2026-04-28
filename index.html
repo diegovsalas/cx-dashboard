@@ -409,7 +409,7 @@ async function loadData(){
         tipo_de_servicio:t.servicio,
         tipo_de_solicitud:(t.tipo&&t.tipo.toLowerCase().includes('cancelac'))?'Solicitud de Cancelación':'Ticket WhatsApp',
         motivo_de_cancelacin:t.tipo&&t.tipo.toLowerCase().includes('cancelac')?t.mensaje:'',
-        status_cancelacion:t.tipo&&t.tipo.toLowerCase().includes('cancelac')?(t.estatus==='Nuevo'?'Negociacion':t.estatus):'',
+        status_cancelacion:t.status_cancelacion||(t.tipo&&t.tipo.toLowerCase().includes('cancelac')?(t.estatus==='Nuevo'?'En proceso':t.estatus):''),
         facturacin_sin_iva:t.facturacin_sin_iva||null,
         zona:t.zona||'',
         _anio:anio,mes:mesStr,
