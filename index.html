@@ -408,7 +408,8 @@ async function loadData(){
         ejecutivo_asignado:t.agente,
         tipo_de_servicio:t.servicio,
         tipo_de_solicitud:(t.tipo&&t.tipo.toLowerCase().includes('cancelac'))?'Solicitud de Cancelación':'Ticket WhatsApp',
-        motivo_de_cancelacin:t.tipo&&t.tipo.toLowerCase().includes('cancelac')?t.mensaje:'',
+        motivo_de_cancelacin:t.tipo&&t.tipo.toLowerCase().includes('cancelac')?(t.categoria||t.mensaje||''):'',
+        submotvio_canc:t.tipo&&t.tipo.toLowerCase().includes('cancelac')?(t.subtipo||''):'',
         status_cancelacion:t.status_cancelacion||(t.tipo&&t.tipo.toLowerCase().includes('cancelac')?(t.estatus==='Nuevo'?'En proceso':t.estatus):''),
         facturacin_sin_iva:t.facturacin_sin_iva||null,
         zona:t.zona||'',
@@ -1122,7 +1123,8 @@ function cancRender(){
     h+='<td>'+esc(trn(r.nombre_del_cliente_nuevo||'—',24))+'</td>';
     h+='<td>'+esc(trn(r.propiedad||'—',22))+'</td>';
     h+='<td>'+esc(r.tipo_de_servicio||'—')+'</td>';
-    h+='<td>'+esc(trn(r.motivo_de_cancelacin||'—',26))+'</td>';
+    var _motivo=r.motivo_de_cancelacin||'—';var _sub=r.submotvio_canc||r.submotvio||'';
+    h+='<td>'+esc(trn(_motivo,22))+(_sub?'<br><span style="font-size:10px;color:var(--text3)">'+esc(trn(_sub,22))+'</span>':'')+'</td>';
     var monto=Number(r.facturacin_sin_iva)||0;
     h+='<td style="font-weight:600;color:var(--red)">'+( monto?'$'+monto.toLocaleString('es-MX',{minimumFractionDigits:2}):'—')+'</td>';
     h+='<td>'+(r.status_cancelacion?sBadge(r.status_cancelacion):'<span class="null-v">—</span>')+'</td>';
