@@ -1441,7 +1441,7 @@ function descargarCSV(filename, rows, columnas){
   setTimeout(function(){URL.revokeObjectURL(url);}, 100);
 }
 function descargarCancelaciones(){
-  var cols = ['folio','fecha_creacion','nombre_cliente','propiedad','tipo_de_servicio','motivo_de_cancelacin','submotvio_canc','facturacin_sin_iva','status_cancelacion','ejecutivo_asignado','origen','telefono','mensaje'];
+  var cols = ['folio','fecha_de_la_solicitud','nombre_del_cliente_nuevo','propiedad','tipo_de_servicio','motivo_de_cancelacin','submotvio_canc','facturacin_sin_iva','status_cancelacion','ejecutivo_asignado','tipo_de_solicitud','telefono','mensaje','correo','zona','comentarios_de_seguimiento'];
   descargarCSV('Avantex_Cancelaciones_{fecha}.csv', cancFiltered, cols);
 }
 function descargarTicketsWA(){
