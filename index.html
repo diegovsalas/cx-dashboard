@@ -275,7 +275,7 @@ table.dt tbody tr.tk-row{cursor:pointer;}table.dt tbody tr.tk-row:hover{backgrou
 <span class="active-filters" id="af-canc"></span>
 </div>
 <div class="tbl-card">
-<div class="tbl-header"><h3 id="canc-count">0 solicitudes</h3></div>
+<div class="tbl-header"><h3 id="canc-count">0 solicitudes</h3><button class="btn-clear" onclick="descargarCancelaciones()" style="background:#ecfdf5;color:#059669;border-color:#a7f3d0"><i class="fa-solid fa-download"></i> Descargar CSV</button></div>
 <div class="tbl-scroll"><table class="dt"><thead><tr>
 <th>Folio</th><th>Fecha</th><th>Cliente</th><th>Propiedad</th><th>Servicio</th><th>Motivo</th><th>Monto</th><th>Status Cancelación</th><th>Ejecutivo</th><th>Origen</th>
 </tr></thead><tbody id="canc-tbody"></tbody></table></div>
@@ -293,7 +293,7 @@ table.dt tbody tr.tk-row{cursor:pointer;}table.dt tbody tr.tk-row:hover{backgrou
 <span class="active-filters" id="af-tickets"></span>
 </div>
 <div class="tbl-card">
-<div class="tbl-header"><h3 id="tk-count">0 tickets</h3><input class="tbl-search" id="tk-search" placeholder="Buscar por folio, teléfono, nombre, empresa..." oninput="tkApply()"></div>
+<div class="tbl-header"><h3 id="tk-count">0 tickets</h3><input class="tbl-search" id="tk-search" placeholder="Buscar por folio, teléfono, nombre, empresa..." oninput="tkApply()"><button class="btn-clear" onclick="descargarTicketsWA()" style="background:#ecfdf5;color:#059669;border-color:#a7f3d0"><i class="fa-solid fa-download"></i> Descargar CSV</button></div>
 <div class="tbl-scroll"><table class="dt"><thead><tr>
 <th>Folio</th><th>Fecha</th><th>Teléfono</th><th>Nombre</th><th>Empresa</th><th>Servicio</th><th>Tipo</th><th>Categoría</th><th>Subtipo</th><th>Mensaje</th><th>Prioridad</th><th>Estatus</th><th>Agente</th><th>CSAT</th>
 </tr></thead><tbody id="tk-tbody"></tbody></table></div>
@@ -625,7 +625,7 @@ function renderRegistros(){
   regDisplayed=data;
   var cs=[{k:'folio_ticket',l:'Folio'},{k:'fecha_de_la_solicitud',l:'Fecha'},{k:'nombre_del_cliente_nuevo',l:'Cliente'},{k:'propiedad',l:'Propiedad/Empresa'},{k:'tipo_de_incidencia',l:'Tipo'},{k:'submotvio',l:'Sub-Motivo'},{k:'status',l:'Status'},{k:'tipo_de_servicio',l:'Servicio'},{k:'ejecutivo_asignado',l:'Ejecutivo'},{k:'tipo_de_solicitud',l:'Origen'}];
   var tp=Math.ceil(data.length/LIM),pg=data.slice(tblPg*LIM,(tblPg+1)*LIM);
-  var h='<div class="tbl-card"><div class="tbl-header"><h3>'+data.length.toLocaleString()+' registro'+(data.length!==1?'s':'')+'</h3></div><div class="tbl-scroll"><table class="dt"><thead><tr>';
+  var h='<div class="tbl-card"><div class="tbl-header"><h3>'+data.length.toLocaleString()+' registro'+(data.length!==1?'s':'')+'</h3><button class="btn-clear" onclick="descargarRegistros()" style="background:#ecfdf5;color:#059669;border-color:#a7f3d0"><i class="fa-solid fa-download"></i> Descargar CSV</button></div><div class="tbl-scroll"><table class="dt"><thead><tr>';
   cs.forEach(c=>{h+='<th>'+c.l+'</th>';});h+='</tr></thead><tbody>';
   if(!pg.length){h+='<tr><td colspan="'+cs.length+'" style="text-align:center;padding:30px;color:var(--text3)">Sin registros</td></tr>';}
   pg.forEach((r,i)=>{
@@ -1414,6 +1414,42 @@ function descargarGuia(){
   qrImg.onload=function(){qr=qrImg;check();};
   qrImg.onerror=function(){check();};
   qrImg.src='https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https://wa.me/524491561238&color=25d366';
+}
+
+// ── DESCARGA CSV ──
+function _csvEscape(v){
+  if(v==null)return'';
+  var s=String(v);
+  if(s.indexOf('"')>=0||s.indexOf(',')>=0||s.indexOf('\n')>=0||s.indexOf('\r')>=0)
+    return '"'+s.replace(/"/g,'""')+'"';
+  return s;
+}
+function descargarCSV(filename, rows, columnas){
+  if(!rows||!rows.length){alert('No hay datos para descargar.');return;}
+  var cols = columnas || Object.keys(rows[0]);
+  var lines = [cols.map(_csvEscape).join(',')];
+  rows.forEach(function(r){
+    lines.push(cols.map(function(c){return _csvEscape(r[c]);}).join(','));
+  });
+  var BOM = '﻿';
+  var blob = new Blob([BOM + lines.join('\r\n')], {type:'text/csv;charset=utf-8;'});
+  var url = URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  var fecha = new Date().toISOString().slice(0,10);
+  a.href = url; a.download = filename.replace('{fecha}', fecha);
+  document.body.appendChild(a); a.click(); document.body.removeChild(a);
+  setTimeout(function(){URL.revokeObjectURL(url);}, 100);
+}
+function descargarCancelaciones(){
+  var cols = ['folio','fecha_creacion','nombre_cliente','propiedad','tipo_de_servicio','motivo_de_cancelacin','submotvio_canc','facturacin_sin_iva','status_cancelacion','ejecutivo_asignado','origen','telefono','mensaje'];
+  descargarCSV('Avantex_Cancelaciones_{fecha}.csv', cancFiltered, cols);
+}
+function descargarTicketsWA(){
+  var cols = ['folio','created_at','telefono','nombre','empresa','servicio','tipo','categoria','subtipo','mensaje','prioridad','estatus','agente','csat'];
+  descargarCSV('Avantex_TicketsWA_{fecha}.csv', tkFiltered, cols);
+}
+function descargarRegistros(){
+  descargarCSV('Avantex_Registros_{fecha}.csv', filtered);
 }
 
 checkSession();
