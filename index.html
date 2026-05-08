@@ -350,6 +350,7 @@ async function enterApp(){
   var chatLink=document.getElementById('link-chat-agentes');
   if(chatLink)chatLink.style.display=isAdmin()?'':'none';
   await loadData();buildFilters();applyFilters();
+  _iniciarPollingDatos();
 }
 
 var _mesMap={'january':'Enero','february':'Febrero','march':'Marzo','april':'Abril','may':'Mayo','june':'Junio','july':'Julio','august':'Agosto','september':'Septiembre','october':'Octubre','november':'Noviembre','december':'Diciembre','enero':'Enero','febrero':'Febrero','marzo':'Marzo','abril':'Abril','mayo':'Mayo','junio':'Junio','julio':'Julio','agosto':'Agosto','septiembre':'Septiembre','octubre':'Octubre','noviembre':'Noviembre','diciembre':'Diciembre'};
@@ -818,6 +819,11 @@ function regOpenModal(idx){
   document.getElementById('tk-modal-body').innerHTML=h;
   document.getElementById('tk-modal').classList.add('on');
   document.body.style.overflow='hidden';
+  // Marcar textarea como dirty al editar (para que el refresh no sobrescriba edición activa)
+  var _ta=document.getElementById('reg-comentarios');
+  if(_ta){_ta.dataset.dirty='0';_ta.addEventListener('input',function(){this.dataset.dirty='1';});}
+  // Re-fetch fresco para mostrar comentarios y status_cancelacion actualizados (anti-overwrite)
+  _refreshRegistroFresco(r);
 }
 
 async function regDeleteRecord(){
@@ -1281,6 +1287,9 @@ function tkOpenModal(idx){
   document.getElementById('tk-modal-body').innerHTML=h;
   document.getElementById('tk-modal').classList.add('on');
   document.body.style.overflow='hidden';
+  var _ta2=document.getElementById('reg-comentarios');
+  if(_ta2){_ta2.dataset.dirty='0';_ta2.addEventListener('input',function(){this.dataset.dirty='1';});}
+  _refreshRegistroFresco(r);
 }
 
 async function tkDeleteRecord(){
@@ -1414,6 +1423,56 @@ function descargarGuia(){
   qrImg.onload=function(){qr=qrImg;check();};
   qrImg.onerror=function(){check();};
   qrImg.src='https://api.qrserver.com/v1/create-qr-code/?size=120x120&data=https://wa.me/524491561238&color=25d366';
+}
+
+// ── SINCRONIZACIÓN MULTI-USUARIO ──
+// Fix 1: Polling cada 45s para que todos los navegadores vean ediciones de otros agentes
+let _pollDataInterval=null;
+function _iniciarPollingDatos(){
+  if(_pollDataInterval)clearInterval(_pollDataInterval);
+  _pollDataInterval=setInterval(async()=>{
+    if(!user)return;
+    if(document.hidden)return;  // Pausa cuando la pestaña está oculta
+    const modal=document.getElementById('tk-modal');
+    if(modal&&modal.classList.contains('on'))return;  // No interrumpir si hay modal abierto
+    try{await loadData();_refreshVista();}
+    catch(e){console.warn('[poll] loadData falló:',e);}
+  },45000);
+}
+
+// Fix 2: Re-fetch del registro al abrir modal — evita "last write wins" en comentarios
+async function _refreshRegistroFresco(r){
+  if(!r)return;
+  try{
+    const isWA=r._source==='whatsapp';
+    let fresco=null;
+    if(isWA){
+      const folio=r.folio_ticket||r.folio;
+      if(!folio)return;
+      const{data,error}=await sb.from('tickets').select('comentarios_de_seguimiento,status_cancelacion,estatus,categoria,subtipo,diagnostico,causa_raiz').eq('folio',folio).maybeSingle();
+      if(error||!data)return;
+      fresco=data;
+    }else if(r.id){
+      const{data,error}=await sb.from('base_general').select('comentarios_de_seguimiento,status_cancelacion').eq('id',r.id).maybeSingle();
+      if(error||!data)return;
+      fresco=data;
+    }
+    if(!fresco)return;
+    // Actualizar referencia en memoria
+    if(fresco.comentarios_de_seguimiento!==undefined)r.comentarios_de_seguimiento=fresco.comentarios_de_seguimiento||'';
+    if(fresco.status_cancelacion!==undefined)r.status_cancelacion=fresco.status_cancelacion||r.status_cancelacion;
+    if(isWA&&r._tk)Object.assign(r._tk,fresco);
+    // Actualizar textarea SOLO si el agente no lo está editando
+    const ta=document.getElementById('reg-comentarios');
+    if(ta&&document.activeElement!==ta&&ta.dataset.dirty!=='1'){
+      ta.value=r.comentarios_de_seguimiento||'';
+    }
+    // Actualizar select de status si existe y no está siendo modificado
+    const sel=document.getElementById('reg-stcanc-select');
+    if(sel&&document.activeElement!==sel&&fresco.status_cancelacion){
+      sel.value=fresco.status_cancelacion;
+    }
+  }catch(e){console.warn('[refresh] re-fetch falló:',e);}
 }
 
 // ── DESCARGA CSV ──
