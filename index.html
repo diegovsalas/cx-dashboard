@@ -80,13 +80,28 @@ table.dt tr:hover{background:#f9fafb;}
 .consulta-search-box input{flex:1;padding:12px 16px;border:2px solid var(--border);border-radius:10px;font-size:14px;font-family:inherit;}
 .consulta-search-box input:focus{border-color:var(--blue);outline:none;}
 .consulta-search-box button{padding:12px 24px;background:var(--blue);color:#fff;border:none;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;font-family:inherit;}
-.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.4);z-index:999;align-items:center;justify-content:center;}.modal-overlay.on{display:flex;}
-.modal{background:var(--surface);border-radius:14px;width:680px;max-width:92vw;max-height:88vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,0.15);padding:0;}
-.modal-head{display:flex;justify-content:space-between;align-items:center;padding:20px 24px 16px;border-bottom:1px solid var(--border);}
-.modal-head h2{font-size:16px;font-weight:800;display:flex;align-items:center;gap:8px;}
-.modal-close{width:32px;height:32px;border:1px solid var(--border);border-radius:8px;background:var(--surface);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);}
+/* Panel lateral derecho (master-detail) — antes era modal centrado */
+.modal-overlay{display:none;position:fixed;top:56px;right:0;bottom:0;width:48%;max-width:780px;background:transparent;z-index:999;flex-direction:column;box-shadow:-8px 0 32px rgba(0,0,0,0.08);}
+.modal-overlay.on{display:flex;}
+.modal{background:var(--surface);border-left:1px solid var(--border);width:100%;height:100%;overflow-y:auto;border-radius:0;padding:0;display:flex;flex-direction:column;animation:slideInRight 0.18s ease-out;}
+@keyframes slideInRight{from{transform:translateX(20px);opacity:0;}to{transform:translateX(0);opacity:1;}}
+.modal-head{display:flex;justify-content:space-between;align-items:center;padding:16px 22px;border-bottom:1px solid var(--border);background:var(--surface);position:sticky;top:0;z-index:5;}
+.modal-head h2{font-size:15px;font-weight:800;display:flex;align-items:center;gap:8px;}
+.modal-close{width:30px;height:30px;border:1px solid var(--border);border-radius:8px;background:var(--surface);font-size:16px;cursor:pointer;display:flex;align-items:center;justify-content:center;color:var(--text2);}
 .modal-close:hover{background:var(--red-bg);color:var(--red);border-color:#fecaca;}
-.modal-body{padding:20px 24px 24px;}
+.modal-body{padding:18px 22px 24px;flex:1;}
+/* Cuando el panel está abierto, el contenido principal se contrae */
+body.detail-open .page-content{max-width:none;padding-right:calc(48% + 24px);}
+@media(max-width:1200px){
+  body.detail-open .page-content{padding-right:calc(48% + 16px);}
+}
+@media(max-width:900px){
+  /* En mobile, panel ocupa toda la pantalla como antes */
+  .modal-overlay{width:100%;max-width:100%;top:0;background:rgba(0,0,0,0.4);}
+  .modal{max-width:92vw;margin:auto;max-height:88vh;border-radius:14px;border:1px solid var(--border);}
+  .modal-overlay.on{align-items:center;justify-content:center;}
+  body.detail-open .page-content{padding-right:24px;}
+}
 .detail-grid{display:grid;grid-template-columns:1fr 1fr;gap:0;}
 .detail-item{padding:12px 0;border-bottom:1px solid #f3f4f6;}
 .detail-item.full{grid-column:1/-1;}
@@ -94,6 +109,8 @@ table.dt tr:hover{background:#f9fafb;}
 .detail-val{font-size:13px;color:var(--text);word-break:break-word;white-space:pre-wrap;}
 .detail-val.empty{color:var(--text3);font-style:italic;}
 table.dt tbody tr.tk-row{cursor:pointer;}table.dt tbody tr.tk-row:hover{background:var(--blue-bg);}
+table.dt tbody tr.tk-row.row-active{background:var(--blue-bg);box-shadow:inset 3px 0 0 var(--blue);}
+table.dt tbody tr.tk-row.row-active:hover{background:var(--blue-bg);}
 .status-select{padding:6px 10px;border:2px solid var(--border);border-radius:8px;font-size:12px;font-weight:600;font-family:inherit;cursor:pointer;background:var(--surface);color:var(--text);min-width:160px;}
 .status-select:focus{border-color:var(--blue);outline:none;}
 .comment-area{width:100%;min-height:120px;padding:12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;color:var(--text);resize:vertical;background:#fff;line-height:1.5;}
@@ -644,9 +661,15 @@ function renderRegistros(){
 var _regModalIdx=null;
 var _statusOpts=['Nuevo','En proceso','Seguimiento','Pendiente','Resuelto','Cerrado'];
 
+function _marcarFilaActiva(rowEl){
+  document.querySelectorAll('table.dt tbody tr.tk-row.row-active').forEach(function(el){el.classList.remove('row-active');});
+  if(rowEl)rowEl.classList.add('row-active');
+}
+
 function regOpenModal(idx){
   _regModalIdx=idx;
   var r=regDisplayed[idx];if(!r)return;
+  if(typeof event!=='undefined'&&event&&event.currentTarget)_marcarFilaActiva(event.currentTarget);
   var isWA=r._source==='whatsapp';
   var isCancelacion=r.tipo_de_solicitud&&r.tipo_de_solicitud.toLowerCase().includes('cancelac');
   var title=isWA?'Ticket <span style="color:var(--blue)">'+(esc(r.folio_ticket||r.folio||'—'))+'</span>':isCancelacion?'Cancelación <span style="color:var(--red)">'+(esc(r.folio_ticket||'—'))+'</span>':'Registro <span style="color:var(--blue)">'+(esc(r.folio_ticket||'—'))+'</span>';
@@ -851,7 +874,7 @@ function regOpenModal(idx){
   h+='</div>';
   document.getElementById('tk-modal-body').innerHTML=h;
   document.getElementById('tk-modal').classList.add('on');
-  document.body.style.overflow='hidden';
+  document.body.classList.add('detail-open');
   // Marcar textareas como dirty al editar (para que el refresh no sobrescriba edición activa)
   ['reg-comentarios','reg-oferta','reg-causa-raiz-canc'].forEach(function(id){
     var el=document.getElementById(id);
@@ -1223,6 +1246,7 @@ function cancRender(){
 function cancOpenModal(idx){
   _regModalIdx=idx;
   var r=cancFiltered[idx];if(!r)return;
+  if(typeof event!=='undefined'&&event&&event.currentTarget)_marcarFilaActiva(event.currentTarget);
   regDisplayed=cancFiltered;
   regOpenModal(idx);
 }
@@ -1303,6 +1327,7 @@ var _tkModalIdx=null;
 function tkOpenModal(idx){
   _tkModalIdx=idx;
   var r=tkFiltered[idx];if(!r)return;
+  if(typeof event!=='undefined'&&event&&event.currentTarget)_marcarFilaActiva(event.currentTarget);
   document.getElementById('tk-modal-title').innerHTML='Ticket <span style="color:var(--blue)">'+esc(r.folio||'—')+'</span>';
   var fields=[
     {l:'Folio',v:r.folio},{l:'Fecha',v:r.created_at?r.created_at.replace('T',' ').slice(0,19):null},
@@ -1360,7 +1385,7 @@ function tkOpenModal(idx){
   h+='</div>';
   document.getElementById('tk-modal-body').innerHTML=h;
   document.getElementById('tk-modal').classList.add('on');
-  document.body.style.overflow='hidden';
+  document.body.classList.add('detail-open');
   var _ta2=document.getElementById('reg-comentarios');
   if(_ta2){_ta2.dataset.dirty='0';_ta2.addEventListener('input',function(){this.dataset.dirty='1';});}
   _refreshRegistroFresco(r);
@@ -1420,7 +1445,7 @@ async function tkChangeZona(){
     msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
   }
 }
-function tkCloseModal(){document.getElementById('tk-modal').classList.remove('on');document.body.style.overflow='';}
+function tkCloseModal(){document.getElementById('tk-modal').classList.remove('on');document.body.classList.remove('detail-open');document.body.style.overflow='';_regModalIdx=null;_marcarFilaActiva(null);}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')tkCloseModal();});
 
 function descargarGuia(){
