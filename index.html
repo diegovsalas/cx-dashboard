@@ -822,6 +822,8 @@ function regOpenModal(idx){
   var _edIdx=0;
   fields.forEach(f=>{
     if(f.l==='Comentarios')return;
+    // Ocultar Diagnóstico y Causa Raíz en cancelaciones (son del flujo de incidencias)
+    if(isCancelacion&&(f.l==='Diagnóstico'||f.l==='Causa Raíz'))return;
     h+='<div class="detail-item'+(f.full?' full':'')+'">';
     h+='<div class="detail-label">'+f.l+'</div>';
     if(f.ed&&(f.sa?isSuperAdmin():isAdmin())){
