@@ -418,6 +418,8 @@ async function loadData(){
         _csat:t.csat,_prioridad:t.prioridad,
         telefono:t.telefono,correo:t.correo,
         mensaje:t.mensaje,diagnostico:t.diagnostico,causa_raiz:t.causa_raiz,
+        oferta_retencion:t.oferta_retencion||'',
+        causa_raiz_cancelacion:t.causa_raiz_cancelacion||'',
         comentarios_de_seguimiento:t.comentarios_de_seguimiento||''
       });
     });
@@ -762,6 +764,37 @@ function regOpenModal(idx){
       h+=sBadge(curStCanc||'Sin status');
     }
     h+='</div></div>';
+    // ── Retención: oferta y causa raíz ──
+    var oferta=r.oferta_retencion||'';
+    var causaR=r.causa_raiz_cancelacion||r.anlisis_de_causa_raz||'';
+    h+='<div class="detail-item full" style="background:#fffbeb;padding:16px;border-radius:10px;margin-bottom:8px;border-left:4px solid #d97706">';
+    h+='<div class="detail-label" style="color:#92400e;font-weight:700">🎯 Retención de Cliente</div>';
+    h+='<div style="display:flex;flex-direction:column;gap:14px;margin-top:10px">';
+    // Oferta de retención
+    h+='<div>';
+    h+='<div class="detail-label" style="font-size:11px">Oferta de retención (qué se ofreció al cliente)</div>';
+    if(isAdmin()){
+      h+='<textarea class="comment-area" id="reg-oferta" placeholder="Ej: 1 mes de pausa sin cobro · 20% descuento por 3 meses · downgrade de equipo...">'+esc(oferta)+'</textarea>';
+      h+='<div style="display:flex;align-items:center;gap:12px"><button class="btn-save-comment" id="reg-save-oferta" onclick="regSaveOferta()"><i class="fa-solid fa-floppy-disk"></i> Guardar oferta</button>';
+      h+='<span class="status-msg" id="reg-oferta-msg"></span></div>';
+    } else {
+      if(oferta)h+='<div class="detail-val" style="white-space:pre-wrap">'+esc(oferta)+'</div>';
+      else h+='<div class="detail-val empty">Sin oferta registrada</div>';
+    }
+    h+='</div>';
+    // Causa raíz de la cancelación
+    h+='<div>';
+    h+='<div class="detail-label" style="font-size:11px">Causa raíz (por qué se va realmente el cliente)</div>';
+    if(isAdmin()){
+      h+='<textarea class="comment-area" id="reg-causa-raiz-canc" placeholder="Análisis profundo: motivo real detrás del motivo declarado.">'+esc(causaR)+'</textarea>';
+      h+='<div style="display:flex;align-items:center;gap:12px"><button class="btn-save-comment" id="reg-save-causaraiz" onclick="regSaveCausaRaizCanc()"><i class="fa-solid fa-floppy-disk"></i> Guardar causa raíz</button>';
+      h+='<span class="status-msg" id="reg-causaraiz-msg"></span></div>';
+    } else {
+      if(causaR)h+='<div class="detail-val" style="white-space:pre-wrap">'+esc(causaR)+'</div>';
+      else h+='<div class="detail-val empty">Sin causa raíz documentada</div>';
+    }
+    h+='</div>';
+    h+='</div></div>';
   }
   var _edIdx=0;
   fields.forEach(f=>{
@@ -819,10 +852,12 @@ function regOpenModal(idx){
   document.getElementById('tk-modal-body').innerHTML=h;
   document.getElementById('tk-modal').classList.add('on');
   document.body.style.overflow='hidden';
-  // Marcar textarea como dirty al editar (para que el refresh no sobrescriba edición activa)
-  var _ta=document.getElementById('reg-comentarios');
-  if(_ta){_ta.dataset.dirty='0';_ta.addEventListener('input',function(){this.dataset.dirty='1';});}
-  // Re-fetch fresco para mostrar comentarios y status_cancelacion actualizados (anti-overwrite)
+  // Marcar textareas como dirty al editar (para que el refresh no sobrescriba edición activa)
+  ['reg-comentarios','reg-oferta','reg-causa-raiz-canc'].forEach(function(id){
+    var el=document.getElementById(id);
+    if(el){el.dataset.dirty='0';el.addEventListener('input',function(){this.dataset.dirty='1';});}
+  });
+  // Re-fetch fresco para mostrar valores actualizados (anti-overwrite)
   _refreshRegistroFresco(r);
 }
 
@@ -877,6 +912,45 @@ async function regChangeStCanc(){
     msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
   }
 }
+
+async function _regSaveCampoCanc(campo,inputId,btnId,msgId){
+  var r=regDisplayed[_regModalIdx];if(!r)return;
+  var newVal=document.getElementById(inputId).value;
+  var msgEl=document.getElementById(msgId);
+  var btn=document.getElementById(btnId);
+  btn.disabled=true;msgEl.textContent='Guardando...';msgEl.style.color='var(--blue)';
+  try{
+    var isWA=r._source==='whatsapp';
+    if(isWA){
+      var folio=r.folio_ticket||r.folio;
+      if(folio){
+        var upd={};upd[campo]=newVal;
+        const{error}=await sb.from('tickets').update(upd).eq('folio',folio);
+        if(error)throw error;
+        if(r._tk)r._tk[campo]=newVal;
+      }
+    }else{
+      var id=r.id;
+      if(id){
+        var col=campo;
+        // base_general usa anlisis_de_causa_raz para causa raíz
+        if(campo==='causa_raiz_cancelacion')col='anlisis_de_causa_raz';
+        var upd2={};upd2[col]=newVal;
+        const{error}=await sb.from('base_general').update(upd2).eq('id',id);
+        if(error)throw error;
+        if(col==='anlisis_de_causa_raz')r.anlisis_de_causa_raz=newVal;
+      }
+    }
+    r[campo]=newVal;
+    msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';_refreshVista();
+    setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
+  }catch(e){
+    msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
+  }
+  btn.disabled=false;
+}
+async function regSaveOferta(){return _regSaveCampoCanc('oferta_retencion','reg-oferta','reg-save-oferta','reg-oferta-msg');}
+async function regSaveCausaRaizCanc(){return _regSaveCampoCanc('causa_raiz_cancelacion','reg-causa-raiz-canc','reg-save-causaraiz','reg-causaraiz-msg');}
 
 async function regSaveComment(){
   var r=regDisplayed[_regModalIdx];if(!r)return;
@@ -1449,11 +1523,11 @@ async function _refreshRegistroFresco(r){
     if(isWA){
       const folio=r.folio_ticket||r.folio;
       if(!folio)return;
-      const{data,error}=await sb.from('tickets').select('comentarios_de_seguimiento,status_cancelacion,estatus,categoria,subtipo,diagnostico,causa_raiz').eq('folio',folio).maybeSingle();
+      const{data,error}=await sb.from('tickets').select('comentarios_de_seguimiento,status_cancelacion,estatus,categoria,subtipo,diagnostico,causa_raiz,oferta_retencion,causa_raiz_cancelacion').eq('folio',folio).maybeSingle();
       if(error||!data)return;
       fresco=data;
     }else if(r.id){
-      const{data,error}=await sb.from('base_general').select('comentarios_de_seguimiento,status_cancelacion').eq('id',r.id).maybeSingle();
+      const{data,error}=await sb.from('base_general').select('comentarios_de_seguimiento,status_cancelacion,oferta_retencion,anlisis_de_causa_raz').eq('id',r.id).maybeSingle();
       if(error||!data)return;
       fresco=data;
     }
@@ -1461,14 +1535,20 @@ async function _refreshRegistroFresco(r){
     // Actualizar referencia en memoria
     if(fresco.comentarios_de_seguimiento!==undefined)r.comentarios_de_seguimiento=fresco.comentarios_de_seguimiento||'';
     if(fresco.status_cancelacion!==undefined)r.status_cancelacion=fresco.status_cancelacion||r.status_cancelacion;
+    if(fresco.oferta_retencion!==undefined)r.oferta_retencion=fresco.oferta_retencion||'';
+    if(fresco.causa_raiz_cancelacion!==undefined)r.causa_raiz_cancelacion=fresco.causa_raiz_cancelacion||'';
+    if(fresco.anlisis_de_causa_raz!==undefined)r.anlisis_de_causa_raz=fresco.anlisis_de_causa_raz||'';
     if(isWA&&r._tk)Object.assign(r._tk,fresco);
-    // Actualizar textarea SOLO si el agente no lo está editando
-    const ta=document.getElementById('reg-comentarios');
-    if(ta&&document.activeElement!==ta&&ta.dataset.dirty!=='1'){
-      ta.value=r.comentarios_de_seguimiento||'';
+    // Helper: actualizar textarea si no está en focus ni siendo editado
+    function _safeUpdate(id,val){
+      const el=document.getElementById(id);
+      if(el&&document.activeElement!==el&&el.dataset.dirty!=='1')el.value=val||'';
     }
+    _safeUpdate('reg-comentarios',r.comentarios_de_seguimiento);
+    _safeUpdate('reg-oferta',r.oferta_retencion);
+    _safeUpdate('reg-causa-raiz-canc',r.causa_raiz_cancelacion||r.anlisis_de_causa_raz);
     // Actualizar select de status si existe y no está siendo modificado
-    const sel=document.getElementById('reg-stcanc-select');
+    const sel=document.getElementById('reg-stcanc-sel');
     if(sel&&document.activeElement!==sel&&fresco.status_cancelacion){
       sel.value=fresco.status_cancelacion;
     }
@@ -1500,7 +1580,7 @@ function descargarCSV(filename, rows, columnas){
   setTimeout(function(){URL.revokeObjectURL(url);}, 100);
 }
 function descargarCancelaciones(){
-  var cols = ['folio','fecha_de_la_solicitud','nombre_del_cliente_nuevo','propiedad','tipo_de_servicio','motivo_de_cancelacin','submotvio_canc','facturacin_sin_iva','status_cancelacion','ejecutivo_asignado','tipo_de_solicitud','telefono','mensaje','correo','zona','comentarios_de_seguimiento'];
+  var cols = ['folio','fecha_de_la_solicitud','nombre_del_cliente_nuevo','propiedad','tipo_de_servicio','motivo_de_cancelacin','submotvio_canc','facturacin_sin_iva','status_cancelacion','ejecutivo_asignado','tipo_de_solicitud','telefono','mensaje','oferta_retencion','causa_raiz_cancelacion','correo','zona','comentarios_de_seguimiento'];
   descargarCSV('Avantex_Cancelaciones_{fecha}.csv', cancFiltered, cols);
 }
 function descargarTicketsWA(){
