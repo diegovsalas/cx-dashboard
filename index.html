@@ -880,6 +880,13 @@ function regOpenModal(idx){
     else h+='<div class="detail-val empty">Sin comentarios</div>';
   }
   h+='</div>';
+  // Botón escalar por correo — para admin
+  if(isAdmin()){
+    h+='<div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">';
+    h+='<button onclick="abrirModalEscalar()" style="padding:9px 18px;background:linear-gradient(135deg,#2563eb,#1e40af);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:8px"><i class="fa-solid fa-paper-plane"></i> Escalar por correo</button>';
+    h+='<span style="font-size:11px;color:var(--text2);margin-left:12px">Envía el caso completo (datos + conversación + comentarios) a un correo específico</span>';
+    h+='</div>';
+  }
   // Botón eliminar — solo superadmin
   if(isSuperAdmin()){
     h+='<div style="margin-top:20px;padding-top:16px;border-top:1px solid #fecaca;text-align:right">';
@@ -991,6 +998,112 @@ async function _regSaveCampoCanc(campo,inputId,btnId,msgId){
 async function regSaveOferta(){return _regSaveCampoCanc('oferta_retencion','reg-oferta','reg-save-oferta','reg-oferta-msg');}
 async function regSaveCausaRaizCanc(){return _regSaveCampoCanc('causa_raiz_cancelacion','reg-causa-raiz-canc','reg-save-causaraiz','reg-causaraiz-msg');}
 async function regSaveDiagnosticoPrevio(){return _regSaveCampoCanc('diagnostico_previo_cancelacion','reg-diag-previo','reg-save-diag-previo','reg-diag-previo-msg');}
+
+// ── Escalar ticket por correo ──
+var _ESCALAR_SUGERENCIAS = [
+  {l:'Operaciones', e:'gerardoestrada@grupoavantex.com'},
+  {l:'Comercial',   e:'andresbarreda@grupoavantex.com'},
+  {l:'Gerencia',    e:'alejandrogil@grupoavantex.com'},
+  {l:'Técnico',     e:'alanaziz@grupoavantex.com'},
+  {l:'Servicio al cliente', e:'servicioalcliente@grupoavantex.com'},
+  {l:'Diego Velázquez', e:'diegovelazquez@grupoavantex.com'},
+  {l:'Ana Karen Torres', e:'anakarentorres@grupoavantex.com'},
+];
+
+function abrirModalEscalar(){
+  var r=regDisplayed[_regModalIdx];if(!r)return;
+  var folio=r.folio_ticket||r.folio||'—';
+  var nombre=(r.nombre_del_cliente_nuevo||r.nombre||'');
+  var modal=document.getElementById('modal-escalar');
+  if(!modal){
+    modal=document.createElement('div');
+    modal.id='modal-escalar';
+    modal.className='modal-overlay';
+    modal.style.zIndex='1100';
+    modal.style.width='100%';
+    modal.style.maxWidth='100%';
+    modal.style.top='0';
+    modal.style.background='rgba(0,0,0,0.5)';
+    modal.style.alignItems='center';
+    modal.style.justifyContent='center';
+    document.body.appendChild(modal);
+  }
+  var sugChips=_ESCALAR_SUGERENCIAS.map(s=>
+    '<span onclick="_setEscalarEmail(\''+s.e+'\')" style="cursor:pointer;background:#eff6ff;color:#1e40af;padding:4px 12px;border-radius:14px;font-size:11px;font-weight:500;display:inline-flex;align-items:center;gap:4px;border:1px solid #bfdbfe"><i class="fa-solid fa-circle-plus" style="font-size:9px"></i> '+s.l+'</span>'
+  ).join('');
+  modal.innerHTML='<div class="modal" style="width:560px;max-width:92vw;max-height:90vh;border-radius:14px;overflow:hidden;display:flex;flex-direction:column;animation:none">'+
+    '<div class="modal-head" style="padding:18px 22px;background:linear-gradient(135deg,#2563eb,#1e40af);border:none"><h2 style="color:#fff;margin:0;font-size:15px"><i class="fa-solid fa-paper-plane"></i> Escalar caso '+esc(folio)+'</h2><button class="modal-close" onclick="cerrarModalEscalar()" style="background:rgba(255,255,255,.2);border-color:transparent;color:#fff">&times;</button></div>'+
+    '<div class="modal-body" style="padding:20px 22px">'+
+      '<div style="font-size:12px;color:var(--text2);margin-bottom:14px">Cliente: <b>'+esc(nombre)+'</b> · Se enviará: datos del caso, conversación completa, comentarios, oferta y causa raíz.</div>'+
+      '<label style="display:block;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:4px">Destinatario *</label>'+
+      '<input type="email" id="esc-to" placeholder="ejemplo@grupoavantex.com" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;margin-bottom:8px">'+
+      '<div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:14px">'+sugChips+'</div>'+
+      '<label style="display:block;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:4px">CC (opcional)</label>'+
+      '<input type="email" id="esc-cc" placeholder="cc@grupoavantex.com" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;margin-bottom:14px">'+
+      '<label style="display:block;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:4px">Asunto (opcional)</label>'+
+      '<input type="text" id="esc-asunto" placeholder="Asunto adicional" style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;margin-bottom:14px">'+
+      '<label style="display:block;font-size:11px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;font-weight:600;margin-bottom:4px">Nota para el destinatario</label>'+
+      '<textarea id="esc-msg" rows="4" placeholder="Por qué escalas este caso, qué acción se necesita..." style="width:100%;padding:9px 12px;border:1px solid var(--border);border-radius:8px;font-size:13px;font-family:inherit;resize:vertical"></textarea>'+
+      '<div style="display:flex;gap:10px;margin-top:18px"><button onclick="cerrarModalEscalar()" style="flex:1;padding:11px;background:#fff;border:1px solid var(--border);border-radius:8px;color:var(--text);font-weight:600;cursor:pointer;font-family:inherit">Cancelar</button>'+
+      '<button id="esc-btn-enviar" onclick="enviarEscalamiento()" style="flex:2;padding:11px;background:linear-gradient(135deg,#2563eb,#1e40af);border:none;border-radius:8px;color:#fff;font-weight:600;cursor:pointer;font-family:inherit"><i class="fa-solid fa-paper-plane"></i> Enviar escalamiento</button></div>'+
+      '<div id="esc-msg-result" style="margin-top:12px;font-size:12px;text-align:center"></div>'+
+    '</div></div>';
+  modal.classList.add('on');
+  setTimeout(()=>{var i=document.getElementById('esc-to');if(i)i.focus();},80);
+}
+function cerrarModalEscalar(){
+  var m=document.getElementById('modal-escalar');
+  if(m)m.classList.remove('on');
+}
+function _setEscalarEmail(e){
+  var to=document.getElementById('esc-to');
+  if(!to)return;
+  if(!to.value){to.value=e;return;}
+  // Si ya hay correo, propone en CC
+  var cc=document.getElementById('esc-cc');
+  if(cc&&!cc.value)cc.value=e;
+}
+async function enviarEscalamiento(){
+  var r=regDisplayed[_regModalIdx];if(!r)return;
+  var folio=r.folio_ticket||r.folio;
+  var to=document.getElementById('esc-to').value.trim();
+  var cc=document.getElementById('esc-cc').value.trim();
+  var asunto=document.getElementById('esc-asunto').value.trim();
+  var msg=document.getElementById('esc-msg').value.trim();
+  var resultEl=document.getElementById('esc-msg-result');
+  var btn=document.getElementById('esc-btn-enviar');
+  if(!to){resultEl.textContent='Falta destinatario.';resultEl.style.color='var(--red)';return;}
+  if(!folio){resultEl.textContent='Folio no detectado.';resultEl.style.color='var(--red)';return;}
+  btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Enviando...';
+  resultEl.textContent='';
+  try{
+    var resp=await fetch('https://avantex-bot.onrender.com/dashboard/api/escalar_ticket_email',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({
+        admin_token:'avantex_dashboard_2026',
+        folio:folio,email_to:to,email_cc:cc||undefined,
+        asunto:asunto||undefined,mensaje_adicional:msg||undefined
+      })
+    });
+    var d=await resp.json();
+    if(d.ok){
+      resultEl.innerHTML='✅ <b>Enviado a '+esc(to)+(cc?' (cc: '+esc(cc)+')':'')+'</b>';
+      resultEl.style.color='var(--green)';
+      setTimeout(()=>{cerrarModalEscalar();_refreshVista();},1800);
+    }else{
+      resultEl.textContent='Error: '+(d.error||'no se pudo enviar');
+      resultEl.style.color='var(--red)';
+      btn.disabled=false;
+      btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> Enviar escalamiento';
+    }
+  }catch(e){
+    resultEl.textContent='Error de conexión: '+e.message;
+    resultEl.style.color='var(--red)';
+    btn.disabled=false;
+    btn.innerHTML='<i class="fa-solid fa-paper-plane"></i> Enviar escalamiento';
+  }
+}
 
 async function regSaveComment(){
   var r=regDisplayed[_regModalIdx];if(!r)return;
