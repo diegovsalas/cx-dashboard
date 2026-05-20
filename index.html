@@ -165,6 +165,7 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--blue-bg);}
 <a class="nav-link" data-page="registros" onclick="goPage('registros')">Registros</a>
 <a class="nav-link" data-page="cancelaciones" onclick="goPage('cancelaciones')"><i class="fa-solid fa-file-circle-xmark" style="color:var(--red)"></i> Cancelaciones</a>
 <a class="nav-link" data-page="tickets" onclick="goPage('tickets')"><i class="fa-brands fa-whatsapp" style="color:#25d366"></i> Tickets WhatsApp</a>
+<a class="nav-link" data-page="campanias" onclick="goPage('campanias')"><i class="fa-solid fa-paper-plane" style="color:#2563eb"></i> Campañas</a>
 <a class="nav-link" id="link-chat-agentes" href="https://avantex-bot.onrender.com/dashboard" target="_blank" style="color:var(--blue);border:1px solid var(--blue);border-radius:6px;padding:4px 14px;margin-left:8px"><i class="fa-solid fa-headset"></i> Chat Agentes</a>
 </div>
 <div class="nav-right">
@@ -317,6 +318,50 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--blue-bg);}
 <div class="pag"><span id="tk-pag-info"></span><div class="pag-btns"><button class="pbtn" id="tk-prev" onclick="tkPgPrev()">← Anterior</button><span id="tk-pag-num" style="padding:0 6px"></span><button class="pbtn" id="tk-next" onclick="tkPgNext()">Siguiente →</button></div></div>
 </div>
 </div>
+
+<div class="page-content" id="page-campanias" style="display:none">
+<div style="margin-bottom:16px;"><h2 style="font-size:22px;font-weight:800;"><i class="fa-solid fa-paper-plane" style="color:#2563eb"></i> Campañas WhatsApp</h2><p style="font-size:13px;color:var(--text2);margin-top:4px;">Envíos masivos de plantillas a clientes (NPS, recordatorios, seguimientos)</p></div>
+
+<div class="tbl-card" style="margin-bottom:16px">
+  <h3 style="font-size:14px;margin-bottom:14px"><i class="fa-solid fa-bullseye" style="color:#2563eb"></i> Nueva campaña NPS</h3>
+  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px">
+    <div>
+      <label style="font-size:11px;color:var(--text2);text-transform:uppercase;font-weight:600">Plantilla</label>
+      <select id="cmp-template" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;margin-top:4px">
+        <option value="nps_avantex">nps_avantex (NPS)</option>
+      </select>
+    </div>
+    <div>
+      <label style="font-size:11px;color:var(--text2);text-transform:uppercase;font-weight:600">Mínimo días post-resolución</label>
+      <input type="number" id="cmp-dias-min" value="7" min="0" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;margin-top:4px">
+    </div>
+    <div>
+      <label style="font-size:11px;color:var(--text2);text-transform:uppercase;font-weight:600">Máximo días post-resolución</label>
+      <input type="number" id="cmp-dias-max" value="30" min="1" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;margin-top:4px">
+    </div>
+  </div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <button class="btn-clear" onclick="cmpPreview()" style="background:#eff6ff;color:#2563eb;border-color:#bfdbfe"><i class="fa-solid fa-eye"></i> Vista previa de elegibles</button>
+    <button id="cmp-btn-enviar" onclick="cmpEnviarCampania()" disabled style="background:#2563eb;color:#fff;border:none;padding:8px 18px;border-radius:6px;font-weight:600;cursor:pointer;font-size:13px;opacity:.5"><i class="fa-solid fa-paper-plane"></i> Enviar campaña</button>
+    <span id="cmp-progress" style="font-size:12px;color:var(--text2)"></span>
+  </div>
+</div>
+
+<div class="tbl-card" id="cmp-preview-card" style="display:none;margin-bottom:16px">
+  <div class="tbl-header"><h3 id="cmp-preview-count">0 clientes elegibles</h3></div>
+  <div class="tbl-scroll" style="max-height:300px">
+    <table class="dt"><thead><tr><th>Teléfono</th><th>Nombre</th><th>Empresa</th><th>Servicio</th><th>Folio ref</th><th>Resuelto</th></tr></thead><tbody id="cmp-preview-tbody"></tbody></table>
+  </div>
+</div>
+
+<div class="tbl-card">
+  <div class="tbl-header"><h3>📊 Historial de envíos</h3><button class="btn-clear" onclick="cmpCargarHistorial()"><i class="fa-solid fa-rotate"></i> Refrescar</button></div>
+  <div class="tbl-scroll" style="max-height:400px">
+    <table class="dt"><thead><tr><th>Fecha</th><th>Plantilla</th><th>Teléfono</th><th>Cliente</th><th>Estado</th><th>Score</th><th>Categoría</th><th>Respuesta</th></tr></thead><tbody id="cmp-hist-tbody"><tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text3)">Cargando...</td></tr></tbody></table>
+  </div>
+</div>
+</div>
+</div>
 </div>
 
 <div class="modal-overlay" id="tk-modal" onclick="if(event.target===this)tkCloseModal()">
@@ -448,10 +493,11 @@ async function loadData(){
 function goPage(p){
   curPage=p;
   document.querySelectorAll('.nav-link').forEach(el=>{el.classList.toggle('on',el.dataset.page===p);});
-  ['home','dashboard','registros','cancelaciones','tickets'].forEach(pg=>{document.getElementById('page-'+pg).style.display=pg===p?'':'none';});
+  ['home','dashboard','registros','cancelaciones','tickets','campanias'].forEach(pg=>{document.getElementById('page-'+pg).style.display=pg===p?'':'none';});
   if(p==='registros'){tblPg=0;renderRegistros();}
   if(p==='cancelaciones')loadCancelaciones();
   if(p==='tickets')loadTickets();
+  if(p==='campanias')cmpCargarHistorial();
 }
 
 function buildFilters(){['filters-dash','filters-reg'].forEach(id=>buildFB(id));}
@@ -1063,6 +1109,100 @@ function _setEscalarEmail(e){
   var cc=document.getElementById('esc-cc');
   if(cc&&!cc.value)cc.value=e;
 }
+// ── Campañas WhatsApp ──
+const BOT_URL='https://avantex-bot.onrender.com';
+const BOT_TOKEN='avantex_dashboard_2026';
+let _cmpElegibles=[];
+
+async function cmpPreview(){
+  var dmin=parseInt(document.getElementById('cmp-dias-min').value||'7');
+  var dmax=parseInt(document.getElementById('cmp-dias-max').value||'30');
+  var btn=event.target;
+  btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Buscando...';
+  try{
+    var r=await fetch(BOT_URL+'/dashboard/api/campania/preview_nps',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({admin_token:BOT_TOKEN,dias_min:dmin,dias_max:dmax,excluir_dias_nps:90,template_excluir:'nps_avantex'})
+    });
+    var d=await r.json();
+    if(!d.ok){alert('Error: '+(d.error||'?'));return;}
+    _cmpElegibles=d.clientes||[];
+    document.getElementById('cmp-preview-card').style.display='';
+    document.getElementById('cmp-preview-count').textContent=d.total_elegibles+' clientes elegibles para NPS';
+    var rows=_cmpElegibles.map(c=>'<tr><td style="font-family:monospace;font-size:11px">'+esc(c.telefono)+'</td><td>'+esc(c.nombre||'')+'</td><td>'+esc(c.empresa||'')+'</td><td>'+esc(c.servicio||'')+'</td><td style="font-family:monospace">'+esc(c.folio_referencia||'')+'</td><td style="font-size:11px;color:var(--text2)">'+(c.resuelto_at||'').slice(0,10)+'</td></tr>').join('');
+    document.getElementById('cmp-preview-tbody').innerHTML=rows||'<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--text3)">Sin clientes en ese rango</td></tr>';
+    var btnEnviar=document.getElementById('cmp-btn-enviar');
+    btnEnviar.disabled=!_cmpElegibles.length;
+    btnEnviar.style.opacity=_cmpElegibles.length?'1':'.5';
+  }catch(e){alert('Error de conexión: '+e.message);}
+  btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-eye"></i> Vista previa de elegibles';
+}
+
+async function cmpEnviarCampania(){
+  if(!_cmpElegibles.length)return;
+  if(!confirm('Confirmar envío de NPS a '+_cmpElegibles.length+' clientes. Tardará ~'+(_cmpElegibles.length*3)+'s.'))return;
+  var template=document.getElementById('cmp-template').value;
+  var campania='NPS-'+new Date().toISOString().slice(0,10);
+  var btn=document.getElementById('cmp-btn-enviar');
+  var progress=document.getElementById('cmp-progress');
+  btn.disabled=true;btn.style.opacity='.5';
+  var ok=0,fail=0;
+  for(var i=0;i<_cmpElegibles.length;i++){
+    var c=_cmpElegibles[i];
+    progress.textContent='Enviando '+(i+1)+' de '+_cmpElegibles.length+' · OK: '+ok+' · Fail: '+fail;
+    try{
+      var r=await fetch(BOT_URL+'/dashboard/api/campania/enviar_uno',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({
+          admin_token:BOT_TOKEN,template_name:template,language:'es_MX',
+          telefono:c.telefono,nombre:c.nombre,
+          params:[c.nombre||'Cliente'],
+          campania:campania
+        })
+      });
+      var d=await r.json();
+      if(d.ok)ok++;else{fail++;console.warn('Fail',c.telefono,d.error);}
+    }catch(e){fail++;console.warn('Err',c.telefono,e);}
+    await new Promise(r=>setTimeout(r,2500));  // 2.5s entre envíos
+  }
+  progress.innerHTML='<span style="color:var(--green);font-weight:600">✓ Campaña terminada · OK: '+ok+' · Fail: '+fail+'</span>';
+  btn.disabled=false;btn.style.opacity='1';
+  cmpCargarHistorial();
+}
+
+async function cmpCargarHistorial(){
+  var tbody=document.getElementById('cmp-hist-tbody');
+  if(!tbody)return;
+  tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:18px;color:var(--text3)">Cargando...</td></tr>';
+  try{
+    const{data,error}=await sb.from('envios_plantillas').select('*').order('created_at',{ascending:false}).limit(100);
+    if(error)throw new Error(error.message);
+    if(!data||!data.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:18px;color:var(--text3)">Sin envíos aún</td></tr>';return;}
+    var colorEstado=function(e){
+      if(e==='respondido')return'background:#ecfdf5;color:#059669';
+      if(e==='enviado')return'background:#eff6ff;color:#2563eb';
+      if(e==='fallido')return'background:#fef2f2;color:#dc2626';
+      return'background:#f3f4f6;color:#6b7280';
+    };
+    var colorCat=function(c){
+      if(c==='promotor')return'color:#059669;font-weight:600';
+      if(c==='pasivo')return'color:#d97706;font-weight:600';
+      if(c==='detractor')return'color:#dc2626;font-weight:600';
+      return'';
+    };
+    tbody.innerHTML=data.map(e=>'<tr>'+
+      '<td style="font-size:11px;color:var(--text2)">'+(e.created_at||'').slice(0,16).replace('T',' ')+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+esc(e.template_name||'')+'</td>'+
+      '<td style="font-family:monospace;font-size:11px">'+esc(e.telefono||'')+'</td>'+
+      '<td>'+esc(e.nombre_cliente||'')+'</td>'+
+      '<td><span style="padding:2px 8px;border-radius:10px;font-size:10px;font-weight:600;'+colorEstado(e.estado)+'">'+(e.estado||'?')+'</span></td>'+
+      '<td style="text-align:center;font-weight:700">'+(e.respuesta_score!=null?e.respuesta_score:'—')+'</td>'+
+      '<td style="'+colorCat(e.respuesta_categoria)+'">'+(e.respuesta_categoria||'—')+'</td>'+
+      '<td style="font-size:11px;color:var(--text2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(e.respuesta_cliente||'')+'">'+esc((e.respuesta_cliente||'').slice(0,60))+'</td>'+
+    '</tr>').join('');
+  }catch(e){tbody.innerHTML='<tr><td colspan="8" style="color:var(--red);text-align:center;padding:18px">Error: '+e.message+'</td></tr>';}
+}
+
 async function enviarEscalamiento(){
   var r=regDisplayed[_regModalIdx];if(!r)return;
   var folio=r.folio_ticket||r.folio;
