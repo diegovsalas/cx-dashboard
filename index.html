@@ -1156,7 +1156,7 @@ async function cmpEnviarCampania(){
         body:JSON.stringify({
           admin_token:BOT_TOKEN,template_name:template,language:'es_MX',
           telefono:c.telefono,nombre:c.nombre,
-          params:[c.nombre||'Cliente'],
+          params:{customer_name:(c.nombre||'Cliente')},
           campania:campania
         })
       });
