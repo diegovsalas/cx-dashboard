@@ -323,14 +323,25 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--blue-bg);}
 <div style="margin-bottom:16px;"><h2 style="font-size:22px;font-weight:800;"><i class="fa-solid fa-paper-plane" style="color:#2563eb"></i> Campañas WhatsApp</h2><p style="font-size:13px;color:var(--text2);margin-top:4px;">Envíos masivos de plantillas a clientes (NPS, recordatorios, seguimientos)</p></div>
 
 <div class="tbl-card" style="margin-bottom:16px">
-  <h3 style="font-size:14px;margin-bottom:14px"><i class="fa-solid fa-bullseye" style="color:#2563eb"></i> Nueva campaña NPS</h3>
-  <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-bottom:14px">
+  <h3 style="font-size:14px;margin-bottom:14px"><i class="fa-solid fa-bullseye" style="color:#2563eb"></i> Nueva campaña</h3>
+  <div style="display:grid;grid-template-columns:1fr 2fr;gap:12px;margin-bottom:14px">
+    <div>
+      <label style="font-size:11px;color:var(--text2);text-transform:uppercase;font-weight:600">Tipo de campaña</label>
+      <select id="cmp-tipo" onchange="cmpCambiarTipo()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;margin-top:4px">
+        <option value="nps">📊 NPS (clientes con incidencia resuelta)</option>
+        <option value="ventas">🌿 Ventas — Clientes Nuevos (lista manual)</option>
+      </select>
+    </div>
     <div>
       <label style="font-size:11px;color:var(--text2);text-transform:uppercase;font-weight:600">Plantilla</label>
       <select id="cmp-template" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;margin-top:4px">
-        <option value="nps_avantex">nps_avantex (NPS)</option>
+        <option value="nps_avantex">nps_avantex</option>
+        <option value="ventas_satisfaccion_nuevos">ventas_satisfaccion_nuevos</option>
       </select>
     </div>
+  </div>
+  <!-- Filtros NPS -->
+  <div id="cmp-filtros-nps" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:14px">
     <div>
       <label style="font-size:11px;color:var(--text2);text-transform:uppercase;font-weight:600">Mínimo días post-resolución</label>
       <input type="number" id="cmp-dias-min" value="7" min="0" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;margin-top:4px">
@@ -340,8 +351,16 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--blue-bg);}
       <input type="number" id="cmp-dias-max" value="30" min="1" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;margin-top:4px">
     </div>
   </div>
+  <!-- Filtros Ventas (lista manual) -->
+  <div id="cmp-filtros-ventas" style="display:none;margin-bottom:14px">
+    <label style="font-size:11px;color:var(--text2);text-transform:uppercase;font-weight:600">Lista de clientes nuevos (uno por línea: teléfono, nombre opcional)</label>
+    <textarea id="cmp-lista-manual" rows="5" placeholder="528112345678, Juan García&#10;528123456789, María López&#10;528134567890" style="width:100%;padding:10px 12px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-family:monospace;margin-top:4px;resize:vertical"></textarea>
+    <div style="font-size:11px;color:var(--text2);margin-top:6px">
+      Formato: <code>teléfono, nombre</code> por línea. El nombre es opcional (se usa "Cliente" si lo omites).
+    </div>
+  </div>
   <div style="display:flex;gap:10px;align-items:center">
-    <button class="btn-clear" onclick="cmpPreview()" style="background:#eff6ff;color:#2563eb;border-color:#bfdbfe"><i class="fa-solid fa-eye"></i> Vista previa de elegibles</button>
+    <button class="btn-clear" onclick="cmpPreview()" style="background:#eff6ff;color:#2563eb;border-color:#bfdbfe"><i class="fa-solid fa-eye"></i> Vista previa</button>
     <button id="cmp-btn-enviar" onclick="cmpEnviarCampania()" disabled style="background:#2563eb;color:#fff;border:none;padding:8px 18px;border-radius:6px;font-weight:600;cursor:pointer;font-size:13px;opacity:.5"><i class="fa-solid fa-paper-plane"></i> Enviar campaña</button>
     <span id="cmp-progress" style="font-size:12px;color:var(--text2)"></span>
   </div>
@@ -1115,35 +1134,69 @@ const BOT_URL='https://avantex-bot.onrender.com';
 const BOT_TOKEN='avantex_dashboard_2026';
 let _cmpElegibles=[];
 
+function cmpCambiarTipo(){
+  var tipo=document.getElementById('cmp-tipo').value;
+  document.getElementById('cmp-filtros-nps').style.display=tipo==='nps'?'grid':'none';
+  document.getElementById('cmp-filtros-ventas').style.display=tipo==='ventas'?'block':'none';
+  // Pre-seleccionar plantilla por defecto del tipo
+  var sel=document.getElementById('cmp-template');
+  sel.value=tipo==='nps'?'nps_avantex':'ventas_satisfaccion_nuevos';
+}
+
+function _cmpParsearListaManual(){
+  var txt=document.getElementById('cmp-lista-manual').value||'';
+  var lineas=txt.split('\n').map(l=>l.trim()).filter(l=>l.length);
+  var clientes=[];
+  lineas.forEach(l=>{
+    var partes=l.split(',').map(p=>p.trim());
+    var tel=(partes[0]||'').replace(/[^\d]/g,'');
+    if(tel.length<10)return;
+    var nombre=(partes[1]||'').trim()||'Cliente';
+    clientes.push({telefono:tel,nombre:nombre,empresa:'',servicio:'',folio_referencia:''});
+  });
+  return clientes;
+}
+
 async function cmpPreview(){
-  var dmin=parseInt(document.getElementById('cmp-dias-min').value||'7');
-  var dmax=parseInt(document.getElementById('cmp-dias-max').value||'30');
+  var tipo=document.getElementById('cmp-tipo').value;
   var btn=event.target;
   btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Buscando...';
   try{
-    var r=await fetch(BOT_URL+'/dashboard/api/campania/preview_nps',{
-      method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({admin_token:BOT_TOKEN,dias_min:dmin,dias_max:dmax,excluir_dias_nps:90,template_excluir:'nps_avantex'})
-    });
-    var d=await r.json();
-    if(!d.ok){alert('Error: '+(d.error||'?'));return;}
-    _cmpElegibles=d.clientes||[];
-    document.getElementById('cmp-preview-card').style.display='';
-    document.getElementById('cmp-preview-count').textContent=d.total_elegibles+' clientes elegibles para NPS';
-    var rows=_cmpElegibles.map(c=>'<tr><td style="font-family:monospace;font-size:11px">'+esc(c.telefono)+'</td><td>'+esc(c.nombre||'')+'</td><td>'+esc(c.empresa||'')+'</td><td>'+esc(c.servicio||'')+'</td><td style="font-family:monospace">'+esc(c.folio_referencia||'')+'</td><td style="font-size:11px;color:var(--text2)">'+(c.resuelto_at||'').slice(0,10)+'</td></tr>').join('');
-    document.getElementById('cmp-preview-tbody').innerHTML=rows||'<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--text3)">Sin clientes en ese rango</td></tr>';
+    if(tipo==='ventas'){
+      _cmpElegibles=_cmpParsearListaManual();
+      document.getElementById('cmp-preview-card').style.display='';
+      document.getElementById('cmp-preview-count').textContent=_cmpElegibles.length+' clientes nuevos a contactar';
+      var rows=_cmpElegibles.map(c=>'<tr><td style="font-family:monospace;font-size:11px">'+esc(c.telefono)+'</td><td>'+esc(c.nombre)+'</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>').join('');
+      document.getElementById('cmp-preview-tbody').innerHTML=rows||'<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--text3)">Pega al menos un teléfono en la lista</td></tr>';
+    }else{
+      var dmin=parseInt(document.getElementById('cmp-dias-min').value||'7');
+      var dmax=parseInt(document.getElementById('cmp-dias-max').value||'30');
+      var r=await fetch(BOT_URL+'/dashboard/api/campania/preview_nps',{
+        method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({admin_token:BOT_TOKEN,dias_min:dmin,dias_max:dmax,excluir_dias_nps:90,template_excluir:'nps_avantex'})
+      });
+      var d=await r.json();
+      if(!d.ok){alert('Error: '+(d.error||'?'));return;}
+      _cmpElegibles=d.clientes||[];
+      document.getElementById('cmp-preview-card').style.display='';
+      document.getElementById('cmp-preview-count').textContent=d.total_elegibles+' clientes elegibles para NPS';
+      var rows=_cmpElegibles.map(c=>'<tr><td style="font-family:monospace;font-size:11px">'+esc(c.telefono)+'</td><td>'+esc(c.nombre||'')+'</td><td>'+esc(c.empresa||'')+'</td><td>'+esc(c.servicio||'')+'</td><td style="font-family:monospace">'+esc(c.folio_referencia||'')+'</td><td style="font-size:11px;color:var(--text2)">'+(c.resuelto_at||'').slice(0,10)+'</td></tr>').join('');
+      document.getElementById('cmp-preview-tbody').innerHTML=rows||'<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--text3)">Sin clientes en ese rango</td></tr>';
+    }
     var btnEnviar=document.getElementById('cmp-btn-enviar');
     btnEnviar.disabled=!_cmpElegibles.length;
     btnEnviar.style.opacity=_cmpElegibles.length?'1':'.5';
   }catch(e){alert('Error de conexión: '+e.message);}
-  btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-eye"></i> Vista previa de elegibles';
+  btn.disabled=false;btn.innerHTML='<i class="fa-solid fa-eye"></i> Vista previa';
 }
 
 async function cmpEnviarCampania(){
   if(!_cmpElegibles.length)return;
   if(!confirm('Confirmar envío de NPS a '+_cmpElegibles.length+' clientes. Tardará ~'+(_cmpElegibles.length*3)+'s.'))return;
   var template=document.getElementById('cmp-template').value;
-  var campania='NPS-'+new Date().toISOString().slice(0,10);
+  var tipo=document.getElementById('cmp-tipo').value;
+  var prefijo=(tipo==='ventas'?'VENTAS':'NPS');
+  var campania=prefijo+'-'+new Date().toISOString().slice(0,10);
   var btn=document.getElementById('cmp-btn-enviar');
   var progress=document.getElementById('cmp-progress');
   btn.disabled=true;btn.style.opacity='.5';
