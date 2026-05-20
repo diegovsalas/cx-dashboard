@@ -355,6 +355,7 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--blue-bg);}
 </div>
 
 <div class="tbl-card">
+  <div id="cmp-kpis" style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px"></div>
   <div class="tbl-header"><h3>📊 Historial de envíos</h3><button class="btn-clear" onclick="cmpCargarHistorial()"><i class="fa-solid fa-rotate"></i> Refrescar</button></div>
   <div class="tbl-scroll" style="max-height:400px">
     <table class="dt"><thead><tr><th>Fecha</th><th>Plantilla</th><th>Teléfono</th><th>Cliente</th><th>Estado</th><th>Score</th><th>Categoría</th><th>Respuesta</th></tr></thead><tbody id="cmp-hist-tbody"><tr><td colspan="8" style="text-align:center;padding:20px;color:var(--text3)">Cargando...</td></tr></tbody></table>
@@ -1170,13 +1171,47 @@ async function cmpEnviarCampania(){
   cmpCargarHistorial();
 }
 
+function _cmpKpiCard(label, value, color, bg, sub){
+  return '<div style="background:'+bg+';border-radius:10px;padding:12px 14px;border-left:3px solid '+color+'">'+
+    '<div style="font-size:10px;color:var(--text2);text-transform:uppercase;letter-spacing:1px;font-weight:600">'+label+'</div>'+
+    '<div style="font-size:22px;font-weight:800;color:'+color+';margin-top:2px">'+value+'</div>'+
+    (sub?'<div style="font-size:10px;color:var(--text3);margin-top:2px">'+sub+'</div>':'')+
+  '</div>';
+}
+
 async function cmpCargarHistorial(){
   var tbody=document.getElementById('cmp-hist-tbody');
+  var kpis=document.getElementById('cmp-kpis');
   if(!tbody)return;
   tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:18px;color:var(--text3)">Cargando...</td></tr>';
   try{
-    const{data,error}=await sb.from('envios_plantillas').select('*').order('created_at',{ascending:false}).limit(100);
+    const{data,error}=await sb.from('envios_plantillas').select('*').order('created_at',{ascending:false}).limit(500);
     if(error)throw new Error(error.message);
+    // ── Calcular KPIs ──
+    if(kpis){
+      var total=data.length;
+      var enviados=data.filter(e=>e.estado!=='fallido'&&e.estado!=='pendiente').length;
+      var respondidos=data.filter(e=>e.respuesta_score!=null).length;
+      var promotores=data.filter(e=>e.respuesta_categoria==='promotor').length;
+      var pasivos=data.filter(e=>e.respuesta_categoria==='pasivo').length;
+      var detractores=data.filter(e=>e.respuesta_categoria==='detractor').length;
+      var tasaResp=enviados?Math.round(respondidos*100/enviados):0;
+      // NPS Score = %promotores - %detractores (sobre respondidos)
+      var nps='—';
+      if(respondidos>0){
+        var pctP=Math.round(promotores*100/respondidos);
+        var pctD=Math.round(detractores*100/respondidos);
+        nps=(pctP-pctD)+'';
+      }
+      var npsColor=(nps==='—'||parseInt(nps)<0)?'#dc2626':(parseInt(nps)<30?'#d97706':'#059669');
+      kpis.innerHTML=
+        _cmpKpiCard('Total envíos',total,'#0d8bf2','#eff6ff','')+
+        _cmpKpiCard('Entregados',enviados,'#0d8bf2','#eff6ff','')+
+        _cmpKpiCard('Respondieron',respondidos,'#2563eb','#eff6ff',tasaResp+'% tasa resp.')+
+        _cmpKpiCard('Promotores',promotores,'#059669','#ecfdf5',respondidos?Math.round(promotores*100/respondidos)+'%':'—')+
+        _cmpKpiCard('Detractores',detractores,'#dc2626','#fef2f2',respondidos?Math.round(detractores*100/respondidos)+'%':'—')+
+        _cmpKpiCard('NPS Score',nps,npsColor,'#fffbeb','promotores - detractores');
+    }
     if(!data||!data.length){tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:18px;color:var(--text3)">Sin envíos aún</td></tr>';return;}
     var colorEstado=function(e){
       if(e==='respondido')return'background:#ecfdf5;color:#059669';
