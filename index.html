@@ -1969,7 +1969,7 @@ function descargarCancelaciones(){
   descargarCSV('Avantex_Cancelaciones_{fecha}.csv', cancFiltered, cols);
 }
 function descargarTicketsWA(){
-  var cols = ['folio','created_at','telefono','nombre','empresa','servicio','tipo','categoria','subtipo','mensaje','prioridad','estatus','agente','csat'];
+  var cols = ['folio','created_at','telefono','nombre','empresa','servicio','tipo','categoria','subtipo','mensaje','prioridad','estatus','agente','csat','facturacin_sin_iva','zona','correo','status_cancelacion','oferta_retencion','causa_raiz_cancelacion','diagnostico_previo_cancelacion','comentarios_de_seguimiento'];
   descargarCSV('Avantex_TicketsWA_{fecha}.csv', tkFiltered, cols);
 }
 function descargarRegistros(){
