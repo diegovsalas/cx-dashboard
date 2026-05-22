@@ -165,7 +165,7 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--blue-bg);}
 <a class="nav-link" data-page="registros" onclick="goPage('registros')">Registros</a>
 <a class="nav-link" data-page="cancelaciones" onclick="goPage('cancelaciones')"><i class="fa-solid fa-file-circle-xmark" style="color:var(--red)"></i> Cancelaciones</a>
 <a class="nav-link" data-page="tickets" onclick="goPage('tickets')"><i class="fa-brands fa-whatsapp" style="color:#25d366"></i> Tickets WhatsApp</a>
-<a class="nav-link" data-page="campanias" onclick="goPage('campanias')"><i class="fa-solid fa-paper-plane" style="color:#2563eb"></i> Campañas</a>
+<a class="nav-link" id="link-campanias" data-page="campanias" onclick="goPage('campanias')"><i class="fa-solid fa-paper-plane" style="color:#2563eb"></i> Campañas</a>
 <a class="nav-link" id="link-chat-agentes" href="https://avantex-bot.onrender.com/dashboard" target="_blank" style="color:var(--blue);border:1px solid var(--blue);border-radius:6px;padding:4px 14px;margin-left:8px"><i class="fa-solid fa-headset"></i> Chat Agentes</a>
 </div>
 <div class="nav-right">
@@ -435,6 +435,8 @@ async function enterApp(){
   document.getElementById('nav-user').textContent=user.email;
   var chatLink=document.getElementById('link-chat-agentes');
   if(chatLink)chatLink.style.display=isAdmin()?'':'none';
+  var cmpLink=document.getElementById('link-campanias');
+  if(cmpLink)cmpLink.style.display=isAdmin()?'':'none';
   await loadData();buildFilters();applyFilters();
   _iniciarPollingDatos();
 }
@@ -515,6 +517,8 @@ async function loadData(){
 }
 
 function goPage(p){
+  // Restricción: Campañas solo para admins
+  if(p==='campanias'&&!isAdmin()){p='home';}
   curPage=p;
   document.querySelectorAll('.nav-link').forEach(el=>{el.classList.toggle('on',el.dataset.page===p);});
   ['home','dashboard','registros','cancelaciones','tickets','campanias'].forEach(pg=>{document.getElementById('page-'+pg).style.display=pg===p?'':'none';});
