@@ -403,10 +403,13 @@ const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYm
 const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
 let allData=[],filtered=[],user=null,curPage='dashboard',chartInstances={},tblPg=0;
 const ADMIN_EMAILS=['servicioalcliente@grupoavantex.com','diegovelazquez@grupoavantex.com'];
+// Usuarios solo-consulta que SÍ pueden escalar casos por correo (visibilidad operativa)
+const ESCALATE_EMAILS=['nallelygallegos@grupoavantex.com'];
 function _refreshVista(){if(curPage==='cancelaciones')cancApply();else if(curPage==='registros')renderRegistros();else if(curPage==='tickets')tkApply();else applyFilters();}
 const SUPERADMIN_EMAIL='diegovelazquez@grupoavantex.com';
 function isAdmin(){return user&&ADMIN_EMAILS.includes(user.email.toLowerCase());}
 function isSuperAdmin(){return user&&user.email.toLowerCase()===SUPERADMIN_EMAIL;}
+function puedeEscalar(){return user&&(isAdmin()||ESCALATE_EMAILS.includes(user.email.toLowerCase()));}
 const LIM=50;
 const PAL=['#2563eb','#059669','#d97706','#dc2626','#7c3aed','#ec4899','#0891b2','#65a30d','#ea580c','#6366f1','#14b8a6','#e11d48'];
 var _moNombres=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -947,8 +950,8 @@ function regOpenModal(idx){
     else h+='<div class="detail-val empty">Sin comentarios</div>';
   }
   h+='</div>';
-  // Botón escalar por correo — para admin
-  if(isAdmin()){
+  // Botón escalar por correo — admin O viewer+escalate
+  if(puedeEscalar()){
     h+='<div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">';
     h+='<button onclick="abrirModalEscalar()" style="padding:9px 18px;background:linear-gradient(135deg,#2563eb,#1e40af);color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;display:inline-flex;align-items:center;gap:8px"><i class="fa-solid fa-paper-plane"></i> Escalar por correo</button>';
     h+='<span style="font-size:11px;color:var(--text2);margin-left:12px">Envía el caso completo (datos + conversación + comentarios) a un correo específico</span>';
