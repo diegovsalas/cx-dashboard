@@ -480,8 +480,12 @@ async function loadData(){
     if(!data.length)break;
     data.forEach(t=>{
       var fd=t.created_at?String(t.created_at):'';
-      var anio=fd.slice(0,4);
-      var mesNum=parseInt(fd.slice(5,7));
+      // Si es cancelación Y tiene fecha_efectiva_cancelacion, esa fecha define el mes (para KPIs y filtros)
+      var fechaMes=fd;
+      var esCanc=t.tipo&&t.tipo.toLowerCase().includes('cancelac');
+      if(esCanc&&t.fecha_efectiva_cancelacion){fechaMes=String(t.fecha_efectiva_cancelacion);}
+      var anio=fechaMes.slice(0,4);
+      var mesNum=parseInt(fechaMes.slice(5,7));
       var moArr=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
       var mesStr=(!isNaN(mesNum)&&mesNum>=1&&mesNum<=12)?moArr[mesNum-1]:'';
       allData.push({
@@ -509,6 +513,7 @@ async function loadData(){
         oferta_retencion:t.oferta_retencion||'',
         causa_raiz_cancelacion:t.causa_raiz_cancelacion||'',
         diagnostico_previo_cancelacion:t.diagnostico_previo_cancelacion||'',
+        fecha_efectiva_cancelacion:t.fecha_efectiva_cancelacion||null,
         comentarios_de_seguimiento:t.comentarios_de_seguimiento||''
       });
     });
@@ -869,6 +874,21 @@ function regOpenModal(idx){
     h+='<div class="detail-item full" style="background:#fffbeb;padding:16px;border-radius:10px;margin-bottom:8px;border-left:4px solid #d97706">';
     h+='<div class="detail-label" style="color:#92400e;font-weight:700">🎯 Retención de Cliente</div>';
     h+='<div style="display:flex;flex-direction:column;gap:14px;margin-top:10px">';
+    // Fecha efectiva de cancelación — para que el monto afecte el mes correcto
+    var fechaEf=r.fecha_efectiva_cancelacion||'';
+    h+='<div>';
+    h+='<div class="detail-label" style="font-size:11px">📅 Fecha efectiva de cancelación (mes al que afecta el monto)</div>';
+    if(isAdmin()){
+      h+='<div style="display:flex;align-items:center;gap:10px;margin-top:4px">';
+      h+='<input type="date" class="finput" id="reg-fecha-efectiva" value="'+esc(fechaEf)+'" style="padding:8px 10px;font-size:13px;max-width:200px;margin:0">';
+      h+='<button class="btn-save-comment" id="reg-save-fecha-ef" onclick="regSaveFechaEfectiva()" style="padding:7px 14px"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>';
+      h+='<span class="status-msg" id="reg-fecha-ef-msg"></span></div>';
+      h+='<div style="font-size:10px;color:var(--text3);margin-top:4px">Si está vacía se usa la fecha de creación del ticket.</div>';
+    } else {
+      if(fechaEf)h+='<div class="detail-val" style="font-weight:600">'+esc(fechaEf)+'</div>';
+      else h+='<div class="detail-val empty">Sin fecha asignada (usa fecha de creación)</div>';
+    }
+    h+='</div>';
     // Diagnóstico previo
     h+='<div>';
     h+='<div class="detail-label" style="font-size:11px">Diagnóstico previo (estado del cliente antes de la negociación)</div>';
@@ -1072,6 +1092,43 @@ async function _regSaveCampoCanc(campo,inputId,btnId,msgId){
 async function regSaveOferta(){return _regSaveCampoCanc('oferta_retencion','reg-oferta','reg-save-oferta','reg-oferta-msg');}
 async function regSaveCausaRaizCanc(){return _regSaveCampoCanc('causa_raiz_cancelacion','reg-causa-raiz-canc','reg-save-causaraiz','reg-causaraiz-msg');}
 async function regSaveDiagnosticoPrevio(){return _regSaveCampoCanc('diagnostico_previo_cancelacion','reg-diag-previo','reg-save-diag-previo','reg-diag-previo-msg');}
+async function regSaveFechaEfectiva(){
+  var r=regDisplayed[_regModalIdx];if(!r)return;
+  var newVal=document.getElementById('reg-fecha-efectiva').value||null;
+  var msgEl=document.getElementById('reg-fecha-ef-msg');
+  var btn=document.getElementById('reg-save-fecha-ef');
+  btn.disabled=true;msgEl.textContent='Guardando...';msgEl.style.color='var(--blue)';
+  try{
+    var isWA=r._source==='whatsapp';
+    if(isWA){
+      var folio=r.folio_ticket||r.folio;
+      if(folio){
+        const{error}=await sb.from('tickets').update({fecha_efectiva_cancelacion:newVal}).eq('folio',folio);
+        if(error)throw error;
+        if(r._tk)r._tk.fecha_efectiva_cancelacion=newVal;
+      }
+    }else{
+      var id=r.id;
+      if(id){
+        const{error}=await sb.from('base_general').update({fecha_efectiva_cancelacion:newVal}).eq('id',id);
+        if(error)throw error;
+      }
+    }
+    r.fecha_efectiva_cancelacion=newVal;
+    // Re-calcular año/mes para que afecte KPIs
+    if(newVal){
+      var d=new Date(newVal);
+      r._anio=d.getFullYear();
+      var meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+      r.mes=meses[d.getMonth()];
+    }
+    msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';_refreshVista();
+    setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
+  }catch(e){
+    msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
+  }
+  btn.disabled=false;
+}
 
 // ── Escalar ticket por correo ──
 var _ESCALAR_SUGERENCIAS = [
@@ -1964,7 +2021,7 @@ async function _refreshRegistroFresco(r){
     if(isWA){
       const folio=r.folio_ticket||r.folio;
       if(!folio)return;
-      const{data,error}=await sb.from('tickets').select('comentarios_de_seguimiento,status_cancelacion,estatus,categoria,subtipo,diagnostico,causa_raiz,oferta_retencion,causa_raiz_cancelacion,diagnostico_previo_cancelacion').eq('folio',folio).maybeSingle();
+      const{data,error}=await sb.from('tickets').select('comentarios_de_seguimiento,status_cancelacion,estatus,categoria,subtipo,diagnostico,causa_raiz,oferta_retencion,causa_raiz_cancelacion,diagnostico_previo_cancelacion,fecha_efectiva_cancelacion').eq('folio',folio).maybeSingle();
       if(error||!data)return;
       fresco=data;
     }else if(r.id){
@@ -1980,6 +2037,7 @@ async function _refreshRegistroFresco(r){
     if(fresco.causa_raiz_cancelacion!==undefined)r.causa_raiz_cancelacion=fresco.causa_raiz_cancelacion||'';
     if(fresco.anlisis_de_causa_raz!==undefined)r.anlisis_de_causa_raz=fresco.anlisis_de_causa_raz||'';
     if(fresco.diagnostico_previo_cancelacion!==undefined)r.diagnostico_previo_cancelacion=fresco.diagnostico_previo_cancelacion||'';
+    if(fresco.fecha_efectiva_cancelacion!==undefined)r.fecha_efectiva_cancelacion=fresco.fecha_efectiva_cancelacion||null;
     if(isWA&&r._tk)Object.assign(r._tk,fresco);
     // Helper: actualizar textarea si no está en focus ni siendo editado
     function _safeUpdate(id,val){
@@ -2023,7 +2081,7 @@ function descargarCSV(filename, rows, columnas){
   setTimeout(function(){URL.revokeObjectURL(url);}, 100);
 }
 function descargarCancelaciones(){
-  var cols = ['folio','fecha_de_la_solicitud','nombre_del_cliente_nuevo','propiedad','tipo_de_servicio','motivo_de_cancelacin','submotvio_canc','facturacin_sin_iva','status_cancelacion','ejecutivo_asignado','tipo_de_solicitud','telefono','mensaje','diagnostico_previo_cancelacion','oferta_retencion','causa_raiz_cancelacion','correo','zona','comentarios_de_seguimiento'];
+  var cols = ['folio','fecha_de_la_solicitud','fecha_efectiva_cancelacion','nombre_del_cliente_nuevo','propiedad','tipo_de_servicio','motivo_de_cancelacin','submotvio_canc','facturacin_sin_iva','status_cancelacion','ejecutivo_asignado','tipo_de_solicitud','telefono','mensaje','diagnostico_previo_cancelacion','oferta_retencion','causa_raiz_cancelacion','correo','zona','comentarios_de_seguimiento'];
   descargarCSV('Avantex_Cancelaciones_{fecha}.csv', cancFiltered, cols);
 }
 function descargarTicketsWA(){
