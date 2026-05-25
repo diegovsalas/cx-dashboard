@@ -489,14 +489,16 @@ async function loadData(){
     if(!data.length)break;
     data.forEach(t=>{
       var fd=t.created_at?String(t.created_at):'';
-      // Si es cancelación Y tiene fecha_efectiva_cancelacion, esa fecha define el mes (para KPIs y filtros)
-      var fechaMes=fd;
-      var esCanc=t.tipo&&t.tipo.toLowerCase().includes('cancelac');
-      if(esCanc&&t.fecha_efectiva_cancelacion){fechaMes=String(t.fecha_efectiva_cancelacion);}
-      var anio=fechaMes.slice(0,4);
-      var mesNum=parseInt(fechaMes.slice(5,7));
+      // El ticket SIEMPRE pertenece a su mes de creación en la lista/filtros
+      var anio=fd.slice(0,4);
+      var mesNum=parseInt(fd.slice(5,7));
       var moArr=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
       var mesStr=(!isNaN(mesNum)&&mesNum>=1&&mesNum<=12)?moArr[mesNum-1]:'';
+      // Mes efectivo: SOLO se usa para sumar monto cancelado al mes que Finanzas verá afectado
+      var fechaEf=t.fecha_efectiva_cancelacion?String(t.fecha_efectiva_cancelacion):fd;
+      var anioEf=fechaEf.slice(0,4);
+      var mesNumEf=parseInt(fechaEf.slice(5,7));
+      var mesEf=(!isNaN(mesNumEf)&&mesNumEf>=1&&mesNumEf<=12)?moArr[mesNumEf-1]:'';
       allData.push({
         _source:'whatsapp',_tk:t,
         folio_ticket:t.folio,folio:t.folio,
@@ -523,6 +525,7 @@ async function loadData(){
         causa_raiz_cancelacion:t.causa_raiz_cancelacion||'',
         diagnostico_previo_cancelacion:t.diagnostico_previo_cancelacion||'',
         fecha_efectiva_cancelacion:t.fecha_efectiva_cancelacion||null,
+        _anio_efectivo:anioEf,_mes_efectivo:mesEf,
         comentarios_de_seguimiento:t.comentarios_de_seguimiento||''
       });
     });
@@ -1124,12 +1127,16 @@ async function regSaveFechaEfectiva(){
       }
     }
     r.fecha_efectiva_cancelacion=newVal;
-    // Re-calcular año/mes para que afecte KPIs
+    // Re-calcular el _mes_efectivo y _anio_efectivo en memoria (NO toca _anio/mes de lista)
+    var meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
     if(newVal){
       var d=new Date(newVal);
-      r._anio=d.getFullYear();
-      var meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-      r.mes=meses[d.getMonth()];
+      r._anio_efectivo=String(d.getFullYear());
+      r._mes_efectivo=meses[d.getMonth()];
+    } else {
+      // Volver a la fecha de creación
+      r._anio_efectivo=r._anio;
+      r._mes_efectivo=r.mes;
     }
     msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';_refreshVista();
     setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
@@ -1713,22 +1720,41 @@ function cancApply(){
   });
   var nf=(fsc?1:0)+(fv?1:0)+(fa?1:0)+(fm?1:0);
   document.getElementById('af-canc').textContent=nf?nf+' filtro'+(nf>1?'s':'')+' · '+cancFiltered.length+' de '+cancAll.length:'';
-  // KPIs con desglose por status_cancelacion
+  // KPIs con desglose por status_cancelacion (lista respeta fecha de creación)
   var total=cancFiltered.length;
   var _sc=function(r){return(r.status_cancelacion||'').toLowerCase();};
   var cancelados=cancFiltered.filter(r=>{var s=_sc(r);return s.includes('cancelad')||s.includes('baja');});
   var retenidos=cancFiltered.filter(r=>_sc(r).includes('retenid'));
   var enNego=cancFiltered.filter(r=>{var s=_sc(r);return s.includes('negociac')||s.includes('proceso')||s===''||s.includes('nuevo')||s.includes('pendient')||s.includes('sin atender');});
-  var montoCancelado=cancelados.reduce((a,r)=>a+(Number(r.facturacin_sin_iva)||0),0);
-  var montoRetenido=retenidos.reduce((a,r)=>a+(Number(r.facturacin_sin_iva)||0),0);
-  var montoNego=enNego.reduce((a,r)=>a+(Number(r.facturacin_sin_iva)||0),0);
-  var montoTotal=cancFiltered.reduce((a,r)=>a+(Number(r.facturacin_sin_iva)||0),0);
+  // MONTOS: cuando hay filtro año/mes activo, sumar usando _mes_efectivo (mes que Finanzas verá afectado)
+  var hayFiltroMes=!!fa||!!fm;
+  var canceladosMonto, retenidosMonto, negoMonto;
+  if(hayFiltroMes){
+    // Re-filtrar desde cancAll aplicando todos los filtros menos año/mes, luego mes EFECTIVO
+    var basePool=cancAll.filter(r=>{
+      if(fsc&&r.status_cancelacion!==fsc)return false;
+      if(fv&&r.tipo_de_servicio!==fv)return false;
+      if(q&&!inc(r.folio_ticket,q)&&!inc(r.folio,q)&&!inc(r.nombre_del_cliente_nuevo,q)&&!inc(r.propiedad,q)&&!inc(r.motivo_de_cancelacin,q)&&!inc(r.ejecutivo_asignado,q)&&!inc(r.telefono,q))return false;
+      if(fa&&String(r._anio_efectivo)!==fa)return false;
+      if(fm&&r._mes_efectivo!==fm)return false;
+      return true;
+    });
+    canceladosMonto=basePool.filter(r=>{var s=_sc(r);return s.includes('cancelad')||s.includes('baja');});
+    retenidosMonto =basePool.filter(r=>_sc(r).includes('retenid'));
+    negoMonto      =basePool.filter(r=>{var s=_sc(r);return s.includes('negociac')||s.includes('proceso')||s===''||s.includes('nuevo')||s.includes('pendient')||s.includes('sin atender');});
+  } else {
+    canceladosMonto=cancelados; retenidosMonto=retenidos; negoMonto=enNego;
+  }
+  var montoCancelado=canceladosMonto.reduce((a,r)=>a+(Number(r.facturacin_sin_iva)||0),0);
+  var montoRetenido=retenidosMonto.reduce((a,r)=>a+(Number(r.facturacin_sin_iva)||0),0);
+  var montoNego=negoMonto.reduce((a,r)=>a+(Number(r.facturacin_sin_iva)||0),0);
+  var montoTotal=montoCancelado+montoRetenido+montoNego;
   // ── Metas operativas ──
   var RECURRENCIA_TOTAL = 4600000;          // $4.6M MXN recurrencia mensual
   var META_RETENCION_PCT = 70;              // % retención objetivo
   var META_CHURN_MONTO = RECURRENCIA_TOTAL * 0.01;  // 1% = $46,000 máximo cancelable
-  var totalCerrados = retenidos.length + cancelados.length;
-  var tasaRet = totalCerrados ? Math.round(retenidos.length * 100 / totalCerrados) : 0;
+  var totalCerrados = retenidosMonto.length + canceladosMonto.length;
+  var tasaRet = totalCerrados ? Math.round(retenidosMonto.length * 100 / totalCerrados) : 0;
   var pctMontoVsMeta = META_CHURN_MONTO ? Math.round(montoCancelado * 100 / META_CHURN_MONTO) : 0;
   var colorRet  = tasaRet>=META_RETENCION_PCT?'#059669':(tasaRet>=50?'#d97706':'#dc2626');
   var bgRet     = tasaRet>=META_RETENCION_PCT?'#ecfdf5':(tasaRet>=50?'#fffbeb':'#fef2f2');
@@ -1737,11 +1763,12 @@ function cancApply(){
   var widthRet  = Math.min(tasaRet,100);
   var widthMnt  = Math.min(pctMontoVsMeta,100);
 
+  var sufMonto = hayFiltroMes ? ' · afecta el mes filtrado' : '';
   document.getElementById('canc-kpis').innerHTML=
-    '<div class="kpi c-blue"><div class="bar"></div><div class="lbl">Total Solicitudes</div><div class="sublbl">'+total+' solicitudes · Monto total</div><div class="val">$'+montoTotal.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div></div>'+
-    '<div class="kpi c-red"><div class="bar"></div><div class="lbl">Cancelados</div><div class="sublbl">'+cancelados.length+' solicitudes</div><div class="val">$'+montoCancelado.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div></div>'+
-    '<div class="kpi c-green"><div class="bar"></div><div class="lbl">Retenidos</div><div class="sublbl">'+retenidos.length+' solicitudes</div><div class="val">$'+montoRetenido.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div></div>'+
-    '<div class="kpi c-amber"><div class="bar"></div><div class="lbl">En Negociación</div><div class="sublbl">'+enNego.length+' solicitudes</div><div class="val">$'+montoNego.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div></div>';
+    '<div class="kpi c-blue"><div class="bar"></div><div class="lbl">Total Solicitudes</div><div class="sublbl">'+total+' solicitudes · Monto total'+sufMonto+'</div><div class="val">$'+montoTotal.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div></div>'+
+    '<div class="kpi c-red"><div class="bar"></div><div class="lbl">Cancelados</div><div class="sublbl">'+canceladosMonto.length+' solicitudes'+sufMonto+'</div><div class="val">$'+montoCancelado.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div></div>'+
+    '<div class="kpi c-green"><div class="bar"></div><div class="lbl">Retenidos</div><div class="sublbl">'+retenidosMonto.length+' solicitudes'+sufMonto+'</div><div class="val">$'+montoRetenido.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div></div>'+
+    '<div class="kpi c-amber"><div class="bar"></div><div class="lbl">En Negociación</div><div class="sublbl">'+negoMonto.length+' solicitudes'+sufMonto+'</div><div class="val">$'+montoNego.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div></div>';
 
   // ── Segunda fila: metas operativas con barra de progreso ──
   document.getElementById('canc-metas').innerHTML=
@@ -1752,7 +1779,7 @@ function cancApply(){
       '</div>'+
       '<div style="display:flex;justify-content:space-between;align-items:baseline">'+
         '<span style="font-size:32px;font-weight:800;color:'+colorRet+'">'+tasaRet+'%</span>'+
-        '<span style="font-size:13px;color:var(--text2)">'+retenidos.length+' retenidos de '+totalCerrados+' cerrados</span>'+
+        '<span style="font-size:13px;color:var(--text2)">'+retenidosMonto.length+' retenidos de '+totalCerrados+' cerrados</span>'+
       '</div>'+
       '<div style="margin-top:10px;background:#fff;border-radius:8px;height:10px;overflow:hidden;border:1px solid var(--border)">'+
         '<div style="background:'+colorRet+';width:'+widthRet+'%;height:100%;transition:width .3s"></div>'+
