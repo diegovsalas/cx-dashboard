@@ -42,6 +42,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .btn-clear:hover{background:var(--red-bg);color:var(--red);border-color:#fecaca;}
 .active-filters{font-size:10px;color:var(--blue);font-weight:600;}
 .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:20px;}
+#canc-kpis.kpi-row{grid-template-columns:repeat(5,1fr);}
 .kpi{background:var(--surface);border-radius:10px;padding:18px 20px;border:1px solid var(--border);box-shadow:var(--shadow);position:relative;overflow:hidden;}
 .kpi .bar{position:absolute;top:0;left:0;right:0;height:3px;}
 .kpi .lbl{font-size:11px;font-weight:600;color:var(--text2);}.kpi .sublbl{font-size:10px;color:var(--text3);margin-top:1px;}
@@ -526,6 +527,8 @@ async function loadData(){
         diagnostico_previo_cancelacion:t.diagnostico_previo_cancelacion||'',
         fecha_efectiva_cancelacion:t.fecha_efectiva_cancelacion||null,
         _anio_efectivo:anioEf,_mes_efectivo:mesEf,
+        descripcion_downgrade:t.descripcion_downgrade||'',
+        monto_nuevo_downgrade:t.monto_nuevo_downgrade||null,
         comentarios_de_seguimiento:t.comentarios_de_seguimiento||''
       });
     });
@@ -871,14 +874,38 @@ function regOpenModal(idx){
     h+='<div style="display:flex;align-items:center;gap:12px;margin-top:4px">';
     if(isAdmin()){
       h+='<select class="status-select" id="reg-stcanc-sel" onchange="regChangeStCanc()">';
-      ['Negociacion','Retenida','Cancelada'].forEach(s=>{h+='<option value="'+s+'"'+(curStCanc.toLowerCase()===s.toLowerCase()?' selected':'')+'>'+s+'</option>';});
-      if(curStCanc&&!['negociacion','retenida','cancelada'].includes(curStCanc.toLowerCase())){h+='<option value="'+esc(curStCanc)+'" selected>'+esc(curStCanc)+'</option>';}
+      ['Negociacion','Retenida','Downgrade','Cancelada'].forEach(s=>{h+='<option value="'+s+'"'+(curStCanc.toLowerCase()===s.toLowerCase()?' selected':'')+'>'+s+'</option>';});
+      if(curStCanc&&!['negociacion','retenida','downgrade','cancelada'].includes(curStCanc.toLowerCase())){h+='<option value="'+esc(curStCanc)+'" selected>'+esc(curStCanc)+'</option>';}
       h+='</select>';
       h+='<span class="status-msg" id="reg-stcanc-msg"></span>';
     } else {
       h+=sBadge(curStCanc||'Sin status');
     }
-    h+='</div></div>';
+    h+='</div>';
+    // Campos de Downgrade — visibles si status_cancelacion === 'Downgrade'
+    var dgDesc=r.descripcion_downgrade||'';
+    var dgMonto=r.monto_nuevo_downgrade||'';
+    var dgVisible=(curStCanc||'').toLowerCase()==='downgrade'?'block':'none';
+    h+='<div id="reg-dg-fields" style="display:'+dgVisible+';margin-top:10px;padding:12px;background:#eff6ff;border-radius:8px;border-left:3px solid #2563eb">';
+    h+='<div class="detail-label" style="color:#1e40af;font-weight:700;font-size:11px">🔽 DETALLE DEL DOWNGRADE</div>';
+    if(isAdmin()){
+      h+='<div style="margin-top:8px">';
+      h+='<div class="detail-label" style="font-size:11px">Descripción del cambio</div>';
+      h+='<input class="info-input" id="reg-dg-desc" value="'+esc(dgDesc)+'" placeholder="Ej: De 2 a 1 difusor · Cambio a plan básico" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px">';
+      h+='<div class="detail-label" style="font-size:11px;margin-top:8px">Nuevo importe sin IVA (MXN)</div>';
+      h+='<div style="display:flex;align-items:center;gap:10px;margin-top:4px">';
+      h+='<input type="number" step="0.01" class="info-input" id="reg-dg-monto" value="'+esc(dgMonto)+'" placeholder="900.00" style="flex:1;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px">';
+      h+='<button class="btn-save-comment" id="reg-save-dg" onclick="regSaveDowngrade()"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>';
+      h+='</div>';
+      h+='<span class="status-msg" id="reg-dg-msg" style="font-size:11px"></span>';
+      h+='</div>';
+    } else {
+      if(dgDesc)h+='<div class="detail-val" style="margin-top:6px">'+esc(dgDesc)+'</div>';
+      if(dgMonto)h+='<div class="detail-val"><b>Nuevo importe:</b> $'+Number(dgMonto).toLocaleString("es-MX",{minimumFractionDigits:2})+'</div>';
+      if(!dgDesc&&!dgMonto)h+='<div class="detail-val empty">Sin información de downgrade</div>';
+    }
+    h+='</div>';
+    h+='</div>';
     // ── Retención: diagnóstico previo, oferta y causa raíz ──
     var diagPrev=r.diagnostico_previo_cancelacion||'';
     var oferta=r.oferta_retencion||'';
@@ -1058,6 +1085,9 @@ async function regChangeStCanc(){
       }
     }
     r.status_cancelacion=newVal;
+    // Mostrar/ocultar campos de Downgrade dinámicamente
+    var dgEl=document.getElementById('reg-dg-fields');
+    if(dgEl)dgEl.style.display=(newVal||'').toLowerCase()==='downgrade'?'block':'none';
     msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';_refreshVista();
     setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
   }catch(e){
@@ -1104,6 +1134,38 @@ async function _regSaveCampoCanc(campo,inputId,btnId,msgId){
 async function regSaveOferta(){return _regSaveCampoCanc('oferta_retencion','reg-oferta','reg-save-oferta','reg-oferta-msg');}
 async function regSaveCausaRaizCanc(){return _regSaveCampoCanc('causa_raiz_cancelacion','reg-causa-raiz-canc','reg-save-causaraiz','reg-causaraiz-msg');}
 async function regSaveDiagnosticoPrevio(){return _regSaveCampoCanc('diagnostico_previo_cancelacion','reg-diag-previo','reg-save-diag-previo','reg-diag-previo-msg');}
+
+async function regSaveDowngrade(){
+  var r=regDisplayed[_regModalIdx];if(!r)return;
+  var desc=document.getElementById('reg-dg-desc').value.trim();
+  var monto=parseFloat(document.getElementById('reg-dg-monto').value)||0;
+  var msgEl=document.getElementById('reg-dg-msg');
+  var btn=document.getElementById('reg-save-dg');
+  if(!desc){msgEl.textContent='Describe el cambio.';msgEl.style.color='var(--red)';return;}
+  if(monto<=0){msgEl.textContent='Importe debe ser mayor a 0.';msgEl.style.color='var(--red)';return;}
+  btn.disabled=true;msgEl.textContent='Guardando...';msgEl.style.color='var(--blue)';
+  try{
+    var upd={descripcion_downgrade:desc, monto_nuevo_downgrade:monto, status_cancelacion:'Downgrade'};
+    var isWA=r._source==='whatsapp';
+    if(isWA){
+      var folio=r.folio_ticket||r.folio;
+      const{error}=await sb.from('tickets').update(upd).eq('folio',folio);
+      if(error)throw error;
+      if(r._tk)Object.assign(r._tk,upd);
+    } else {
+      const{error}=await sb.from('base_general').update(upd).eq('id',r.id);
+      if(error)throw error;
+    }
+    r.descripcion_downgrade=desc;
+    r.monto_nuevo_downgrade=monto;
+    r.status_cancelacion='Downgrade';
+    msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';_refreshVista();
+    setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
+  }catch(e){
+    msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
+  }
+  btn.disabled=false;
+}
 async function regSaveFechaEfectiva(){
   var r=regDisplayed[_regModalIdx];if(!r)return;
   var newVal=document.getElementById('reg-fecha-efectiva').value||null;
@@ -1725,10 +1787,11 @@ function cancApply(){
   var _sc=function(r){return(r.status_cancelacion||'').toLowerCase();};
   var cancelados=cancFiltered.filter(r=>{var s=_sc(r);return s.includes('cancelad')||s.includes('baja');});
   var retenidos=cancFiltered.filter(r=>_sc(r).includes('retenid'));
+  var downgrades=cancFiltered.filter(r=>_sc(r).includes('downgrade'));
   var enNego=cancFiltered.filter(r=>{var s=_sc(r);return s.includes('negociac')||s.includes('proceso')||s===''||s.includes('nuevo')||s.includes('pendient')||s.includes('sin atender');});
   // MONTOS: cuando hay filtro año/mes activo, sumar usando _mes_efectivo (mes que Finanzas verá afectado)
   var hayFiltroMes=!!fa||!!fm;
-  var canceladosMonto, retenidosMonto, negoMonto;
+  var canceladosMonto, retenidosMonto, negoMonto, downgradesMonto;
   if(hayFiltroMes){
     // Re-filtrar desde cancAll aplicando todos los filtros menos año/mes, luego mes EFECTIVO
     var basePool=cancAll.filter(r=>{
@@ -1741,21 +1804,32 @@ function cancApply(){
     });
     canceladosMonto=basePool.filter(r=>{var s=_sc(r);return s.includes('cancelad')||s.includes('baja');});
     retenidosMonto =basePool.filter(r=>_sc(r).includes('retenid'));
+    downgradesMonto=basePool.filter(r=>_sc(r).includes('downgrade'));
     negoMonto      =basePool.filter(r=>{var s=_sc(r);return s.includes('negociac')||s.includes('proceso')||s===''||s.includes('nuevo')||s.includes('pendient')||s.includes('sin atender');});
   } else {
-    canceladosMonto=cancelados; retenidosMonto=retenidos; negoMonto=enNego;
+    canceladosMonto=cancelados; retenidosMonto=retenidos; negoMonto=enNego; downgradesMonto=downgrades;
   }
   var montoCancelado=canceladosMonto.reduce((a,r)=>a+(Number(r.facturacin_sin_iva)||0),0);
   var montoRetenido=retenidosMonto.reduce((a,r)=>a+(Number(r.facturacin_sin_iva)||0),0);
+  // Downgrade: el monto PERDIDO = original (facturacin_sin_iva) - nuevo (monto_nuevo_downgrade)
+  var montoDowngradePerdido=downgradesMonto.reduce((a,r)=>{
+    var orig=Number(r.facturacin_sin_iva)||0;
+    var nuevo=Number(r.monto_nuevo_downgrade)||0;
+    return a+Math.max(0,orig-nuevo);
+  },0);
   var montoNego=negoMonto.reduce((a,r)=>a+(Number(r.facturacin_sin_iva)||0),0);
-  var montoTotal=montoCancelado+montoRetenido+montoNego;
+  var montoTotal=montoCancelado+montoRetenido+montoNego+downgradesMonto.reduce((a,r)=>a+(Number(r.facturacin_sin_iva)||0),0);
   // ── Metas operativas ──
   var RECURRENCIA_TOTAL = 4600000;          // $4.6M MXN recurrencia mensual
   var META_RETENCION_PCT = 70;              // % retención objetivo
   var META_CHURN_MONTO = RECURRENCIA_TOTAL * 0.01;  // 1% = $46,000 máximo cancelable
-  var totalCerrados = retenidosMonto.length + canceladosMonto.length;
-  var tasaRet = totalCerrados ? Math.round(retenidosMonto.length * 100 / totalCerrados) : 0;
-  var pctMontoVsMeta = META_CHURN_MONTO ? Math.round(montoCancelado * 100 / META_CHURN_MONTO) : 0;
+  // Downgrades cuentan como RETENIDOS para la tasa de retención (el cliente se queda)
+  var retenidosTotales = retenidosMonto.length + downgradesMonto.length;
+  var totalCerrados = retenidosTotales + canceladosMonto.length;
+  var tasaRet = totalCerrados ? Math.round(retenidosTotales * 100 / totalCerrados) : 0;
+  // Churn vs Meta: suma cancelados completos + monto PERDIDO en downgrades
+  var churnTotal = montoCancelado + montoDowngradePerdido;
+  var pctMontoVsMeta = META_CHURN_MONTO ? Math.round(churnTotal * 100 / META_CHURN_MONTO) : 0;
   var colorRet  = tasaRet>=META_RETENCION_PCT?'#059669':(tasaRet>=50?'#d97706':'#dc2626');
   var bgRet     = tasaRet>=META_RETENCION_PCT?'#ecfdf5':(tasaRet>=50?'#fffbeb':'#fef2f2');
   var colorMnt  = pctMontoVsMeta<80?'#059669':(pctMontoVsMeta<100?'#d97706':'#dc2626');
@@ -1765,9 +1839,10 @@ function cancApply(){
 
   var sufMonto = hayFiltroMes ? ' · afecta el mes filtrado' : '';
   document.getElementById('canc-kpis').innerHTML=
-    '<div class="kpi c-blue"><div class="bar"></div><div class="lbl">Total Solicitudes</div><div class="sublbl">'+total+' solicitudes · Monto total'+sufMonto+'</div><div class="val">$'+montoTotal.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div></div>'+
+    '<div class="kpi c-blue"><div class="bar"></div><div class="lbl">Total Solicitudes</div><div class="sublbl">'+total+' · Monto total'+sufMonto+'</div><div class="val">$'+montoTotal.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div></div>'+
     '<div class="kpi c-red"><div class="bar"></div><div class="lbl">Cancelados</div><div class="sublbl">'+canceladosMonto.length+' solicitudes'+sufMonto+'</div><div class="val">$'+montoCancelado.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div></div>'+
     '<div class="kpi c-green"><div class="bar"></div><div class="lbl">Retenidos</div><div class="sublbl">'+retenidosMonto.length+' solicitudes'+sufMonto+'</div><div class="val">$'+montoRetenido.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div></div>'+
+    '<div class="kpi" style="border-top:3px solid #2563eb"><div class="lbl" style="color:#1e40af">🔽 Downgrades</div><div class="sublbl">'+downgradesMonto.length+' · monto perdido</div><div class="val" style="color:#1e40af">$'+montoDowngradePerdido.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div></div>'+
     '<div class="kpi c-amber"><div class="bar"></div><div class="lbl">En Negociación</div><div class="sublbl">'+negoMonto.length+' solicitudes'+sufMonto+'</div><div class="val">$'+montoNego.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div></div>';
 
   // ── Segunda fila: metas operativas con barra de progreso ──
@@ -1779,7 +1854,7 @@ function cancApply(){
       '</div>'+
       '<div style="display:flex;justify-content:space-between;align-items:baseline">'+
         '<span style="font-size:32px;font-weight:800;color:'+colorRet+'">'+tasaRet+'%</span>'+
-        '<span style="font-size:13px;color:var(--text2)">'+retenidosMonto.length+' retenidos de '+totalCerrados+' cerrados</span>'+
+        '<span style="font-size:13px;color:var(--text2)">'+retenidosTotales+' retenidos (incl. downgrades) de '+totalCerrados+' cerrados</span>'+
       '</div>'+
       '<div style="margin-top:10px;background:#fff;border-radius:8px;height:10px;overflow:hidden;border:1px solid var(--border)">'+
         '<div style="background:'+colorRet+';width:'+widthRet+'%;height:100%;transition:width .3s"></div>'+
@@ -1795,7 +1870,7 @@ function cancApply(){
       '</div>'+
       '<div style="display:flex;justify-content:space-between;align-items:baseline">'+
         '<span style="font-size:32px;font-weight:800;color:'+colorMnt+'">'+pctMontoVsMeta+'%</span>'+
-        '<span style="font-size:13px;color:var(--text2)">$'+montoCancelado.toLocaleString('es-MX',{minimumFractionDigits:0})+' de $'+META_CHURN_MONTO.toLocaleString('es-MX')+'</span>'+
+        '<span style="font-size:13px;color:var(--text2)">$'+churnTotal.toLocaleString('es-MX',{minimumFractionDigits:0})+' de $'+META_CHURN_MONTO.toLocaleString('es-MX')+(montoDowngradePerdido>0?' (incl. $'+montoDowngradePerdido.toLocaleString('es-MX',{minimumFractionDigits:0})+' por downgrades)':'')+'</span>'+
       '</div>'+
       '<div style="margin-top:10px;background:#fff;border-radius:8px;height:10px;overflow:hidden;border:1px solid var(--border)">'+
         '<div style="background:'+colorMnt+';width:'+widthMnt+'%;height:100%;transition:width .3s"></div>'+
@@ -2144,7 +2219,7 @@ async function _refreshRegistroFresco(r){
     if(isWA){
       const folio=r.folio_ticket||r.folio;
       if(!folio)return;
-      const{data,error}=await sb.from('tickets').select('comentarios_de_seguimiento,status_cancelacion,estatus,categoria,subtipo,diagnostico,causa_raiz,oferta_retencion,causa_raiz_cancelacion,diagnostico_previo_cancelacion,fecha_efectiva_cancelacion').eq('folio',folio).maybeSingle();
+      const{data,error}=await sb.from('tickets').select('comentarios_de_seguimiento,status_cancelacion,estatus,categoria,subtipo,diagnostico,causa_raiz,oferta_retencion,causa_raiz_cancelacion,diagnostico_previo_cancelacion,fecha_efectiva_cancelacion,descripcion_downgrade,monto_nuevo_downgrade').eq('folio',folio).maybeSingle();
       if(error||!data)return;
       fresco=data;
     }else if(r.id){
@@ -2204,7 +2279,7 @@ function descargarCSV(filename, rows, columnas){
   setTimeout(function(){URL.revokeObjectURL(url);}, 100);
 }
 function descargarCancelaciones(){
-  var cols = ['folio','fecha_de_la_solicitud','fecha_efectiva_cancelacion','nombre_del_cliente_nuevo','propiedad','tipo_de_servicio','motivo_de_cancelacin','submotvio_canc','facturacin_sin_iva','status_cancelacion','ejecutivo_asignado','tipo_de_solicitud','telefono','mensaje','diagnostico_previo_cancelacion','oferta_retencion','causa_raiz_cancelacion','correo','zona','comentarios_de_seguimiento'];
+  var cols = ['folio','fecha_de_la_solicitud','fecha_efectiva_cancelacion','nombre_del_cliente_nuevo','propiedad','tipo_de_servicio','motivo_de_cancelacin','submotvio_canc','facturacin_sin_iva','status_cancelacion','descripcion_downgrade','monto_nuevo_downgrade','ejecutivo_asignado','tipo_de_solicitud','telefono','mensaje','diagnostico_previo_cancelacion','oferta_retencion','causa_raiz_cancelacion','correo','zona','comentarios_de_seguimiento'];
   descargarCSV('Avantex_Cancelaciones_{fecha}.csv', cancFiltered, cols);
 }
 function descargarTicketsWA(){
