@@ -883,6 +883,25 @@ function regOpenModal(idx){
     h+=sBadge(curStatus||'Sin status');
   }
   h+='</div></div>';
+  // Reclasificar tipo de solicitud — admin only
+  if(isAdmin()){
+    var isWA=r._source==='whatsapp';
+    var curTS=r.tipo_de_solicitud||'';
+    var tsOpts=isWA
+      ? ['Ticket WhatsApp','Solicitud de Cancelación']
+      : ['Incidencia / Queja /','Solicitud de Cancelación','Otras Solicitudes','Sin clasificar'];
+    h+='<div class="detail-item full" style="background:var(--surface2);padding:14px;border-radius:6px;margin-bottom:8px;border:1px solid var(--border)">';
+    h+='<div class="detail-label">Reclasificar tipo de solicitud</div>';
+    h+='<div style="display:flex;align-items:center;gap:12px;margin-top:4px">';
+    h+='<select class="status-select" id="reg-ts-sel" onchange="regChangeTipoSolicitud()">';
+    tsOpts.forEach(s=>{h+='<option value="'+esc(s)+'"'+(curTS===s?' selected':'')+'>'+esc(s)+'</option>';});
+    if(curTS&&!tsOpts.includes(curTS)){h+='<option value="'+esc(curTS)+'" selected>'+esc(curTS)+' (actual)</option>';}
+    h+='</select>';
+    h+='<span class="status-msg" id="reg-ts-msg"></span>';
+    h+='</div>';
+    h+='<div style="font-size:11px;color:var(--text3);margin-top:6px">Cambia la categoría del registro. Útil cuando un ticket fue mal clasificado.</div>';
+    h+='</div>';
+  }
   // Monto de cancelación si aplica
   if(isCancelacion){
     var montoVal=r.facturacin_sin_iva!=null?Number(r.facturacin_sin_iva):0;
@@ -1718,6 +1737,60 @@ async function regSaveMonto(){
   }
 }
 
+async function regChangeTipoSolicitud(){
+  var r=regDisplayed[_regModalIdx];if(!r)return;
+  var newTS=document.getElementById('reg-ts-sel').value;
+  var msgEl=document.getElementById('reg-ts-msg');
+  if(newTS===r.tipo_de_solicitud){return;}
+  if(!confirm('¿Reclasificar este registro como "'+newTS+'"?\nEsto afecta los conteos en Dashboard y tabs.')){
+    document.getElementById('reg-ts-sel').value=r.tipo_de_solicitud||'';
+    return;
+  }
+  msgEl.textContent='Guardando...';msgEl.style.color='var(--blue)';
+  try{
+    var isWA=r._source==='whatsapp';
+    if(isWA){
+      // En tickets se persiste cambiando el campo `tipo` para que la lógica `includes(cancelac)` siga funcionando
+      var folio=r.folio_ticket||r.folio;
+      if(!folio)throw new Error('Sin folio para identificar el ticket');
+      var nuevoTipo;
+      var upd={};
+      if(newTS==='Solicitud de Cancelación'){
+        nuevoTipo='Solicitud de Cancelación';
+        upd.tipo=nuevoTipo;
+        // Si no tiene status_cancelacion previo, dejarlo en 'En proceso' por default
+        if(!r.status_cancelacion)upd.status_cancelacion='En proceso';
+      } else {
+        // Restaurar a tipo de incidencia normal — usar tipo_de_incidencia si existe, sino 'Otro'
+        nuevoTipo=r.tipo_de_incidencia||'Otro';
+        upd.tipo=nuevoTipo;
+        // Limpiar campos específicos de cancelación
+        upd.status_cancelacion=null;
+      }
+      const{error}=await sb.from('tickets').update(upd).eq('folio',folio);
+      if(error)throw error;
+      // Actualizar memoria
+      if(r._tk){r._tk.tipo=nuevoTipo;if('status_cancelacion' in upd)r._tk.status_cancelacion=upd.status_cancelacion;}
+      r.tipo_de_solicitud=newTS;
+      r.tipo_de_incidencia=nuevoTipo;
+      if(newTS!=='Solicitud de Cancelación')r.status_cancelacion='';
+    } else {
+      // base_general: campo directo
+      var id=r.id;
+      if(!id)throw new Error('Sin ID para identificar el registro');
+      const{error}=await sb.from('base_general').update({tipo_de_solicitud:newTS}).eq('id',id);
+      if(error)throw error;
+      r.tipo_de_solicitud=newTS;
+    }
+    msgEl.textContent='✓ Reclasificado';msgEl.style.color='var(--green)';
+    setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
+    _refreshVista();
+  }catch(e){
+    msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
+    document.getElementById('reg-ts-sel').value=r.tipo_de_solicitud||'';
+  }
+}
+
 async function regChangeStatus(){
   var r=regDisplayed[_regModalIdx];if(!r)return;
   var newStatus=document.getElementById('reg-status-sel').value;
@@ -2072,6 +2145,21 @@ function tkOpenModal(idx){
   h+='</select>';
   h+='<span class="status-msg" id="tk-zona-msg"></span>';
   h+='</div></div>';
+  // Reclasificar tipo — admin only
+  if(isAdmin()){
+    var esCancActual=(r.tipo||'').toLowerCase().includes('cancelac');
+    var tsActual=esCancActual?'Solicitud de Cancelación':'Ticket WhatsApp';
+    h+='<div class="detail-item full" style="background:var(--surface2);padding:14px;border-radius:6px;margin-bottom:8px;border:1px solid var(--border)">';
+    h+='<div class="detail-label">Reclasificar tipo de solicitud</div>';
+    h+='<div style="display:flex;align-items:center;gap:12px;margin-top:4px">';
+    h+='<select class="status-select" id="tk-ts-sel" onchange="tkChangeTipoSolicitud()">';
+    ['Ticket WhatsApp','Solicitud de Cancelación'].forEach(s=>{h+='<option value="'+esc(s)+'"'+(tsActual===s?' selected':'')+'>'+esc(s)+'</option>';});
+    h+='</select>';
+    h+='<span class="status-msg" id="tk-ts-msg"></span>';
+    h+='</div>';
+    h+='<div style="font-size:11px;color:var(--text3);margin-top:6px">Mueve este ticket entre los tabs "Ticket WhatsApp" y "Solicitud de Cancelación".</div>';
+    h+='</div>';
+  }
   fields.forEach(f=>{
     h+='<div class="detail-item'+(f.full?' full':'')+'">';
     h+='<div class="detail-label">'+f.l+'</div>';
@@ -2128,6 +2216,45 @@ async function tkChangeStatus(){
     if(match)match.status=newStatus;
     msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';_refreshVista();
     setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
+  }catch(e){
+    msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
+  }
+}
+
+async function tkChangeTipoSolicitud(){
+  var r=tkFiltered[_tkModalIdx];if(!r)return;
+  var newTS=document.getElementById('tk-ts-sel').value;
+  var msgEl=document.getElementById('tk-ts-msg');
+  var esCancActual=(r.tipo||'').toLowerCase().includes('cancelac');
+  var actualTS=esCancActual?'Solicitud de Cancelación':'Ticket WhatsApp';
+  if(newTS===actualTS){return;}
+  if(!confirm('¿Reclasificar este ticket como "'+newTS+'"?')){
+    document.getElementById('tk-ts-sel').value=actualTS;return;
+  }
+  msgEl.textContent='Guardando...';msgEl.style.color='var(--blue)';
+  try{
+    var upd={};
+    if(newTS==='Solicitud de Cancelación'){
+      upd.tipo='Solicitud de Cancelación';
+      if(!r.status_cancelacion)upd.status_cancelacion='En proceso';
+    } else {
+      // Restaurar a tipo de incidencia normal
+      upd.tipo=r.categoria||'Otro';
+      upd.status_cancelacion=null;
+    }
+    const{error}=await sb.from('tickets').update(upd).eq('folio',r.folio);
+    if(error)throw error;
+    r.tipo=upd.tipo;
+    if('status_cancelacion' in upd)r.status_cancelacion=upd.status_cancelacion;
+    // Refrescar también el mapeo virtual en allData
+    var mirrored=allData.find(x=>x._source==='whatsapp'&&(x.folio_ticket===r.folio||x.folio===r.folio));
+    if(mirrored){
+      mirrored.tipo_de_solicitud=newTS;
+      mirrored.status_cancelacion=upd.status_cancelacion||'';
+    }
+    msgEl.textContent='✓ Reclasificado';msgEl.style.color='var(--green)';
+    setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
+    _refreshVista();
   }catch(e){
     msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
   }
