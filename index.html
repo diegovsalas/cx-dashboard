@@ -421,10 +421,13 @@ let allData=[],filtered=[],user=null,curPage='dashboard',chartInstances={},tblPg
 const ADMIN_EMAILS=['servicioalcliente@grupoavantex.com','diegovelazquez@grupoavantex.com'];
 // Usuarios solo-consulta que SÍ pueden escalar casos por correo (visibilidad operativa)
 const ESCALATE_EMAILS=['nallelygallegos@grupoavantex.com'];
+// Usuarios que solo ven datos de Aromatex (Soporte Aromatex)
+const AROMATEX_EMAILS=['rubimontoya@grupoavantex.com'];
 function _refreshVista(){if(curPage==='cancelaciones')cancApply();else if(curPage==='registros')renderRegistros();else if(curPage==='tickets')tkApply();else applyFilters();}
 const SUPERADMIN_EMAIL='diegovelazquez@grupoavantex.com';
 function isAdmin(){return user&&ADMIN_EMAILS.includes(user.email.toLowerCase());}
 function isSuperAdmin(){return user&&user.email.toLowerCase()===SUPERADMIN_EMAIL;}
+function isAromatex(){return user&&AROMATEX_EMAILS.includes(user.email.toLowerCase());}
 function puedeEscalar(){return user&&(isAdmin()||ESCALATE_EMAILS.includes(user.email.toLowerCase()));}
 const LIM=50;
 const PAL=['#2563eb','#059669','#d97706','#dc2626','#7c3aed','#ec4899','#0891b2','#65a30d','#ea580c','#6366f1','#14b8a6','#e11d48'];
@@ -453,7 +456,13 @@ async function enterApp(){
   if(chatLink)chatLink.style.display=isAdmin()?'':'none';
   var cmpLink=document.getElementById('link-campanias');
   if(cmpLink)cmpLink.style.display=isAdmin()?'':'none';
+  // Rubi (Aromatex) solo ve Dashboard + Tickets — ocultar histórico, cancelaciones, registros
+  if(isAromatex()){
+    ['cancelaciones','registros'].forEach(p=>{var el=document.querySelector('.nav-link[data-page="'+p+'"]');if(el)el.style.display='none';});
+  }
   await loadData();buildFilters();applyFilters();
+  // Rubi entra directo en Tickets (sin home)
+  if(isAromatex())goPage('tickets');
   _iniciarPollingDatos();
 }
 
@@ -462,10 +471,13 @@ function _normMes(m){if(!m)return'';var k=m.trim().toLowerCase();return _mesMap[
 
 async function loadData(){
   allData=[];let off=0;
-  while(true){
-    const{data,error}=await sb.from('base_general').select('*').order('id',{ascending:true}).range(off,off+999);
-    if(error)throw new Error(error.message);if(!data.length)break;
-    allData.push(...data);if(data.length<1000)break;off+=1000;
+  // Rubi (Aromatex) NO ve histórico de base_general — solo tickets WA del canal aromatex
+  if(!isAromatex()){
+    while(true){
+      const{data,error}=await sb.from('base_general').select('*').order('id',{ascending:true}).range(off,off+999);
+      if(error)throw new Error(error.message);if(!data.length)break;
+      allData.push(...data);if(data.length<1000)break;off+=1000;
+    }
   }
   allData.forEach(r=>{
     r._source='base_general';
@@ -489,9 +501,16 @@ async function loadData(){
     }
   });
   // Cargar tickets WhatsApp y mapear a campos unificados
+  // Filtro por canal según rol del usuario:
+  //   - Rubi (Aromatex) → solo canal_origen='aromatex'
+  //   - Usuarios CX (no admin) → solo canal_origen='cx' (excluyen Aromatex)
+  //   - Admins → todos
   let tOff=0;
   while(true){
-    const{data,error}=await sb.from('tickets').select('*').order('created_at',{ascending:false}).range(tOff,tOff+999);
+    let q=sb.from('tickets').select('*').order('created_at',{ascending:false}).range(tOff,tOff+999);
+    if(isAromatex())q=q.eq('canal_origen','aromatex');
+    else if(!isAdmin())q=q.eq('canal_origen','cx');
+    const{data,error}=await q;
     if(error){console.error('Error loading tickets:',error.message);break;}
     if(!data.length)break;
     data.forEach(t=>{
@@ -513,7 +532,7 @@ async function loadData(){
         if(!isNaN(ms)&&ms>=0)trDias=+(ms/86400000).toFixed(1);
       }
       allData.push({
-        _source:'whatsapp',_tk:t,
+        _source:'whatsapp',_tk:t,_canal:t.canal_origen||'cx',
         folio_ticket:t.folio,folio:t.folio,
         fecha_de_la_solicitud:fd.slice(0,10),
         nombre_del_cliente_nuevo:t.nombre,
@@ -778,7 +797,7 @@ function renderRegistros(){
   pg.forEach((r,i)=>{
     var idx=tblPg*LIM+i;
     h+='<tr class="tk-row" onclick="regOpenModal('+idx+')">';
-    cs.forEach(c=>{var v=r[c.k];if(v==null||String(v).trim()===''){h+='<td class="null-v">—</td>';return;}v=String(v);if(c.k==='status'){h+='<td>'+sBadge(v)+'</td>';return;}if(c.k==='_source'){h+=v==='whatsapp'?'<td><span class="badge bb">📱 WhatsApp</span></td>':'<td><span class="badge" style="background:var(--surface2);color:var(--text3)">📁 Histórico</span></td>';return;}h+='<td>'+esc(trn(v,26))+'</td>';});
+    cs.forEach(c=>{var v=r[c.k];if(v==null||String(v).trim()===''){h+='<td class="null-v">—</td>';return;}v=String(v);if(c.k==='status'){h+='<td>'+sBadge(v)+'</td>';return;}if(c.k==='_source'){var bdg;if(v==='whatsapp'){bdg=r._canal==='aromatex'?'<span class="badge" style="background:rgba(13,85,71,.15);color:#5eead4;border:1px solid rgba(13,85,71,.4)">🌿 Aromatex</span>':'<span class="badge bb">📱 WhatsApp</span>';}else{bdg='<span class="badge" style="background:var(--surface2);color:var(--text3)">📁 Histórico</span>';}h+='<td>'+bdg+'</td>';return;}h+='<td>'+esc(trn(v,26))+'</td>';});
     h+='</tr>';
   });
   h+='</tbody></table></div><div class="pag"><span>'+(data.length?tblPg*LIM+1+'–'+Math.min((tblPg+1)*LIM,data.length)+' de '+data.length:'')+'</span><div class="pag-btns"><button class="pbtn" '+(tblPg===0?'disabled':'')+' onclick="tblPg--;renderRegistros()">← Anterior</button><span style="padding:0 6px">'+(tp?tblPg+1+'/'+tp:'')+'</span><button class="pbtn" '+(tblPg>=tp-1?'disabled':'')+' onclick="tblPg++;renderRegistros()">Siguiente →</button></div></div></div>';
