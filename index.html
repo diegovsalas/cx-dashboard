@@ -175,6 +175,7 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
 <a class="nav-link" data-page="cancelaciones" onclick="goPage('cancelaciones')">Cancelaciones</a>
 <a class="nav-link" data-page="tickets" onclick="goPage('tickets')">Tickets</a>
 <a class="nav-link" id="link-campanias" data-page="campanias" onclick="goPage('campanias')">Campañas</a>
+<a class="nav-link" id="link-permisos" data-page="permisos" onclick="goPage('permisos')">Permisos</a>
 <a class="nav-link" id="link-chat-agentes" href="https://avantex-bot.onrender.com/dashboard" target="_blank" style="margin-left:8px">Chat agentes ↗</a>
 </div>
 <div class="nav-right">
@@ -398,6 +399,60 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
   </div>
 </div>
 </div>
+
+<div class="page-content" id="page-permisos" style="display:none">
+<div style="margin-bottom:16px;"><h2 style="font-size:22px;font-weight:800;"><i class="fa-solid fa-envelope-circle-check" style="color:#2563eb"></i> Envío de Permisos</h2><p style="font-size:13px;color:var(--text2);margin-top:4px;">Solicitudes de acceso por zona a clientes, con INE de técnicos adjunto</p></div>
+
+<div class="tbl-card" style="margin-bottom:16px">
+  <div style="display:grid;grid-template-columns:1.3fr 1fr 1fr;gap:12px">
+    <div>
+      <label style="font-size:11px;color:var(--text2);text-transform:uppercase;font-weight:600">Cliente</label>
+      <select id="perm-cliente" onchange="permClienteChange()" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text)"></select>
+    </div>
+    <div>
+      <label style="font-size:11px;color:var(--text2);text-transform:uppercase;font-weight:600">Texto de la semana / fechas</label>
+      <input type="text" id="perm-fecha" placeholder="Del 03/02/2026 al 06/02/2026" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text)">
+    </div>
+    <div>
+      <label style="font-size:11px;color:var(--text2);text-transform:uppercase;font-weight:600">Horario (opcional)</label>
+      <input type="text" id="perm-horario" placeholder="(usa el de cada sucursal)" style="width:100%;padding:8px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text)">
+    </div>
+  </div>
+</div>
+
+<div class="tbl-card">
+  <div class="filter-bar" style="flex-wrap:wrap">
+    <select id="perm-zona" onchange="permRender()" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text)"><option value="">Todas las zonas</option></select>
+    <input class="tbl-search" id="perm-buscar" placeholder="Buscar sucursal o #..." oninput="permRender()" style="min-width:200px">
+    <select id="perm-tec-bulk" style="padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:var(--surface);color:var(--text)"></select>
+    <button class="btn-clear" onclick="permAplicarTec()">+ Asignar a seleccionadas</button>
+    <span class="active-filters" id="perm-warn" style="color:#dc2626"></span>
+  </div>
+  <div class="tbl-header">
+    <h3 id="perm-count">0 seleccionadas</h3>
+    <div style="display:flex;gap:10px;align-items:center">
+      <label style="font-size:12px;color:var(--text2)"><input type="checkbox" id="perm-selall" onclick="permSelAll(this)"> Seleccionar visible</label>
+      <button class="btn-clear" onclick="permPreview()"><i class="fa-solid fa-eye"></i> Vista previa</button>
+      <button onclick="permEnviar()" style="background:var(--accent);color:#0a0a0a;border:none;padding:7px 16px;border-radius:6px;font-size:13px;font-weight:700;cursor:pointer"><i class="fa-solid fa-paper-plane"></i> Enviar permisos</button>
+    </div>
+  </div>
+  <div class="tbl-scroll" style="max-height:520px"><table class="dt"><thead><tr>
+    <th style="width:34px"></th><th>#Suc</th><th>Sucursal</th><th>Zona</th><th>Solicitante</th><th style="min-width:240px">Técnicos (coma)</th>
+  </tr></thead><tbody id="perm-tbody"><tr><td colspan="6" style="text-align:center;color:var(--text2);padding:20px">Selecciona un cliente…</td></tr></tbody></table></div>
+</div>
+
+<div class="tbl-card" id="perm-result-card" style="display:none;margin-top:16px">
+  <div class="tbl-header"><h3>Resultado del envío</h3></div>
+  <div id="perm-results"></div>
+</div>
+</div>
+</div>
+</div>
+
+<div class="modal-overlay" id="perm-modal" onclick="if(event.target===this)permCerrarModal()">
+<div class="modal" style="max-width:900px">
+<div class="modal-head"><h2>Vista previa del correo</h2><button class="modal-close" onclick="permCerrarModal()">&times;</button></div>
+<div class="modal-body" id="perm-modal-body"></div>
 </div>
 </div>
 
@@ -456,6 +511,8 @@ async function enterApp(){
   if(chatLink)chatLink.style.display=isAdmin()?'':'none';
   var cmpLink=document.getElementById('link-campanias');
   if(cmpLink)cmpLink.style.display=isAdmin()?'':'none';
+  var permLink=document.getElementById('link-permisos');
+  if(permLink)permLink.style.display=isAdmin()?'':'none';
   // Rubi (Aromatex) solo ve Dashboard + Tickets — ocultar histórico, cancelaciones, registros
   if(isAromatex()){
     ['cancelaciones','registros'].forEach(p=>{var el=document.querySelector('.nav-link[data-page="'+p+'"]');if(el)el.style.display='none';});
@@ -569,15 +626,17 @@ async function loadData(){
 }
 
 function goPage(p){
-  // Restricción: Campañas solo para admins
+  // Restricción: Campañas y Permisos solo para admins
   if(p==='campanias'&&!isAdmin()){p='home';}
+  if(p==='permisos'&&!isAdmin()){p='home';}
   curPage=p;
   document.querySelectorAll('.nav-link').forEach(el=>{el.classList.toggle('on',el.dataset.page===p);});
-  ['home','dashboard','registros','cancelaciones','tickets','campanias'].forEach(pg=>{document.getElementById('page-'+pg).style.display=pg===p?'':'none';});
+  ['home','dashboard','registros','cancelaciones','tickets','campanias','permisos'].forEach(pg=>{document.getElementById('page-'+pg).style.display=pg===p?'':'none';});
   if(p==='registros'){tblPg=0;renderRegistros();}
   if(p==='cancelaciones')loadCancelaciones();
   if(p==='tickets')loadTickets();
   if(p==='campanias'){cmpCargarHistorial();_cmpRenderPreview();}
+  if(p==='permisos')permInit();
 }
 
 function buildFilters(){['filters-dash','filters-reg'].forEach(id=>buildFB(id));}
@@ -2472,6 +2531,135 @@ function descargarRegistros(){
             'status_cancelacion','motivo_de_cancelacin','facturacin_sin_iva',
             'fecha_efectiva_cancelacion','monto_nuevo_downgrade','descripcion_downgrade'];
   descargarCSV('Avantex_Registros_{fecha}.csv', data, cols);
+}
+
+/* ═══════════════ MÓDULO: ENVÍO DE PERMISOS ═══════════════ */
+const PERM_FN_URL = SUPABASE_URL + '/functions/v1/enviar-permisos';
+let permSucursales = [], permTecnicos = [], permTecSet = new Set(), permLoaded = false;
+
+async function permAuthHeaders(){
+  const { data:{ session } } = await sb.auth.getSession();
+  const token = (session && session.access_token) || SUPABASE_ANON_KEY;
+  return { 'apikey': SUPABASE_ANON_KEY, 'Authorization': 'Bearer ' + token, 'Content-Type': 'application/json' };
+}
+
+async function permInit(){
+  if(permLoaded) return;
+  permLoaded = true;
+  const r = await sb.from('cs_accounts').select('id,nombre').order('nombre');
+  if(r.error){ alert('Error cargando clientes: '+r.error.message); return; }
+  document.getElementById('perm-cliente').innerHTML =
+    '<option value="">— Selecciona cliente —</option>' +
+    r.data.map(a=>`<option value="${a.id}">${a.nombre}</option>`).join('');
+}
+
+async function permClienteChange(){
+  const accId = document.getElementById('perm-cliente').value;
+  const tbody = document.getElementById('perm-tbody');
+  if(!accId){ permSucursales=[]; tbody.innerHTML=''; return; }
+  tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:20px">Cargando…</td></tr>';
+  const [rs, rt] = await Promise.all([
+    sb.from('cs_permisos_sucursales').select('id,suc_id,nombre,solicitante,zona,horario,tipo,tecnicos_default').eq('account_id',accId).order('zona').order('nombre'),
+    sb.from('cs_tecnicos').select('nombre,ine_url,account_id,activo').or('account_id.eq.'+accId+',account_id.is.null').order('nombre')
+  ]);
+  if(rs.error){ tbody.innerHTML='<tr><td colspan="6" style="padding:20px;color:#dc2626">'+rs.error.message+'</td></tr>'; return; }
+  permTecnicos = (rt.data||[]).filter(t=>t.activo!==false);
+  permTecSet = new Set(permTecnicos.filter(t=>t.ine_url).map(t=>(t.nombre||'').trim()));
+  permSucursales = (rs.data||[]).map(s=>({ ...s, tecnicos:(s.tecnicos_default||'').split(',').map(x=>x.trim()).filter(Boolean), sel:false }));
+  const zonas = [...new Set(permSucursales.map(s=>s.zona).filter(Boolean))].sort();
+  document.getElementById('perm-zona').innerHTML = '<option value="">Todas las zonas</option>'+zonas.map(z=>`<option value="${z}">${z}</option>`).join('');
+  document.getElementById('perm-tec-bulk').innerHTML = '<option value="">— Técnico —</option>'+permTecnicos.map(t=>`<option value="${t.nombre}">${t.nombre}${t.ine_url?'':' (sin INE)'}</option>`).join('');
+  permRender();
+}
+
+function permFiltradas(){
+  const z = document.getElementById('perm-zona').value;
+  const q = document.getElementById('perm-buscar').value.trim().toLowerCase();
+  return permSucursales.filter(s=>(!z||s.zona===z)&&(!q||(s.nombre||'').toLowerCase().includes(q)||(s.suc_id||'').toLowerCase().includes(q)));
+}
+function permEsc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+function permRender(){
+  const tbody = document.getElementById('perm-tbody');
+  const list = permFiltradas();
+  if(!list.length){ tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:20px">Sin sucursales.</td></tr>'; permContador(); return; }
+  tbody.innerHTML = list.map(s=>`<tr>
+    <td><input type="checkbox" ${s.sel?'checked':''} onchange="permToggle('${s.id}',this.checked)"></td>
+    <td>${permEsc(s.suc_id)}</td>
+    <td style="font-weight:600">${permEsc(s.nombre)}</td>
+    <td><span style="background:#e8f1fb;color:#1155cc;border-radius:4px;padding:2px 8px;font-size:11px;font-weight:600">${permEsc(s.zona)||'—'}</span></td>
+    <td>${permEsc(s.solicitante)}</td>
+    <td><input type="text" value="${permEsc((s.tecnicos||[]).join(', '))}" oninput="permSetTec('${s.id}',this.value)" style="width:100%;padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:12px;background:var(--surface);color:var(--text)"></td>
+  </tr>`).join('');
+  permContador();
+}
+function permToggle(id,v){ const s=permSucursales.find(x=>x.id===id); if(s)s.sel=v; permContador(); }
+function permSetTec(id,v){ const s=permSucursales.find(x=>x.id===id); if(s)s.tecnicos=v.split(',').map(x=>x.trim()).filter(Boolean); permContador(); }
+function permSelAll(cb){ const ids=new Set(permFiltradas().map(s=>s.id)); permSucursales.forEach(s=>{if(ids.has(s.id))s.sel=cb.checked;}); permRender(); }
+function permAplicarTec(){
+  const nom=document.getElementById('perm-tec-bulk').value;
+  if(!nom){ alert('Elige un técnico.'); return; }
+  const sel=permSucursales.filter(s=>s.sel);
+  if(!sel.length){ alert('No hay sucursales seleccionadas.'); return; }
+  sel.forEach(s=>{ if(!s.tecnicos.includes(nom))s.tecnicos.push(nom); });
+  permRender();
+}
+function permContador(){
+  const sel=permSucursales.filter(s=>s.sel);
+  document.getElementById('perm-count').textContent = sel.length+' seleccionadas';
+  const faltan=new Set();
+  sel.forEach(s=>s.tecnicos.forEach(t=>{ if(!permTecSet.has(t))faltan.add(t); }));
+  document.getElementById('perm-warn').textContent = faltan.size?('⚠️ Sin INE: '+[...faltan].join(', ')):'';
+}
+
+function permPayload(dry){
+  const account_id=document.getElementById('perm-cliente').value;
+  const fecha_texto=document.getElementById('perm-fecha').value.trim();
+  const horario=document.getElementById('perm-horario').value.trim();
+  const sel=permSucursales.filter(s=>s.sel);
+  if(!account_id){ alert('Selecciona un cliente.'); return null; }
+  if(!fecha_texto){ alert('Escribe el texto de la semana/fechas.'); return null; }
+  if(!sel.length){ alert('Selecciona al menos una sucursal.'); return null; }
+  const p={ account_id, fecha_texto, dry_run:dry, sucursales:sel.map(s=>({ suc_id:s.suc_id, nombre:s.nombre, solicitante:s.solicitante, zona:s.zona, horario:s.horario, tipo:s.tipo, tecnicos:s.tecnicos })) };
+  if(horario)p.horario=horario;
+  return p;
+}
+async function permLlamar(payload){
+  const r=await fetch(PERM_FN_URL,{ method:'POST', headers:await permAuthHeaders(), body:JSON.stringify(payload) });
+  const d=await r.json();
+  if(!r.ok) throw new Error(d.error||JSON.stringify(d));
+  return d;
+}
+async function permPreview(){
+  const payload=permPayload(true); if(!payload) return;
+  try{
+    const d=await permLlamar(payload);
+    document.getElementById('perm-modal-body').innerHTML = d.resultados.map(z=>`
+      <div style="border:1px solid var(--border);border-radius:8px;margin-bottom:16px">
+        <div style="background:var(--surface2);padding:10px 14px;font-size:12px;border-bottom:1px solid var(--border)">
+          <b>Zona ${permEsc(z.zona)}</b> · ${permEsc(z.asunto)} · ${z.num_sucursales} suc · ${z.num_adjuntos} INE<br>
+          Para: ${(z.to||[]).join(', ')||'—'} | CC: ${(z.cc||[]).join(', ')||'—'} | CCO: ${(z.bcc||[]).join(', ')||'—'}
+        </div>
+        <div style="padding:14px;background:#fff;color:#333">${z.html}</div>
+      </div>`).join('') || '<p>Nada que previsualizar.</p>';
+    document.getElementById('perm-modal').classList.add('on');
+  }catch(e){ alert('Error: '+e.message); }
+}
+function permCerrarModal(){ document.getElementById('perm-modal').classList.remove('on'); }
+async function permEnviar(){
+  const payload=permPayload(false); if(!payload) return;
+  const nz=new Set(payload.sucursales.map(s=>s.zona)).size;
+  if(!confirm(`Se enviarán correos a ${nz} zona(s) con ${payload.sucursales.length} sucursal(es). ¿Continuar?`)) return;
+  try{
+    const d=await permLlamar(payload);
+    document.getElementById('perm-results').innerHTML =
+      '<div class="tbl-scroll"><table class="dt"><thead><tr><th>Zona</th><th>Estado</th><th>Destinatarios</th><th>INE</th><th>ID / Error</th></tr></thead><tbody>'+
+      d.resultados.map(z=>`<tr><td>${permEsc(z.zona)}</td><td>${z.status==='ok'?'<span style="color:#059669;font-weight:700">✓ Enviado</span>':'<span style="color:#dc2626;font-weight:700">✗ Error</span>'}</td><td>${(z.to||[]).join(', ')}</td><td>${z.num_adjuntos}</td><td style="font-size:11px;color:var(--text2)">${permEsc(z.resend_id||z.error||'')}</td></tr>`).join('')+
+      '</tbody></table></div>'+
+      ((d.zonas_sin_config&&d.zonas_sin_config.length)?('<p style="color:#dc2626;margin-top:10px">⚠️ Zonas sin correo configurado (omitidas): '+d.zonas_sin_config.join(', ')+'</p>'):'');
+    document.getElementById('perm-result-card').style.display='';
+    alert('Listo: '+d.zonas_enviadas+' zona(s) enviada(s).');
+  }catch(e){ alert('Error: '+e.message); }
 }
 
 checkSession();

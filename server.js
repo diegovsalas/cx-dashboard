@@ -8,12 +8,21 @@ const PORT = process.env.PORT || 3000;
 
 // Middleware
 app.use(cors());
-app.use(express.static(path.join(__dirname, 'public')));
+// index:false para que '/' lo sirva nuestra ruta (index.html de la raíz), no public/index.html
+app.use(express.static(path.join(__dirname, 'public'), { index: false }));
 app.use(express.json());
 
-// Servir el dashboard
+// Servir el dashboard (index.html de la RAÍZ = app real)
 app.get('/', (req, res) => {
-  res.sendFile(path.join(__dirname, 'public', 'index.html'));
+  res.sendFile(path.join(__dirname, 'index.html'));
+});
+
+// Assets locales que usa el dashboard (sin exponer scripts .py/.sql del repo)
+app.get('/favicon.png', (req, res) => {
+  res.sendFile(path.join(__dirname, 'favicon.png'));
+});
+app.get('/guia.html', (req, res) => {
+  res.sendFile(path.join(__dirname, 'guia.html'));
 });
 
 // Health check para Render
