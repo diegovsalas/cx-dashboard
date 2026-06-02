@@ -600,7 +600,7 @@ async function loadData(){
         status:t.estatus,
         ejecutivo_asignado:t.agente,
         tipo_de_servicio:t.servicio,
-        tipo_de_solicitud:(t.tipo&&t.tipo.toLowerCase().includes('cancelac'))?'Solicitud de Cancelación':'Incidencia / Queja',
+        tipo_de_solicitud:(function(){var tl=(t.tipo||'').toLowerCase();if(tl.includes('cancelac'))return 'Solicitud de Cancelación';if(/cambio.*aroma|instalaci|reubicaci|entrega.*aroma|reducci|demo/.test(tl))return 'Solicitud Operativa';return 'Incidencia / Queja';})(),
         motivo_de_cancelacin:t.tipo&&t.tipo.toLowerCase().includes('cancelac')?(t.categoria||t.mensaje||''):'',
         submotvio_canc:t.tipo&&t.tipo.toLowerCase().includes('cancelac')?(t.subtipo||''):'',
         status_cancelacion:t.status_cancelacion||(t.tipo&&t.tipo.toLowerCase().includes('cancelac')?(t.estatus==='Nuevo'?'En proceso':t.estatus):''),
