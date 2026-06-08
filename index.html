@@ -476,13 +476,18 @@ let allData=[],filtered=[],user=null,curPage='dashboard',chartInstances={},tblPg
 const ADMIN_EMAILS=['servicioalcliente@grupoavantex.com','diegovelazquez@grupoavantex.com'];
 // Usuarios solo-consulta que SÍ pueden escalar casos por correo (visibilidad operativa)
 const ESCALATE_EMAILS=['nallelygallegos@grupoavantex.com'];
-// Usuarios que solo ven datos de Aromatex (Soporte Aromatex)
-const AROMATEX_EMAILS=['rubimontoya@grupoavantex.com'];
+// Aromatex: agentes con email del dominio aromatex.mx + Rubi (legacy, antes del nuevo dominio)
+const AROMATEX_LEGACY_EMAILS=['rubimontoya@grupoavantex.com'];
 function _refreshVista(){if(curPage==='cancelaciones')cancApply();else if(curPage==='registros')renderRegistros();else if(curPage==='tickets')tkApply();else applyFilters();}
 const SUPERADMIN_EMAIL='diegovelazquez@grupoavantex.com';
 function isAdmin(){return user&&ADMIN_EMAILS.includes(user.email.toLowerCase());}
 function isSuperAdmin(){return user&&user.email.toLowerCase()===SUPERADMIN_EMAIL;}
-function isAromatex(){return user&&AROMATEX_EMAILS.includes(user.email.toLowerCase());}
+// Es agente Aromatex si su email termina en @aromatex.mx o está en la lista legacy
+function isAromatex(){
+  if(!user)return false;
+  var e=user.email.toLowerCase();
+  return e.endsWith('@aromatex.mx')||AROMATEX_LEGACY_EMAILS.includes(e);
+}
 function puedeEscalar(){return user&&(isAdmin()||ESCALATE_EMAILS.includes(user.email.toLowerCase()));}
 const LIM=50;
 const PAL=['#2563eb','#059669','#d97706','#dc2626','#7c3aed','#ec4899','#0891b2','#65a30d','#ea580c','#6366f1','#14b8a6','#e11d48'];
