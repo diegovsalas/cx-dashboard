@@ -471,7 +471,9 @@ const SUPABASE_URL='https://cyntwgxryfbrboehcdex.supabase.co';
 const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5bnR3Z3hyeWZicmJvZWhjZGV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDc0NzksImV4cCI6MjA5MDEyMzQ3OX0.htDzxKHSm9QKlqgp2dqR1WnArmR_JdJ3yn7O4eGxEWQ';
 // ═══════════════════════════════════════
 
-const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY);
+// Tablas del bot (base_general, tickets, envios_plantillas, etc.) viven en schema 'legacy'.
+// Tablas cs_* viven en 'public' — usar sb.schema('public').from('cs_*') para esas.
+const sb=supabase.createClient(SUPABASE_URL,SUPABASE_ANON_KEY,{db:{schema:'legacy'}});
 let allData=[],filtered=[],user=null,curPage='dashboard',chartInstances={},tblPg=0;
 const ADMIN_EMAILS=['servicioalcliente@grupoavantex.com','diegovelazquez@grupoavantex.com'];
 // Usuarios solo-consulta que SÍ pueden escalar casos por correo (visibilidad operativa)
@@ -2551,7 +2553,7 @@ async function permAuthHeaders(){
 async function permInit(){
   if(permLoaded) return;
   permLoaded = true;
-  const r = await sb.from('cs_accounts').select('id,nombre').order('nombre');
+  const r = await sb.schema('public').from('cs_accounts').select('id,nombre').order('nombre');
   if(r.error){ alert('Error cargando clientes: '+r.error.message); return; }
   document.getElementById('perm-cliente').innerHTML =
     '<option value="">— Selecciona cliente —</option>' +
@@ -2564,8 +2566,8 @@ async function permClienteChange(){
   if(!accId){ permSucursales=[]; tbody.innerHTML=''; return; }
   tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text2);padding:20px">Cargando…</td></tr>';
   const [rs, rt] = await Promise.all([
-    sb.from('cs_permisos_sucursales').select('id,suc_id,nombre,solicitante,zona,horario,tipo,tecnicos_default').eq('account_id',accId).order('zona').order('nombre'),
-    sb.from('cs_tecnicos').select('nombre,ine_url,account_id,activo').or('account_id.eq.'+accId+',account_id.is.null').order('nombre')
+    sb.schema('public').from('cs_permisos_sucursales').select('id,suc_id,nombre,solicitante,zona,horario,tipo,tecnicos_default').eq('account_id',accId).order('zona').order('nombre'),
+    sb.schema('public').from('cs_tecnicos').select('nombre,ine_url,account_id,activo').or('account_id.eq.'+accId+',account_id.is.null').order('nombre')
   ]);
   if(rs.error){ tbody.innerHTML='<tr><td colspan="6" style="padding:20px;color:#dc2626">'+rs.error.message+'</td></tr>'; return; }
   permTecnicos = (rt.data||[]).filter(t=>t.activo!==false);
