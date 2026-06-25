@@ -173,6 +173,7 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
 <a class="nav-link" data-page="dashboard" onclick="goPage('dashboard')">Dashboard</a>
 <a class="nav-link" data-page="registros" onclick="goPage('registros')">Registros</a>
 <a class="nav-link" data-page="cancelaciones" onclick="goPage('cancelaciones')">Cancelaciones</a>
+<a class="nav-link" data-page="analisis" onclick="goPage('analisis')">Análisis</a>
 <a class="nav-link" data-page="tickets" onclick="goPage('tickets')">Tickets</a>
 <a class="nav-link" id="link-campanias" data-page="campanias" onclick="goPage('campanias')">Campañas</a>
 <a class="nav-link" id="link-permisos" data-page="permisos" onclick="goPage('permisos')">Permisos</a>
@@ -308,6 +309,21 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
 </tr></thead><tbody id="canc-tbody"></tbody></table></div>
 <div class="pag"><span id="canc-pag-info"></span><div class="pag-btns"><button class="pbtn" id="canc-prev" onclick="cancPgPrev()">← Anterior</button><span id="canc-pag-num" style="padding:0 6px"></span><button class="pbtn" id="canc-next" onclick="cancPgNext()">Siguiente →</button></div></div>
 </div>
+</div>
+
+<div class="page-content" id="page-analisis" style="display:none">
+<div style="margin-bottom:16px;"><h2 style="font-size:22px;font-weight:800;"><i class="fa-solid fa-chart-pie" style="color:#6366f1"></i> Análisis CX</h2><p style="font-size:13px;color:var(--text2);margin-top:4px;">Mapa de motivos de cancelación e incidencias recurrentes</p></div>
+<div class="filter-bar" id="filters-an">
+<span class="flabel" style="margin:0">Filtros:</span>
+<select id="an-f-anio" onchange="anApply()"><option value="">Año: Todos</option></select>
+<select id="an-f-mes" onchange="anApply()"><option value="">Mes: Todos</option></select>
+<select id="an-f-servicio" onchange="anApply()"><option value="">Servicio: Todos</option></select>
+<button class="btn-clear" onclick="anClear()">Limpiar</button>
+<span class="active-filters" id="af-an"></span>
+</div>
+<div class="kpi-row" id="an-kpis"></div>
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin:4px 0 18px" id="an-cols"></div>
+<div id="an-detalle"></div>
 </div>
 
 <div class="page-content" id="page-tickets" style="display:none">
@@ -522,7 +538,7 @@ async function enterApp(){
   if(permLink)permLink.style.display=isAdmin()?'':'none';
   // Rubi (Aromatex) solo ve Dashboard + Tickets — ocultar histórico, cancelaciones, registros
   if(isAromatex()){
-    ['cancelaciones','registros'].forEach(p=>{var el=document.querySelector('.nav-link[data-page="'+p+'"]');if(el)el.style.display='none';});
+    ['cancelaciones','registros','analisis'].forEach(p=>{var el=document.querySelector('.nav-link[data-page="'+p+'"]');if(el)el.style.display='none';});
   }
   await loadData();buildFilters();applyFilters();
   // Rubi entra directo en Tickets (sin home)
@@ -638,12 +654,116 @@ function goPage(p){
   if(p==='permisos'&&!isAdmin()){p='home';}
   curPage=p;
   document.querySelectorAll('.nav-link').forEach(el=>{el.classList.toggle('on',el.dataset.page===p);});
-  ['home','dashboard','registros','cancelaciones','tickets','campanias','permisos'].forEach(pg=>{document.getElementById('page-'+pg).style.display=pg===p?'':'none';});
+  ['home','dashboard','registros','cancelaciones','analisis','tickets','campanias','permisos'].forEach(pg=>{document.getElementById('page-'+pg).style.display=pg===p?'':'none';});
   if(p==='registros'){tblPg=0;renderRegistros();}
   if(p==='cancelaciones')loadCancelaciones();
+  if(p==='analisis')loadAnalisis();
   if(p==='tickets')loadTickets();
   if(p==='campanias'){cmpCargarHistorial();_cmpRenderPreview();}
   if(p==='permisos')permInit();
+}
+
+// ===================== ANÁLISIS CX =====================
+let anReady=false;
+function loadAnalisis(){
+  if(!anReady){
+    var mo=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
+    var anios=[...new Set(allData.map(r=>r._anio).filter(Boolean))].sort((a,b)=>String(b).localeCompare(String(a)));
+    var meses=[...new Set(allData.map(r=>r.mes).filter(Boolean))].sort((a,b)=>mo.indexOf(a)-mo.indexOf(b));
+    var servs=[...new Set(allData.map(r=>r.tipo_de_servicio).filter(Boolean))].sort();
+    var sa=document.getElementById('an-f-anio');anios.forEach(a=>sa.insertAdjacentHTML('beforeend','<option value="'+esc(a)+'">'+esc(a)+'</option>'));
+    var sm=document.getElementById('an-f-mes');meses.forEach(m=>sm.insertAdjacentHTML('beforeend','<option value="'+esc(m)+'">'+esc(m)+'</option>'));
+    var ss=document.getElementById('an-f-servicio');servs.forEach(s=>ss.insertAdjacentHTML('beforeend','<option value="'+esc(s)+'">'+esc(s)+'</option>'));
+    anReady=true;
+  }
+  anApply();
+}
+function anClear(){['an-f-anio','an-f-mes','an-f-servicio'].forEach(id=>document.getElementById(id).value='');anApply();}
+function _anEsCanc(r){return (r.tipo_de_solicitud||'')==='Solicitud de Cancelación'||/cancelac/i.test(r.tipo_de_incidencia||'');}
+function _anTema(r){
+  var t=((r.submotvio_canc||'')+' '+(r.motivo_de_cancelacin||'')+' '+(r.causa_raiz_cancelacion||'')+' '+(r.submotvio||'')+' '+(r.mensaje||'')).toLowerCase();
+  var has=function(arr){return arr.some(k=>t.indexOf(k)>=0);};
+  if(has(['no se realiz','sin servicio','falta de servicio','no recibió respuesta','no recibio respuesta','falta de respuesta','respuesta tard','doble cobro','reembolso','conciliaci','mala gesti','equipo dañad','equipo danad','no se reflej','desconfianza']))return 'Falla operativa / gestión Avantex';
+  if(has(['no huele','huele muy poco','calidad del aroma','intensidad','aroma inadecuad','no se percibe','expectativas','percepción','percepcion','inconform','calidad del servicio']))return 'Insatisfacción aroma / servicio';
+  if(has(['cierre','cierra','se muda','mudó','mudo a','país','pais','residencia','fuera del area','fin de contrato','termino contrato','termina contrato','plazo contractual','sucursales','reubica']))return 'Cierre / mudanza / fin contrato';
+  if(has(['reducir la cantidad','reducción de equipo','reduccion de equipo','menos equipo','reducir equipo','downgrade']))return 'Reducción de equipos (downgrade)';
+  if(has(['presupuesto','recorte','gastos','económic','economic','precio','recursos','ahorr','capacidad económic','dinero','financ','incapacidad de pago']))return 'Económico / presupuesto';
+  if(has(['ya no lo necesita','ya no requiere','no requiere','bajo uso','no se requiere','no lo queremos','ya no le interesa','no aprovech','poco uso','reducción de personal','reduccion de personal']))return '“Ya no lo necesita” / bajo uso';
+  return 'Otro / sin clasificar';
+}
+function _anBars(title,counter,total,color){
+  var entries=Object.keys(counter).map(k=>[k,counter[k]]).sort((a,b)=>b[1]-a[1]);
+  var max=entries.length?entries[0][1]:1;
+  var h='<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 18px"><h3 style="font-size:14px;font-weight:700;margin-bottom:14px">'+title+'</h3>';
+  if(!entries.length)h+='<div style="font-size:12px;color:var(--text3)">Sin datos en el periodo</div>';
+  entries.forEach(function(e){
+    var pct=total?Math.round(e[1]*100/total):0;var w=Math.round(e[1]*100/max);
+    h+='<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>'+esc(e[0])+'</span><span style="color:var(--text3);font-variant-numeric:tabular-nums">'+e[1]+' · '+pct+'%</span></div><div style="background:var(--surface2);border-radius:4px;height:6px;overflow:hidden"><div style="background:'+color+';width:'+w+'%;height:100%"></div></div></div>';
+  });
+  return h+'</div>';
+}
+function anApply(){
+  var fa=document.getElementById('an-f-anio').value,fm=document.getElementById('an-f-mes').value,fs=document.getElementById('an-f-servicio').value;
+  var esPrueba=function(r){var b=((r.causa_raiz_cancelacion||'')+(r.causa_raiz||'')+(r.nombre_del_cliente_nuevo||'')+(r.propiedad||'')).toLowerCase();return b.indexOf('prueba')>=0||b.indexOf('rubi montoya')>=0;};
+  var base=allData.filter(function(r){
+    if(fa&&r._anio!==fa)return false;
+    if(fm&&r.mes!==fm)return false;
+    if(fs&&r.tipo_de_servicio!==fs)return false;
+    if(esPrueba(r))return false;
+    return true;
+  });
+  var nf=(fa?1:0)+(fm?1:0)+(fs?1:0);
+  document.getElementById('af-an').textContent=nf?(nf+' filtro'+(nf>1?'s':'')+' · '+base.length+' registros'):base.length+' registros';
+  var canc=base.filter(_anEsCanc),inci=base.filter(r=>!_anEsCanc(r));
+  // KPIs de cancelación
+  var _sc=function(r){return (r.status_cancelacion||'').toLowerCase();};
+  var nCancel=canc.filter(r=>{var s=_sc(r);return s.indexOf('cancelad')>=0||s.indexOf('baja')>=0;}).length;
+  var nReten=canc.filter(r=>{var s=_sc(r);return s.indexOf('retenid')>=0||s.indexOf('migrac')>=0||s.indexOf('downgrade')>=0;}).length;
+  var cerrados=nCancel+nReten,abiertos=canc.length-cerrados;
+  var tasa=cerrados?Math.round(nReten*100/cerrados):0;
+  var colTasa=tasa>=70?'var(--green)':(tasa>=50?'var(--amber)':'var(--red)');
+  document.getElementById('an-kpis').innerHTML=
+    '<div class="kpi"><div class="lbl">Conversaciones</div><div class="val">'+base.length+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+inci.length+' incidencias · '+canc.length+' cancelaciones</div></div>'+
+    '<div class="kpi c-red"><div class="lbl">Canceladas</div><div class="val">'+nCancel+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">bajas efectivas</div></div>'+
+    '<div class="kpi c-green"><div class="lbl">Retenidas</div><div class="val">'+nReten+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">incl. downgrade/migración</div></div>'+
+    '<div class="kpi"><div class="lbl">Tasa de retención</div><div class="val" style="color:'+colTasa+'">'+tasa+'%</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+nReten+'/'+cerrados+' cerrados · '+abiertos+' abiertos · meta 70%</div></div>';
+  // Columnas: motivos por tema | incidencias por categoría
+  var temas={},cats={};
+  canc.forEach(r=>{var k=_anTema(r);temas[k]=(temas[k]||0)+1;});
+  inci.forEach(r=>{var k=(r.categora||r.tipo_de_incidencia||'(sin categoría)').trim()||'(sin categoría)';cats[k]=(cats[k]||0)+1;});
+  document.getElementById('an-cols').innerHTML=
+    _anBars('Motivos de cancelación · por tema (n='+canc.length+')',temas,canc.length,'#ef4444')+
+    _anBars('Incidencias recurrentes · por categoría (n='+inci.length+')',cats,inci.length,'#6366f1');
+  // Detalle: clientes en riesgo (2+ fallas de equipo) + tabla de cancelaciones
+  var cliId=function(r){return (r.propiedad||r.nombre_del_cliente_nuevo||r.telefono||'(sin nombre)');};
+  var fc={};inci.filter(r=>/falla en el equipo/i.test(r.categora||'')||/falla en el equipo/i.test(r.tipo_de_incidencia||'')).forEach(r=>{var c=cliId(r);fc[c]=(fc[c]||0)+1;});
+  var riesgo=Object.keys(fc).map(k=>[k,fc[k]]).filter(e=>e[1]>=2).sort((a,b)=>b[1]-a[1]);
+  var dh='';
+  dh+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 18px;margin-bottom:16px;border-left:2px solid var(--amber)">'+
+      '<h3 style="font-size:14px;font-weight:700;margin-bottom:6px"><i class="fa-solid fa-triangle-exclamation" style="color:var(--amber)"></i> Clientes en riesgo · 2+ fallas de equipo en el periodo</h3>';
+  if(riesgo.length){dh+='<div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px">';riesgo.forEach(e=>{dh+='<span style="font-size:12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:4px 10px"><b>'+e[1]+'×</b> '+esc(e[0])+'</span>';});dh+='</div>';}
+  else dh+='<div style="font-size:12px;color:var(--text3)">Ningún cliente con fallas repetidas en el periodo filtrado.</div>';
+  dh+='</div>';
+  // tabla cancelaciones
+  var stColor=function(s){s=(s||'').toLowerCase();if(s.indexOf('retenid')>=0||s.indexOf('migrac')>=0)return 'var(--green)';if(s.indexOf('cancelad')>=0||s.indexOf('baja')>=0)return 'var(--red)';if(s.indexOf('downgrade')>=0)return '#6366f1';return 'var(--text3)';};
+  dh+='<div class="tbl-card"><div class="tbl-header"><h3>'+canc.length+' solicitudes de cancelación</h3><button class="btn-clear" onclick="anDescargar()" style="background:transparent;color:var(--text2);border-color:var(--border)"><i class="fa-solid fa-download"></i> Descargar CSV</button></div>'+
+    '<div class="tbl-scroll"><table class="dt"><thead><tr><th>Fecha</th><th>Cliente</th><th>Tema</th><th>Motivo / subtipo</th><th>Status</th></tr></thead><tbody>';
+  canc.slice().sort((a,b)=>String(b.fecha_de_la_solicitud||'').localeCompare(String(a.fecha_de_la_solicitud||''))).forEach(r=>{
+    var st=r.status_cancelacion||'(sin status)';
+    var mot=r.submotvio_canc||r.submotvio||(r.causa_raiz_cancelacion||'').slice(0,60)||'—';
+    dh+='<tr><td>'+esc(r.fecha_de_la_solicitud||'—')+'</td><td>'+esc(cliId(r))+'</td><td>'+esc(_anTema(r))+'</td><td>'+esc(mot)+'</td><td><span style="color:'+stColor(st)+';font-weight:600">'+esc(st)+'</span></td></tr>';
+  });
+  dh+='</tbody></table></div></div>';
+  document.getElementById('an-detalle').innerHTML=dh;
+  _anCanc=canc;
+}
+let _anCanc=[];
+function anDescargar(){
+  var cliId=function(r){return (r.propiedad||r.nombre_del_cliente_nuevo||r.telefono||'');};
+  var rows=[['Fecha','Cliente','Tema','Motivo','Status','Servicio']];
+  _anCanc.forEach(r=>rows.push([r.fecha_de_la_solicitud||'',cliId(r),_anTema(r),r.submotvio_canc||r.submotvio||r.causa_raiz_cancelacion||'',r.status_cancelacion||'',r.tipo_de_servicio||'']));
+  var csv=rows.map(row=>row.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);a.download='analisis_cancelaciones.csv';a.click();
 }
 
 function buildFilters(){['filters-dash','filters-reg'].forEach(id=>buildFB(id));}
