@@ -6,7 +6,7 @@ window.__failTickets=false;window.__queries=[];window.__writes=[];window.__saveF
 const today=new Date().toISOString().slice(0,7);
 const tickets=[
 {id:1,folio:'C001',nombre:'Cliente simulado',empresa:'Sucursal norte',tipo:'Incidencia',estatus:'Escalado',prioridad:'Alta',created_at:today+'-01T06:00:00Z',servicio:'Pestex',canal_origen:'cx',telefono:'528100000001'},
-{id:2,folio:'C002',nombre:'Cliente simulado 2',tipo:'Cancelación',estatus:'Nuevo',status_cancelacion:'Retenida',created_at:today+'-02T06:00:00Z',resolved_at:today+'-02T06:10:00Z',servicio:'Aromatex',canal_origen:'cx',csat:5},
+{id:2,folio:'C002',nombre:'Cliente simulado 2',tipo:'Cancelación',estatus:'Cerrado',status_cancelacion:'Retenida',created_at:today+'-02T06:00:00Z',resolved_at:today+'-02T06:10:00Z',servicio:'Aromatex',canal_origen:'cx',csat:5},
 {id:3,folio:'C003',nombre:'Cliente simulado 3',tipo:'Cancelación',estatus:'En proceso',created_at:today+'-03T06:00:00Z',servicio:'Pestex',canal_origen:'cx'},
 {id:4,folio:'C004',nombre:'Cliente simulado 4',tipo:'Consulta',estatus:'Resuelto',created_at:today+'-04T06:00:00Z',resolved_at:today+'-04T07:00:00Z',servicio:'Pestex',canal_origen:'cx',csat:1},
 {id:5,folio:'C005',nombre:'Cliente simulado 5',tipo:'Incidencia',estatus:'Nuevo',agente:'Ana',created_at:today+'-05T06:00:00Z',servicio:'Pestex',canal_origen:'aromatex'}];
@@ -35,16 +35,19 @@ assert.equal(await page.locator('#cancel-save').isVisible(),true);
 assert.equal(await page.locator('#reg-monto-input').isVisible(),false);
 assert.equal(await page.locator('#reg-diag-previo').isVisible(),false);
 assert.equal(await page.locator('#reg-status-sel').isVisible(),false);
+await page.locator('#cancel-stage').selectOption('Cerrado');await page.locator('#cancel-save').click();assert.match(await page.locator('#cancel-save-msg').innerText(),/selecciona el resultado/);assert.equal(await page.evaluate(()=>window.__writes.length),0);
+await page.locator('#reg-stcanc-sel').selectOption('Cancelada');await page.locator('#cancel-save').click();assert.match(await page.locator('#cancel-save-msg').innerText(),/acciones pendientes/);assert.equal(await page.evaluate(()=>window.__writes.length),0);
+await page.locator('#cancel-stage').selectOption('En proceso');
 await page.locator('#reg-stcanc-sel').selectOption('Retenida');await page.locator('#reg-comentarios').fill('Seguimiento simulado: revisar propuesta.');
 assert.equal(await page.evaluate(()=>window.__writes.length),0);
 await page.evaluate(()=>window.__saveFailure=true);await page.locator('#cancel-save').click();
 await page.waitForFunction(()=>document.querySelector('#cancel-save-msg').textContent.includes('Error simulado'));
 assert.equal(await page.locator('#reg-comentarios').inputValue(),'Seguimiento simulado: revisar propuesta.');
-assert.equal(await page.evaluate(()=>allData.find(r=>r.folio==='C003').status_cancelacion),'En proceso');
+assert.equal(await page.evaluate(()=>allData.find(r=>r.folio==='C003').status_cancelacion),'');
 await page.evaluate(()=>window.__saveFailure=false);await page.locator('#cancel-save').click();
 await page.waitForFunction(()=>document.querySelector('#cancel-save-msg').textContent==='Gestión guardada');
 assert.equal(await page.evaluate(()=>allData.find(r=>r.folio==='C003').status_cancelacion),'Retenida');
-assert.deepEqual(await page.evaluate(()=>window.__writes[1].values),{status_cancelacion:'Retenida',comentarios_de_seguimiento:'Seguimiento simulado: revisar propuesta.'});
+assert.deepEqual(await page.evaluate(()=>window.__writes[1].values),{status_cancelacion:'Retenida',comentarios_de_seguimiento:'Seguimiento simulado: revisar propuesta.',estatus:'En proceso',resolved_at:null});
 // Abrir finanzas no envía una actualización; sin filas afectadas no se afirma éxito.
 await page.locator('summary').filter({hasText:'Facturación y fecha efectiva'}).click();await page.locator('#reg-monto-input').fill('1234');
 await page.evaluate(()=>window.__denyUpdate=true);await page.locator('#cancel-save').click();
@@ -56,6 +59,9 @@ assert.match(await page.locator('#cancel-save-msg').innerText(),/describe el cam
 await page.locator('#reg-dg-desc').fill('Cambio simulado a un equipo');await page.locator('#reg-dg-monto').fill('900');await page.locator('#cancel-save').click();
 await page.waitForFunction(()=>document.querySelector('#cancel-save-msg').textContent==='Gestión guardada');
 assert.equal(await page.evaluate(()=>allData.find(r=>r.folio==='C003').monto_nuevo_downgrade),900);
+await page.locator('#cancel-stage').selectOption('Cerrado');await page.locator('#cancel-confirm').check();await page.locator('#cancel-save').click();await page.waitForFunction(()=>document.querySelector('#cancel-save-msg').textContent==='Gestión guardada');
+assert.equal(await page.evaluate(()=>allData.find(r=>r.folio==='C003')._tk.estatus),'Cerrado');assert.ok(await page.evaluate(()=>allData.find(r=>r.folio==='C003')._tk.resolved_at));
+await page.locator('#cancel-stage').selectOption('Esperando respuesta');await page.locator('#cancel-save').click();await page.waitForFunction(()=>document.querySelector('#cancel-save-msg').textContent==='Gestión guardada');assert.equal(await page.evaluate(()=>allData.find(r=>r.folio==='C003')._tk.resolved_at),null);
 await page.locator('summary').filter({hasText:'Facturación y fecha efectiva'}).click();
 await page.screenshot({path:path.join(artifacts,'cancelacion-desktop.png'),fullPage:true});
 await page.setViewportSize({width:390,height:844});await page.screenshot({path:path.join(artifacts,'cancelacion-mobile.png'),fullPage:true});
