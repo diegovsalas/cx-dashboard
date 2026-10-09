@@ -45,7 +45,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .nav-right{display:flex;align-items:center;gap:10px;}.nav-user{font-size:11px;color:var(--text3);}
 .btn-logout{padding:5px 10px;border:1px solid var(--border);border-radius:5px;background:transparent;font-size:11px;color:var(--text2);cursor:pointer;font-family:inherit;}
 .btn-logout:hover{background:var(--surface2);color:var(--text);}
-.page-content{max-width:1180px;margin:0 auto;padding:18px 20px;}
+.page-content{width:100%;min-width:0;max-width:1180px;margin:0 auto;padding:18px 20px;}
 .filter-bar{background:transparent;border:none;border-bottom:1px solid var(--border);border-radius:0;padding:0 0 12px;margin-bottom:16px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;}
 .filter-bar select{padding:5px 8px;border:1px solid var(--border);border-radius:5px;font-size:11px;font-family:inherit;color:var(--text2);background:var(--surface);min-width:auto;cursor:pointer;}
 .filter-bar select:hover{color:var(--text);border-color:var(--border2);}
@@ -63,10 +63,10 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .kpi.c-red .val::after{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--red);margin-left:6px;vertical-align:middle;}
 .kpi.c-amber .val::after{content:'';display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--amber);margin-left:6px;vertical-align:middle;}
 .chart-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:12px;}
-.chart-card{background:var(--surface);border-radius:8px;padding:16px;border:1px solid var(--border);}
+.chart-card{min-width:0;background:var(--surface);border-radius:8px;padding:16px;border:1px solid var(--border);}
 .chart-card h3{font-size:12px;font-weight:600;margin-bottom:2px;color:var(--text);letter-spacing:-.005em;}.chart-card .csub{font-size:10px;color:var(--text3);margin-bottom:12px;}
 .chart-card canvas{max-height:220px;}
-.tbl-card{background:var(--surface);border-radius:8px;padding:16px;border:1px solid var(--border);margin-bottom:16px;}
+.tbl-card{min-width:0;background:var(--surface);border-radius:8px;padding:16px;border:1px solid var(--border);margin-bottom:16px;}
 .tbl-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;gap:12px;}
 .tbl-header h3{font-size:13px;font-weight:600;color:var(--text);}
 .tbl-search{padding:6px 10px;border:1px solid var(--border);border-radius:5px;font-size:12px;font-family:inherit;width:260px;background:var(--surface2);color:var(--text);}
@@ -146,6 +146,14 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
 .flow-step p{font-size:11px;color:var(--text3);line-height:1.4;}
 .flow-arrow{display:flex;align-items:center;color:var(--text3);font-size:16px;padding-top:18px;}
 @media(max-width:900px){.kpi-row{grid-template-columns:repeat(2,1fr);}.chart-row{grid-template-columns:1fr;}.detail-grid{grid-template-columns:1fr;}.home-grid{grid-template-columns:1fr;}.flow-steps{flex-direction:column;align-items:center;}.flow-arrow{transform:rotate(90deg);}}
+
+.cx-kpis{grid-template-columns:repeat(5,minmax(0,1fr));}
+.cx-kpi{border:0;color:var(--text);text-align:left;cursor:pointer;font:inherit;}
+.cx-kpi:hover,.cx-kpi:focus-visible{background:var(--surface2);outline:2px solid var(--accent);outline-offset:-2px;}
+.cx-kpi .lbl,.cx-kpi .val{display:block;}.cx-kpi .lbl{font-size:13px;}.cx-kpi .val{font-size:30px;margin:10px 0;}
+.cx-kpi-hint{font-size:12px;color:var(--accent);}
+.filter-bar select{font-size:13px;padding:8px;}.chart-card h3{font-size:15px;}.chart-card .csub{font-size:12px;}
+@media(max-width:900px){#canc-kpis.kpi-row,#cmp-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important;}#canc-metas{grid-template-columns:1fr!important;}.nav-links{max-width:100%;}.tbl-header{flex-wrap:wrap;}.cx-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}.navbar{height:auto;min-height:48px;flex-wrap:wrap;}.nav-links{flex-wrap:wrap;}}
 </style>
 </head>
 <body>
@@ -170,10 +178,10 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
 <div class="nav-brand"><img src="https://grupoavantex.com/wp-content/uploads/2022/09/AX_Logo_oficial.png" alt="Avantex" style="height:28px;"> Customer Experience</div>
 <div class="nav-links">
 <a class="nav-link on" data-page="home" onclick="goPage('home')">Inicio</a>
-<a class="nav-link" data-page="dashboard" onclick="goPage('dashboard')">Dashboard</a>
-<a class="nav-link" data-page="registros" onclick="goPage('registros')">Registros</a>
+<a class="nav-link" data-page="dashboard" onclick="goPage('dashboard')">Resumen CX</a>
+<a class="nav-link" data-page="registros" onclick="goPage('registros')">Casos</a>
 <a class="nav-link" data-page="cancelaciones" onclick="goPage('cancelaciones')">Cancelaciones</a>
-<a class="nav-link" data-page="analisis" onclick="goPage('analisis')">Análisis</a>
+<a class="nav-link" data-page="analisis" onclick="goPage('analisis')">Motivos</a>
 <a class="nav-link" data-page="tickets" onclick="goPage('tickets')">Tickets</a>
 <a class="nav-link" id="link-campanias" data-page="campanias" onclick="goPage('campanias')">Campañas</a>
 <a class="nav-link" id="link-permisos" data-page="permisos" onclick="goPage('permisos')">Permisos</a>
@@ -184,6 +192,7 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
 <button class="btn-logout" onclick="doLogout()">Cerrar sesión</button>
 </div>
 </nav>
+<div id="cx-load-status" role="status" aria-live="polite" style="padding:12px 20px;font-size:13px"></div>
 
 <div class="page-content" id="page-home">
 <div class="home-hero">
@@ -271,11 +280,15 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
 
 <div class="page-content" id="page-dashboard" style="display:none">
 <div style="margin-bottom:14px;">
-<h2 id="dashboard-title" style="font-size:18px;font-weight:600;margin-bottom:10px;letter-spacing:-.01em;">Dashboard</h2>
+<h2 id="dashboard-title" style="font-size:22px;font-weight:600;margin-bottom:10px;letter-spacing:-.01em;">Resumen CX</h2>
+<p style="color:var(--text2);font-size:13px">Selecciona un indicador o una barra para ver los casos que lo explican.</p>
 <div id="tipo-solicitud-tabs" style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:14px;"></div>
 </div>
 <div class="filter-bar" id="filters-dash"></div>
+
 <div id="kpis"></div>
+<div id="cx-summary"></div>
+<div id="cx-cases"></div>
 <div id="charts-area"></div>
 </div>
 
@@ -338,7 +351,7 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
 <div class="tbl-card">
 <div class="tbl-header"><h3 id="tk-count">0 tickets</h3><input class="tbl-search" id="tk-search" placeholder="Buscar por folio, teléfono, nombre, empresa..." oninput="tkApply()"><button class="btn-clear" onclick="descargarTicketsWA()" style="background:transparent;color:var(--text2);border-color:var(--border)"><i class="fa-solid fa-download"></i> Descargar CSV</button></div>
 <div class="tbl-scroll"><table class="dt"><thead><tr>
-<th>Folio</th><th>Fecha</th><th>Teléfono</th><th>Nombre</th><th>Empresa</th><th>Servicio</th><th>Tipo</th><th>Categoría</th><th>Subtipo</th><th>Mensaje</th><th>Prioridad</th><th>Estatus</th><th>Agente</th><th>CSAT</th>
+<th>Folio / fecha</th><th>Cliente / sucursal</th><th>Asunto / servicio</th><th>Prioridad</th><th>Estatus</th><th>Responsable</th>
 </tr></thead><tbody id="tk-tbody"></tbody></table></div>
 <div class="pag"><span id="tk-pag-info"></span><div class="pag-btns"><button class="pbtn" id="tk-prev" onclick="tkPgPrev()">← Anterior</button><span id="tk-pag-num" style="padding:0 6px"></span><button class="pbtn" id="tk-next" onclick="tkPgNext()">Siguiente →</button></div></div>
 </div>
@@ -366,6 +379,7 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
     </div>
   </div>
   <!-- Filtros NPS -->
+  <p style="font-size:13px;color:var(--text2);margin-bottom:12px">La selección automática usa tickets cerrados recientemente; no incluye clientes sin tickets ni acredita la vigencia del servicio.</p>
   <div id="cmp-filtros-nps" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:14px">
     <div>
       <label style="font-size:11px;color:var(--text2);text-transform:uppercase;font-weight:600">Mínimo días post-resolución</label>
@@ -385,7 +399,7 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
     </div>
   </div>
   <div style="display:flex;gap:10px;align-items:center">
-    <button class="btn-clear" onclick="cmpPreview()" style="background:transparent;color:var(--text2);border-color:var(--border)"><i class="fa-solid fa-eye"></i> Vista previa</button>
+    <button class="btn-clear" onclick="cmpPreview(this)" style="background:transparent;color:var(--text2);border-color:var(--border)"><i class="fa-solid fa-eye"></i> Vista previa</button>
     <button id="cmp-btn-enviar" onclick="cmpEnviarCampania()" disabled style="background:var(--accent);color:#0a0a0a;border:none;padding:7px 16px;border-radius:6px;font-weight:600;cursor:pointer;font-size:12px;opacity:.4"><i class="fa-solid fa-paper-plane"></i> Enviar campaña</button>
     <span id="cmp-progress" style="font-size:12px;color:var(--text2)"></span>
   </div>
@@ -408,7 +422,8 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
 </div>
 
 <div class="tbl-card">
-  <div id="cmp-kpis" style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px"></div>
+  <div class="filter-bar"><label>Encuesta <select id="cmp-hist-template" onchange="cmpCargarHistorial()"><option value="nps_avantex">NPS 0–10</option><option value="ventas_satisfaccion_nuevos">Satisfacción de ventas 1–5</option></select></label><label>Campaña <input id="cmp-hist-campaign" placeholder="Todas" onchange="cmpCargarHistorial()"></label><label>Desde <input type="date" id="cmp-hist-from" onchange="cmpCargarHistorial()"></label><label>Hasta <input type="date" id="cmp-hist-to" onchange="cmpCargarHistorial()"></label><span id="cmp-hist-scope" style="font-size:13px"></span></div>
+<div id="cmp-kpis" style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px"></div>
   <div class="tbl-header"><h3>📊 Historial de envíos</h3><button class="btn-clear" onclick="cmpCargarHistorial()"><i class="fa-solid fa-rotate"></i> Refrescar</button></div>
   <div class="tbl-scroll" style="max-height:400px">
     <table class="dt"><thead><tr><th>Fecha</th><th>Plantilla</th><th>Teléfono</th><th>Cliente</th><th>Estado</th><th>Score</th><th>Categoría</th><th>Respuesta</th><th>Mensaje</th></tr></thead><tbody id="cmp-hist-tbody"><tr><td colspan="9" style="text-align:center;padding:20px;color:var(--text3)">Cargando...</td></tr></tbody></table>
@@ -496,7 +511,7 @@ const ADMIN_EMAILS=['servicioalcliente@grupoavantex.com','diegovelazquez@grupoav
 const ESCALATE_EMAILS=['nallelygallegos@grupoavantex.com'];
 // Aromatex: agentes con email del dominio aromatex.mx + Rubi (legacy, antes del nuevo dominio)
 const AROMATEX_LEGACY_EMAILS=['rubimontoya@grupoavantex.com'];
-function _refreshVista(){if(curPage==='cancelaciones')cancApply();else if(curPage==='registros')renderRegistros();else if(curPage==='tickets')tkApply();else applyFilters();}
+function _refreshVista(){buildFilters();applyFilters();if(curPage==='cancelaciones')loadCancelaciones();else if(curPage==='tickets')loadTickets();else if(curPage==='analisis')loadAnalisis();else if(curPage==='campanias')cmpCargarHistorial();}
 const SUPERADMIN_EMAIL='diegovelazquez@grupoavantex.com';
 function isAdmin(){return user&&ADMIN_EMAILS.includes(user.email.toLowerCase());}
 function isSuperAdmin(){return user&&user.email.toLowerCase()===SUPERADMIN_EMAIL;}
@@ -510,7 +525,61 @@ function puedeEscalar(){return user&&(isAdmin()||ESCALATE_EMAILS.includes(user.e
 const LIM=50;
 const PAL=['#2563eb','#059669','#d97706','#dc2626','#7c3aed','#ec4899','#0891b2','#65a30d','#ea580c','#6366f1','#14b8a6','#e11d48'];
 var _moNombres=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-let F={tipo_solicitud:'',anio:String(new Date().getFullYear()),mes:'',tipo_servicio:'',zona:'',status:'',tipo_incidencia:'',ejecutivo:''};
+var _cxToday=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Monterrey',year:'numeric',month:'2-digit'}).formatToParts(new Date());
+let F={tipo_solicitud:'',anio:_cxToday.find(p=>p.type==='year').value,mes:_moNombres[Number(_cxToday.find(p=>p.type==='month').value)-1],tipo_servicio:'',origen:'whatsapp',zona:'',status:'',tipo_incidencia:'',ejecutivo:''};
+let cxLoad={busy:false,error:'',updated:null},cxDetail={kind:'pending',label:'Pendientes',rows:[],page:0};
+
+// CX_METRICS_START: funciones de cálculo sin acceso a red ni DOM.
+var CXMetrics=(function(){
+  function norm(v){return String(v==null?'':v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').trim().toLowerCase();}
+  function number(v){if(!['number','string'].includes(typeof v)||String(v).trim()==='')return null;var n=Number(v);return Number.isFinite(n)?n:null;}
+  function median(values){var a=values.filter(Number.isFinite).slice().sort((x,y)=>x-y);if(!a.length)return null;var i=Math.floor(a.length/2);return a.length%2?a[i]:(a[i-1]+a[i])/2;}
+  function isCancel(r){return /cancelac/.test(norm(r.tipo_de_solicitud)+' '+norm(r.tipo_de_incidencia));}
+  function state(r){return norm(isCancel(r)?(r.status_cancelacion||r.status):r.status);}
+  function closed(s){return /cerrad|resuelt|completad|solucionad|retenid|cancelad|baja|downgrade|migrac/.test(norm(s));}
+  function pending(s){return /pendient|abiert|proceso|seguimiento|nuev|negociac|sin atender|escalad/.test(norm(s));}
+  function isPending(r){var effective=state(r);return !closed(effective)&&(pending(effective)||pending(r.status));}
+  function category(type){var t=norm(type);if(t.includes('cancelac'))return 'Solicitud de Cancelación';if(/consulta|duda/.test(t))return 'Consulta';if(/operativ|cambio.*aroma|instalaci|reubicaci|entrega.*aroma|reducci|demo/.test(t))return 'Solicitud Operativa';return 'Incidencia / Queja';}
+  function days(r){if(r._tk){var t=r._tk;if(!t.created_at||!t.resolved_at)return null;var n=(Date.parse(t.resolved_at)-Date.parse(t.created_at))/86400000;return Number.isFinite(n)&&n>=0?n:null;}var v=number(r.tiempo_de_respuesta);return v!=null&&v>=0?v:null;}
+  function score(v,min,max){var n=number(v);return n!=null&&Number.isInteger(n)&&n>=min&&n<=max?n:null;}
+  function csat(rows){var a=rows.map(r=>score(r._csat,1,5)).filter(n=>n!=null);return {total:a.length,average:a.length?a.reduce((s,n)=>s+n,0)/a.length:null,satisfied:a.filter(n=>n>=4).length};}
+  function nps(rows){var a=rows.filter(r=>/nps/.test(norm(r.template_name))&&!/ventas|satisfaccion_nuevos/.test(norm(r.template_name))).map(r=>score(r.respuesta_score,0,10)).filter(n=>n!=null);var promoters=a.filter(n=>n>=9).length,detractors=a.filter(n=>n<=6).length;return {total:a.length,promoters,detractors,value:a.length?Math.round(100*(promoters-detractors)/a.length):null};}
+  function months(rows){var c={};rows.forEach(r=>{var d=r.fecha_de_la_solicitud||r._tk&&r._tk.created_at||'';var k=String(d).slice(0,7);if(/^\d{4}-\d{2}$/.test(k))c[k]=(c[k]||0)+1;});return Object.entries(c).sort((a,b)=>a[0].localeCompare(b[0]));}
+  function matches(r,f){return (!f.anio||String(r._anio)===f.anio)&&(!f.mes||r.mes===f.mes)&&(!f.origen||r._source===f.origen)&&(!f.tipo_solicitud||r.tipo_de_solicitud===f.tipo_solicitud)&&(!f.tipo_servicio||r.tipo_de_servicio===f.tipo_servicio)&&(!f.zona||r.zona===f.zona)&&(!f.status||r.status===f.status||r.status_cancelacion===f.status)&&(!f.tipo_incidencia||r.tipo_de_incidencia===f.tipo_incidencia)&&(!f.ejecutivo||r.ejecutivo_asignado===f.ejecutivo);}
+  function group(rows,kind){if(kind==='all')return rows;if(kind==='pending')return rows.filter(isPending);if(kind==='escalated')return rows.filter(r=>norm(r.status).includes('escalad'));if(kind==='cancel')return rows.filter(r=>isCancel(r)&&isPending(r));if(kind==='closed')return rows.filter(r=>closed(state(r)));if(kind==='unassigned')return rows.filter(r=>isPending(r)&&!norm(r.ejecutivo_asignado));if(kind==='urgent')return rows.filter(r=>isPending(r)&&/alta|urgent/.test(norm(r._prioridad)));return [];}
+  function retention(rows){var c=rows.filter(isCancel),kept=c.filter(r=>/retenid|migrac|downgrade/.test(state(r))).length,lost=c.filter(r=>/cancelad|baja/.test(state(r))).length;return {kept,lost,open:c.length-kept-lost,rate:kept+lost?Math.round(100*kept/(kept+lost)):null};}
+  function dedup(rows){var seen=new Set();return rows.filter(r=>{var id=r._tk?r._tk.id||r._tk.folio:r.id;if(!id)return true;var k=r._source+':'+id;if(seen.has(k))return false;seen.add(k);return true;});}
+  return {norm,number,median,isCancel,state,closed,pending,isPending,category,days,score,csat,nps,months,matches,group,retention,dedup};
+})();
+// CX_METRICS_END
+
+function cxStatus(){var el=document.getElementById('cx-load-status');if(!el)return;el.style.color=cxLoad.error?'var(--red)':'var(--text2)';el.textContent=cxLoad.error?(cxLoad.updated?'No se pudo actualizar. Se conservan los datos de '+cxLoad.updated.toLocaleString('es-MX',{timeZone:'America/Monterrey'})+': ':'No se pudo cargar información: ')+cxLoad.error:cxLoad.busy?'Actualizando información…':cxLoad.updated?'Actualizado '+cxLoad.updated.toLocaleString('es-MX',{timeZone:'America/Monterrey'})+' · Los filtros usan fecha de creación.':'Sin datos cargados';}
+function cxClearDetail(){cxDetail.page=0;}
+function cxShowCases(kind,label){cxDetail.kind=kind;cxDetail.label=label;cxDetail.page=0;cxRenderCases();document.getElementById('cx-cases').scrollIntoView({behavior:'smooth',block:'start'});}
+function cxShowCategory(col,value){cxDetail.kind='category';cxDetail.col=col;cxDetail.value=value;cxDetail.label=String(value||'Sin dato');cxDetail.page=0;cxRenderCases();document.getElementById('cx-cases').scrollIntoView({behavior:'smooth',block:'start'});}
+function cxOpenCase(i){regDisplayed=cxDetail.rows;regOpenModal(i);}
+function cxCasesPage(delta){cxDetail.page+=delta;cxRenderCases();}
+function cxExportCases(){descargarCSV('casos_cx.csv',cxDetail.rows,['folio_ticket','nombre_del_cliente_nuevo','propiedad','tipo_de_incidencia','status','ejecutivo_asignado']);}
+function cxRenderCases(){
+  var el=document.getElementById('cx-cases');if(!el)return;
+  var rows=cxDetail.kind==='category'?filtered.filter(r=>(cxDetail.col==='statusEfectivo'?statusEfectivo(r):r[cxDetail.col])===cxDetail.value):CXMetrics.group(filtered,cxDetail.kind);
+  rows=rows.slice().sort((a,b)=>String(a.fecha_de_la_solicitud||'').localeCompare(String(b.fecha_de_la_solicitud||'')));cxDetail.rows=rows;
+  var pages=Math.max(1,Math.ceil(rows.length/20));cxDetail.page=Math.max(0,Math.min(cxDetail.page,pages-1));var start=cxDetail.page*20;
+  var h='<div class="tbl-card" style="margin-bottom:20px"><div class="tbl-header"><h3>'+esc(cxDetail.label)+' · '+rows.length+' casos</h3><button class="btn-clear" onclick="cxExportCases()">Descargar casos</button></div><div class="tbl-scroll"><table class="dt"><thead><tr><th>Folio</th><th>Cliente / sucursal</th><th>Asunto</th><th>Antigüedad</th><th>Estatus</th><th>Responsable</th></tr></thead><tbody>';
+  rows.slice(start,start+20).forEach((r,i)=>{var age=Math.floor((Date.now()-Date.parse(r.fecha_de_la_solicitud))/86400000);h+='<tr class="tk-row" onclick="cxOpenCase('+(start+i)+')"><td>'+esc(r.folio_ticket||r.folio||'—')+'</td><td>'+esc(r.nombre_del_cliente_nuevo||'Sin nombre')+'<div style="color:var(--text3)">'+esc(r.propiedad||'')+'</div></td><td>'+esc(r.tipo_de_incidencia||'Sin asunto')+'</td><td>'+(Number.isFinite(age)?Math.max(0,age)+' días':'Sin fecha')+'</td><td>'+sBadge(statusEfectivo(r)||'Sin estatus')+'</td><td>'+esc(r.ejecutivo_asignado||'Sin asignar')+'</td></tr>';});
+  if(!rows.length)h+='<tr><td colspan="6" style="padding:24px">No hay casos para este indicador con los filtros actuales.</td></tr>';
+  h+='</tbody></table></div><div class="pag"><span>Página '+(cxDetail.page+1)+' de '+pages+'</span><div class="pag-btns"><button class="pbtn" '+(!cxDetail.page?'disabled':'')+' onclick="cxCasesPage(-1)">Anterior</button><button class="pbtn" '+(cxDetail.page>=pages-1?'disabled':'')+' onclick="cxCasesPage(1)">Siguiente</button></div></div></div>';el.innerHTML=h;
+}
+function cxRenderSummary(){
+  var el=document.getElementById('cx-summary');if(!el)return;
+  var c=CXMetrics.csat(filtered),t=CXMetrics.median(filtered.map(CXMetrics.days).filter(n=>n!=null));
+  var resolution=t==null?'Sin datos':t<1?(t*24).toFixed(1)+' horas':t.toFixed(1)+' días';
+  var h='<div class="chart-row"><div class="chart-card"><h3>Atender ahora</h3><p class="csub">Dentro del período y alcance seleccionados</p>';
+  [['urgent','Prioridad alta'],['unassigned','Sin responsable'],['cancel','Cancelaciones en proceso']].forEach(([k,l])=>{h+='<button class="btn-clear" style="margin:6px 8px 6px 0;font-size:13px" onclick="cxShowCases(\''+k+'\',\''+l+'\')">'+l+' · '+CXMetrics.group(filtered,k).length+'</button>';});
+  h+='</div><div class="chart-card"><h3>Experiencia y resolución</h3><p style="font-size:14px;margin:12px 0">CSAT: <b>'+(c.total?c.average.toFixed(1)+' / 5':'Sin respuestas')+'</b> · '+c.total+' respuestas válidas</p><p style="font-size:13px;color:var(--text2)">Mediana de resolución: '+resolution+'. No mide primera respuesta del agente.</p><p style="font-size:13px;color:var(--text2);margin-top:8px">Finalizados incluye resueltos, cerrados y cancelaciones con resultado. El NPS 0–10 se consulta en Campañas. CES aún no se mide.</p></div></div>';
+  if(!F.origen)h+='<p style="font-size:13px;color:var(--text2);margin-bottom:12px">Se combinan histórico y bot. Los registros entre ambas fuentes no tienen una equivalencia validada y pueden representar el mismo caso.</p>';
+  el.innerHTML=h;cxRenderCases();cxStatus();
+}
 
 async function doLogin(){
   const email=document.getElementById('in-email').value.trim(),pass=document.getElementById('in-pass').value;
@@ -542,7 +611,7 @@ async function enterApp(){
   }
   await loadData();buildFilters();applyFilters();
   // Rubi entra directo en Tickets (sin home)
-  if(isAromatex())goPage('tickets');
+  goPage(isAromatex()?'tickets':'dashboard');
   _iniciarPollingDatos();
 }
 
@@ -550,16 +619,23 @@ var _mesMap={'january':'Enero','february':'Febrero','march':'Marzo','april':'Abr
 function _normMes(m){if(!m)return'';var k=m.trim().toLowerCase();return _mesMap[k]||m;}
 
 async function loadData(){
-  allData=[];let off=0;
+  if(cxLoad.busy)return false;
+  cxLoad.busy=true;cxStatus();
+  try{var data=await cxFetchData();allData=data;cxLoad.error='';cxLoad.updated=new Date();return true;}
+  catch(e){cxLoad.error=e.message||'Error de conexión';return false;}
+  finally{cxLoad.busy=false;cxStatus();}
+}
+async function cxFetchData(){
+  let nextData=[];let off=0;
   // Rubi (Aromatex) NO ve histórico de base_general — solo tickets WA del canal aromatex
   if(!isAromatex()){
     while(true){
       const{data,error}=await sb.from('base_general').select('*').order('id',{ascending:true}).range(off,off+999);
       if(error)throw new Error(error.message);if(!data.length)break;
-      allData.push(...data);if(data.length<1000)break;off+=1000;
+      nextData.push(...data);off+=data.length;
     }
   }
-  allData.forEach(r=>{
+  nextData.forEach(r=>{
     r._source='base_general';
     try{var c=r.cliente_from_nombre_del_cliente;if(typeof c==='string'&&c.startsWith('[')){r.nombre_del_cliente_nuevo=JSON.parse(c)[0];}else if(Array.isArray(c)){r.nombre_del_cliente_nuevo=c[0];}else if(c){r.nombre_del_cliente_nuevo=String(c);}if(!r.nombre_del_cliente_nuevo&&r.titular_del_servicio)r.nombre_del_cliente_nuevo=r.titular_del_servicio;}catch(e){}
     // Parsear propiedad desde propiedad_from_nombre_del_cliente si propiedad está vacía
@@ -587,11 +663,11 @@ async function loadData(){
   //   - Admins → todos
   let tOff=0;
   while(true){
-    let q=sb.from('tickets').select('*').order('created_at',{ascending:false}).range(tOff,tOff+999);
+    let q=sb.from('tickets').select('*').order('created_at',{ascending:false}).order('id',{ascending:false}).range(tOff,tOff+999);
     if(isAromatex())q=q.eq('canal_origen','aromatex');
-    else if(!isAdmin())q=q.eq('canal_origen','cx');
+    else if(!isAdmin())q=q.or('canal_origen.eq.cx,canal_origen.is.null');
     const{data,error}=await q;
-    if(error){console.error('Error loading tickets:',error.message);break;}
+    if(error)throw new Error('Tickets: '+error.message);
     if(!data.length)break;
     data.forEach(t=>{
       var fd=t.created_at?String(t.created_at):'';
@@ -609,9 +685,9 @@ async function loadData(){
       var trDias=null;
       if(t.resolved_at&&t.created_at){
         var ms=new Date(t.resolved_at).getTime()-new Date(t.created_at).getTime();
-        if(!isNaN(ms)&&ms>=0)trDias=+(ms/86400000).toFixed(1);
+        if(!isNaN(ms)&&ms>=0)trDias=ms/86400000;
       }
-      allData.push({
+      nextData.push({
         _source:'whatsapp',_tk:t,_canal:t.canal_origen||'cx',
         folio_ticket:t.folio,folio:t.folio,
         fecha_de_la_solicitud:fd.slice(0,10),
@@ -623,7 +699,7 @@ async function loadData(){
         status:t.estatus,
         ejecutivo_asignado:t.agente,
         tipo_de_servicio:t.servicio,
-        tipo_de_solicitud:(function(){var tl=(t.tipo||'').toLowerCase();if(tl.includes('cancelac'))return 'Solicitud de Cancelación';if(/cambio.*aroma|instalaci|reubicaci|entrega.*aroma|reducci|demo/.test(tl))return 'Solicitud Operativa';return 'Incidencia / Queja';})(),
+        tipo_de_solicitud:CXMetrics.category(t.tipo),
         motivo_de_cancelacin:t.tipo&&t.tipo.toLowerCase().includes('cancelac')?(t.categoria||t.mensaje||''):'',
         submotvio_canc:t.tipo&&t.tipo.toLowerCase().includes('cancelac')?(t.subtipo||''):'',
         status_cancelacion:t.status_cancelacion||(t.tipo&&t.tipo.toLowerCase().includes('cancelac')?(t.estatus==='Nuevo'?'En proceso':t.estatus):''),
@@ -640,15 +716,16 @@ async function loadData(){
         fecha_efectiva_cancelacion:t.fecha_efectiva_cancelacion||null,
         _anio_efectivo:anioEf,_mes_efectivo:mesEf,
         descripcion_downgrade:t.descripcion_downgrade||'',
-        monto_nuevo_downgrade:t.monto_nuevo_downgrade||null,
+        monto_nuevo_downgrade:t.monto_nuevo_downgrade??null,
         comentarios_de_seguimiento:t.comentarios_de_seguimiento||''
       });
     });
-    if(data.length<1000)break;tOff+=1000;
+    tOff+=data.length;
   }
+  return CXMetrics.dedup(nextData);
 }
-
 function goPage(p){
+  tkCloseModal();
   // Restricción: Campañas y Permisos solo para admins
   if(p==='campanias'&&!isAdmin()){p='home';}
   if(p==='permisos'&&!isAdmin()){p='home';}
@@ -666,7 +743,8 @@ function goPage(p){
 // ===================== ANÁLISIS CX =====================
 let anReady=false;
 function loadAnalisis(){
-  if(!anReady){
+  {
+    ['an-f-anio','an-f-mes','an-f-servicio'].forEach(id=>{var el=document.getElementById(id);el.dataset.previous=el.value;el.innerHTML='<option value="">Todos</option>';});
     var mo=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
     var anios=[...new Set(allData.map(r=>r._anio).filter(Boolean))].sort((a,b)=>String(b).localeCompare(String(a)));
     var meses=[...new Set(allData.map(r=>r.mes).filter(Boolean))].sort((a,b)=>mo.indexOf(a)-mo.indexOf(b));
@@ -675,6 +753,7 @@ function loadAnalisis(){
     var sm=document.getElementById('an-f-mes');meses.forEach(m=>sm.insertAdjacentHTML('beforeend','<option value="'+esc(m)+'">'+esc(m)+'</option>'));
     var ss=document.getElementById('an-f-servicio');servs.forEach(s=>ss.insertAdjacentHTML('beforeend','<option value="'+esc(s)+'">'+esc(s)+'</option>'));
     anReady=true;
+    ['an-f-anio','an-f-mes','an-f-servicio'].forEach(id=>{var el=document.getElementById(id);el.value=el.dataset.previous||'';});
   }
   anApply();
 }
@@ -714,19 +793,15 @@ function anApply(){
   });
   var nf=(fa?1:0)+(fm?1:0)+(fs?1:0);
   document.getElementById('af-an').textContent=nf?(nf+' filtro'+(nf>1?'s':'')+' · '+base.length+' registros'):base.length+' registros';
-  var canc=base.filter(_anEsCanc),inci=base.filter(r=>!_anEsCanc(r));
-  // KPIs de cancelación
-  var _sc=function(r){return (r.status_cancelacion||'').toLowerCase();};
-  var nCancel=canc.filter(r=>{var s=_sc(r);return s.indexOf('cancelad')>=0||s.indexOf('baja')>=0;}).length;
-  var nReten=canc.filter(r=>{var s=_sc(r);return s.indexOf('retenid')>=0||s.indexOf('migrac')>=0||s.indexOf('downgrade')>=0;}).length;
-  var cerrados=nCancel+nReten,abiertos=canc.length-cerrados;
-  var tasa=cerrados?Math.round(nReten*100/cerrados):0;
-  var colTasa=tasa>=70?'var(--green)':(tasa>=50?'var(--amber)':'var(--red)');
+  var canc=base.filter(CXMetrics.isCancel),inci=base.filter(r=>r.tipo_de_solicitud==='Incidencia / Queja'),other=base.length-canc.length-inci.length;
+  var outcomes=CXMetrics.retention(canc);
+  var nCancel=outcomes.lost,nReten=outcomes.kept,cerrados=nCancel+nReten,abiertos=outcomes.open,tasa=outcomes.rate;
+  var colTasa=tasa==null?'var(--text2)':tasa>=70?'var(--green)':(tasa>=50?'var(--amber)':'var(--red)');
   document.getElementById('an-kpis').innerHTML=
-    '<div class="kpi"><div class="lbl">Conversaciones</div><div class="val">'+base.length+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+inci.length+' incidencias · '+canc.length+' cancelaciones</div></div>'+
+    '<div class="kpi"><div class="lbl">Casos</div><div class="val">'+base.length+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+inci.length+' incidencias · '+canc.length+' cancelaciones</div></div>'+
     '<div class="kpi c-red"><div class="lbl">Canceladas</div><div class="val">'+nCancel+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">bajas efectivas</div></div>'+
     '<div class="kpi c-green"><div class="lbl">Retenidas</div><div class="val">'+nReten+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">incl. downgrade/migración</div></div>'+
-    '<div class="kpi"><div class="lbl">Tasa de retención</div><div class="val" style="color:'+colTasa+'">'+tasa+'%</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+nReten+'/'+cerrados+' cerrados · '+abiertos+' abiertos · meta 70%</div></div>';
+    '<div class="kpi"><div class="lbl">Tasa de retención</div><div class="val" style="color:'+colTasa+'">'+(tasa==null?'Sin decisiones':tasa+'%')+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+nReten+'/'+cerrados+' cerrados · '+abiertos+' abiertos</div></div>';
   // Columnas: motivos por tema | incidencias por categoría
   var temas={},cats={};
   canc.forEach(r=>{var k=_anTema(r);temas[k]=(temas[k]||0)+1;});
@@ -770,60 +845,36 @@ function buildFilters(){['filters-dash','filters-reg'].forEach(id=>buildFB(id));
 
 function buildFB(cid){
   const el=document.getElementById(cid);
-  const defs=[{key:'tipo_solicitud',label:'Tipo Solicitud',col:'tipo_de_solicitud'},{key:'anio',label:'Año',col:'_anio'},{key:'mes',label:'Mes',col:'mes'},{key:'tipo_servicio',label:'Servicio',col:'tipo_de_servicio'},{key:'zona',label:'Zona',col:'zona'},{key:'status',label:'Status',col:'status'},{key:'tipo_incidencia',label:'Tipo Incidencia',col:'tipo_de_incidencia'},{key:'ejecutivo',label:'Ejecutivo',col:'ejecutivo_asignado'}];
-  let h='<span class="flabel" style="margin:0">Filtros:</span>';
-  defs.forEach(d=>{
-    let vals;
-    if(d.key==='status'){vals=[...new Set(allData.flatMap(r=>[r.status,r.status_cancelacion]).filter(v=>v!=null&&String(v).trim()!==''))];}
-    else{vals=[...new Set(allData.map(r=>r[d.col]).filter(v=>v!=null&&String(v).trim()!==''))];}
-    // Para año, ordenar descendente (más recientes primero)
-    if(d.key==='anio'){
-      vals.sort((a,b)=>String(b).localeCompare(String(a)));
-    } else if(d.key==='mes'){
-      // Para mes, mantener orden natural
-      var mo=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-      vals.sort((a,b)=>{
-        var ia=mo.findIndex(m=>a.toLowerCase().includes(m.toLowerCase()));
-        var ib=mo.findIndex(m=>b.toLowerCase().includes(m.toLowerCase()));
-        if(ia>=0&&ib>=0)return ia-ib;return a.localeCompare(b);
-      });
-    } else {
-      vals.sort();
-    }
-    h+='<select data-fkey="'+d.key+'" onchange="onF(this)"><option value="">'+d.label+': Todos</option>';
-    vals.forEach(v=>{h+='<option value="'+esc(v)+'"'+(F[d.key]===v?' selected':'')+'>'+esc(v.length>22?v.slice(0,22)+'…':v)+'</option>';});
-    h+='</select>';
+  const defs=[{key:'anio',label:'Año',col:'_anio'},{key:'mes',label:'Mes de creación',col:'mes'},{key:'tipo_servicio',label:'Servicio',col:'tipo_de_servicio'},{key:'origen',label:'Origen',col:'_source'},{key:'tipo_solicitud',label:'Solicitud',col:'tipo_de_solicitud'},{key:'zona',label:'Zona',col:'zona'},{key:'status',label:'Estatus',col:'status'},{key:'tipo_incidencia',label:'Asunto',col:'tipo_de_incidencia'},{key:'ejecutivo',label:'Responsable',col:'ejecutivo_asignado'}];
+  var basic='',advanced='';
+  defs.forEach((d,i)=>{
+    var vals=d.key==='status'?[...new Set(allData.flatMap(r=>[r.status,r.status_cancelacion]).filter(Boolean))]:[...new Set(allData.map(r=>r[d.col]).filter(v=>v!=null&&String(v).trim()!==''))];
+    if(F[d.key]&&!vals.includes(F[d.key]))vals.push(F[d.key]);
+    if(d.key==='anio')vals.sort((a,b)=>String(b).localeCompare(String(a)));
+    else if(d.key==='mes')vals.sort((a,b)=>_moNombres.indexOf(a)-_moNombres.indexOf(b));else vals.sort();
+    var h='<label style="font-size:13px">'+d.label+' <select aria-label="'+d.label+'" data-fkey="'+d.key+'" onchange="onF(this)"><option value="">Todos</option>';
+    vals.forEach(v=>{var label=d.key==='origen'?(v==='whatsapp'?'Tickets del bot':'Histórico'):v;h+='<option value="'+esc(String(v))+'"'+(F[d.key]===v?' selected':'')+'>'+esc(String(label))+'</option>';});h+='</select></label>';
+    if(i<4)basic+=h;else advanced+=h;
   });
-  h+='<button class="btn-clear" onclick="clearF()">Limpiar</button><span class="active-filters" id="af-'+cid+'"></span>';
-  el.innerHTML=h;
+  var active=defs.slice(4).some(d=>F[d.key]);
+  el.innerHTML=basic+'<details '+(active?'open':'')+'><summary style="cursor:pointer;font-size:13px">Más filtros</summary><div style="display:flex;gap:10px;flex-wrap:wrap;padding:12px 0">'+advanced+'</div></details><button class="btn-clear" onclick="clearF()">Limpiar filtros</button><span class="active-filters" id="af-'+cid+'"></span>';
 }
 
-function onF(sel){F[sel.dataset.fkey]=sel.value;document.querySelectorAll('select[data-fkey="'+sel.dataset.fkey+'"]').forEach(s=>{s.value=sel.value;});applyFilters();}
 
-function clearF(){Object.keys(F).forEach(k=>F[k]='');document.querySelectorAll('.filter-bar select').forEach(s=>s.value='');applyFilters();}
+function onF(sel){F[sel.dataset.fkey]=sel.value;document.querySelectorAll('select[data-fkey="'+sel.dataset.fkey+'"]').forEach(s=>{s.value=sel.value;});cxClearDetail();applyFilters();}
 
+function clearF(){Object.keys(F).forEach(k=>F[k]='');buildFilters();cxClearDetail();applyFilters();}
 function applyFilters(){
-  filtered=allData.filter(r=>{
-    if(F.anio&&r._anio!==F.anio)return false;
-    if(F.mes&&r.mes!==F.mes)return false;
-    if(F.tipo_solicitud&&r.tipo_de_solicitud!==F.tipo_solicitud)return false;
-    if(F.tipo_servicio&&r.tipo_de_servicio!==F.tipo_servicio)return false;
-    if(F.zona&&r.zona!==F.zona)return false;
-    if(F.status&&r.status!==F.status&&r.status_cancelacion!==F.status)return false;
-    if(F.tipo_incidencia&&r.tipo_de_incidencia!==F.tipo_incidencia)return false;
-    if(F.ejecutivo&&r.ejecutivo_asignado!==F.ejecutivo)return false;
-    return true;
-  });
-  const n=Object.values(F).filter(v=>v).length;
-  document.querySelectorAll('.active-filters').forEach(el=>{el.textContent=n?n+' filtro'+(n>1?'s':'')+' · '+filtered.length+' de '+allData.length+' registros':'';});
-  updateDashboardTitle();
-  renderTipoSolicitudTabs();
-  renderKPIs();renderCharts();tblPg=0;
+  filtered=allData.filter(r=>CXMetrics.matches(r,F));
+  var n=Object.values(F).filter(Boolean).length;
+  ['filters-dash','filters-reg'].forEach(id=>{var el=document.getElementById('af-'+id);if(el)el.textContent=filtered.length+' de '+allData.length+' casos · '+n+' filtros';});
+  updateDashboardTitle();renderTipoSolicitudTabs();renderKPIs();renderCharts();cxRenderSummary();tblPg=0;
   if(curPage==='registros')renderRegistros();
 }
 
+
 function updateDashboardTitle(){
-  var title='Dashboard';
+  var title='Resumen CX';
   if(F.tipo_solicitud){
     if(F.tipo_solicitud.toLowerCase().includes('cancelac'))title='Cancelaciones';
     else if(F.tipo_solicitud.toLowerCase().includes('queja'))title='Quejas y reclamaciones';
@@ -850,43 +901,32 @@ function setTipoSolicitud(v){
   applyFilters();
 }
 
-function _esCancelacion(r){var t=(r.tipo_de_solicitud||'').toLowerCase();return t.includes('cancelac');}
+function _esCancelacion(r){return CXMetrics.isCancel(r);}
 function statusEfectivo(r){return _esCancelacion(r)?(r.status_cancelacion||r.status||''):(r.status||'');}
-function isRes(s){if(!s)return false;var l=s.toLowerCase();return l.includes('cerrad')||l.includes('resuelt')||l.includes('completad')||l.includes('solucionad')||l.includes('retenid')||l.includes('cancelad');}
-function isPen(s){if(!s)return false;var l=s.toLowerCase();return l.includes('pendient')||l.includes('abiert')||l.includes('proceso')||l.includes('seguimiento')||l.includes('nuev')||l.includes('negociac')||l.includes('sin atender');}
+function isRes(s){return CXMetrics.closed(s);}
+function isPen(s){return CXMetrics.pending(s);}
 
 function renderKPIs(){
-  var tot=filtered.length;
-  var res=filtered.filter(r=>isRes(statusEfectivo(r))).length;
-  var pen=filtered.filter(r=>isPen(statusEfectivo(r))).length;
-  var pctRes=tot?Math.round(res*100/tot):0;
-  // Mediana en lugar de promedio: los outliers de 200+ días (33% del dataset) inflan el promedio engañosamente
-  var ts=filtered.map(r=>{var t=r.tiempo_de_respuesta;if(t==null||t==='')return null;var n=parseFloat(String(t).replace(/[^\d.]/g,''));return isNaN(n)?null:n;}).filter(v=>v!==null&&v>=0).sort((a,b)=>a-b);
-  var med=ts.length?ts[Math.floor(ts.length/2)]:null;
-  var medStr=med!=null?(med<1?(med*24).toFixed(1)+'h':med.toFixed(1)+'d'):'—';
-  document.getElementById('kpis').innerHTML='<div class="kpi-row">'+
-    '<div class="kpi"><div class="lbl">Total</div><div class="val">'+tot.toLocaleString()+'</div></div>'+
-    '<div class="kpi c-green"><div class="lbl">Resueltas</div><div class="val">'+pctRes+'<span style="font-size:14px;color:var(--text3);font-weight:400">%</span></div></div>'+
-    '<div class="kpi c-red"><div class="lbl">Pendientes</div><div class="val">'+pen.toLocaleString()+'</div></div>'+
-    '<div class="kpi c-amber"><div class="lbl">Tiempo respuesta</div><div class="val">'+medStr+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">mediana ('+ts.length+' con dato)</div></div>'+
-  '</div>';
+  var items=[['all','Casos del período','Todos los casos'],['pending','Pendientes','Pendientes'],['escalated','Escalados','Escalados'],['cancel','Cancelaciones en proceso','Cancelaciones en proceso'],['closed','Finalizados','Finalizados']];
+  document.getElementById('kpis').innerHTML='<div class="kpi-row cx-kpis">'+items.map(([k,l,title])=>'<button type="button" class="kpi cx-kpi" onclick="cxShowCases(\''+k+'\',\''+title+'\')"><span class="lbl">'+l+'</span><span class="val">'+(cxLoad.error&&!cxLoad.updated?'—':CXMetrics.group(filtered,k).length.toLocaleString())+'</span><span class="cx-kpi-hint">Ver casos →</span></button>').join('')+'</div>';
 }
+
 
 function renderCharts(){
   Object.values(chartInstances).forEach(c=>{if(c)c.destroy();});chartInstances={};
   var a=document.getElementById('charts-area');
   // Trend en fila completa arriba; luego 2x2 de distribuciones; CSAT solo si hay datos suficientes
-  var csatCount=filtered.filter(r=>r._csat!=null&&!isNaN(Number(r._csat))).length;
-  var showCSAT=csatCount>=10;
+  var csatCount=CXMetrics.csat(filtered).total;
+  var showCSAT=csatCount>0;
   var c1Col='tipo_de_incidencia',c1Title='Tipo de Incidencia';
   if(F.tipo_solicitud&&F.tipo_solicitud.toLowerCase().includes('cancelac')){c1Col='motivo_de_cancelacin';c1Title='Motivo de Cancelación';}
-  var html='<div class="chart-card" style="margin-bottom:12px"><h3>Tendencia mensual</h3><div class="csub">Incidencias por mes</div><canvas id="c6" style="max-height:160px"></canvas></div>';
-  html+='<div class="chart-row"><div class="chart-card"><h3>'+c1Title+'</h3><div class="csub">Top 10</div><canvas id="c1"></canvas></div><div class="chart-card"><h3>Status</h3><div class="csub">Distribución actual</div><canvas id="c8"></canvas></div></div>';
+  var html='<div class="chart-card" style="margin-bottom:12px"><h3>Tendencia mensual</h3><div class="csub">Casos por año y mes de creación</div><canvas id="c6" style="max-height:160px"></canvas></div>';
+  html+='<div class="chart-row"><div class="chart-card"><h3>'+c1Title+'</h3><div class="csub">Principales 8 · selecciona una barra</div><canvas id="c1"></canvas></div><div class="chart-card"><h3>Status</h3><div class="csub">Distribución actual</div><canvas id="c8"></canvas></div></div>';
   html+='<div class="chart-row"><div class="chart-card"><h3>Zona</h3><div class="csub">Distribución geográfica</div><canvas id="c4"></canvas></div><div class="chart-card"><h3>Ejecutivo</h3><div class="csub">Carga por agente</div><canvas id="c-agent"></canvas></div></div>';
   if(showCSAT){
-    html+='<div class="chart-row"><div class="chart-card"><h3>NPS</h3><div class="csub">'+csatCount+' respuestas CSAT</div><div id="nps-score" style="text-align:center;margin:8px 0"></div><canvas id="c9"></canvas></div><div class="chart-card"><h3>CSAT por servicio</h3><div class="csub">Promedio 1-5</div><canvas id="c10"></canvas></div></div>';
+    html+='<div class="chart-row"><div class="chart-card"><h3>CSAT · distribución</h3><div class="csub">'+csatCount+' respuestas 1–5</div><div id="nps-score" style="text-align:center;margin:8px 0"></div><canvas id="c9"></canvas></div><div class="chart-card"><h3>CSAT por servicio</h3><div class="csub">Promedio 1-5</div><canvas id="c10"></canvas></div></div>';
   }else{
-    html+='<div class="chart-card"><h3>CSAT</h3><div class="csub">Encuestas de satisfacción</div><div style="text-align:center;padding:24px 0;color:var(--text3);font-size:12px">Solo '+csatCount+' respuestas. Se mostrará NPS al alcanzar 10.</div></div>';
+    html+='<div class="chart-card"><h3>CSAT</h3><div class="csub">Encuestas de satisfacción</div><div style="text-align:center;padding:24px 0;color:var(--text3);font-size:12px">Solo '+csatCount+' respuestas. No hay calificaciones válidas 1–5 en este período.</div></div>';
   }
   a.innerHTML=html;
   chartInstances.c6=mkMonthBar('c6');
@@ -905,21 +945,18 @@ var DARK_AX={text:'#a1a1aa',grid:'rgba(255,255,255,.05)',bar:'#5eead4',barAlt:'#
 function _commonAxes(){return{x:{ticks:{font:{size:10,family:'Inter'},color:DARK_AX.text},grid:{display:false},border:{display:false}},y:{ticks:{font:{size:10,family:'Inter'},color:DARK_AX.text},grid:{color:DARK_AX.grid},border:{display:false}}};}
 
 function mkNPS(id){
-  var scores=filtered.filter(r=>r._csat!=null).map(r=>Number(r._csat)).filter(n=>!isNaN(n)&&n>=1&&n<=5);
-  if(!scores.length){document.getElementById('nps-score').innerHTML='<span style="color:var(--text3);font-size:12px">Sin datos CSAT</span>';return null;}
-  var prom=scores.filter(n=>n===5).length,pas=scores.filter(n=>n===4).length,det=scores.filter(n=>n<=3).length;
-  var total=scores.length;
-  var nps=Math.round(((prom-det)/total)*100);
-  var npsColor=nps>=50?'var(--green)':nps>=0?'var(--amber)':'var(--red)';
-  document.getElementById('nps-score').innerHTML='<div style="font-size:32px;font-weight:600;color:'+npsColor+';letter-spacing:-.02em;font-variant-numeric:tabular-nums">'+nps+'</div><div style="font-size:10px;color:var(--text3);margin-top:2px">Promotores '+prom+' · Pasivos '+pas+' · Detractores '+det+'</div>';
-  return new Chart(document.getElementById(id),{type:'doughnut',data:{labels:['Promotores (5)','Pasivos (4)','Detractores (1-3)'],datasets:[{data:[prom,pas,det],backgroundColor:['#22c55e','#fbbf24','#f87171'],borderWidth:0}]},options:{responsive:true,plugins:{legend:{position:'bottom',labels:{font:{size:10,family:'Inter'},color:DARK_AX.text,padding:8,boxWidth:10}}}}});
+  var scores=filtered.map(r=>CXMetrics.score(r._csat,1,5)).filter(n=>n!=null);if(!scores.length)return null;
+  var counts=[1,2,3,4,5].map(n=>scores.filter(v=>v===n).length);
+  document.getElementById('nps-score').textContent=(scores.reduce((a,n)=>a+n,0)/scores.length).toFixed(1)+' / 5 · '+scores.length+' respuestas';
+  return new Chart(document.getElementById(id),{type:'bar',data:{labels:['1','2','3','4','5'],datasets:[{data:counts,backgroundColor:DARK_AX.bar}]},options:{responsive:true,plugins:{legend:{display:false}},scales:_commonAxes()}});
 }
+
 
 function mkCSATbyService(id){
   var svc={};
   filtered.forEach(r=>{
     if(r._csat==null||!r.tipo_de_servicio)return;
-    var n=Number(r._csat);if(isNaN(n))return;
+    var n=CXMetrics.score(r._csat,1,5);if(n==null)return;
     var s=r.tipo_de_servicio;
     if(!svc[s])svc[s]={sum:0,cnt:0};svc[s].sum+=n;svc[s].cnt++;
   });
@@ -933,7 +970,7 @@ function colCnt(col){var c={};filtered.forEach(r=>{var v=r[col];if(v!=null&&Stri
 // Bar horizontal (mucho más legible que donut para categorías largas)
 function mkHBar(id,col){
   var d=colCnt(col).slice(0,8);if(!d.length)return null;
-  return new Chart(document.getElementById(id),{type:'bar',data:{labels:d.map(x=>trn(x[0],28)),datasets:[{data:d.map(x=>x[1]),backgroundColor:DARK_AX.bar,borderRadius:2,barThickness:12}]},options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false},tooltip:{backgroundColor:'#16161a',titleColor:'#ededed',bodyColor:'#ededed',borderColor:'#27272d',borderWidth:1,padding:8}},scales:{x:{ticks:{font:{size:10},color:DARK_AX.text},grid:{color:DARK_AX.grid},border:{display:false}},y:{ticks:{font:{size:10},color:DARK_AX.text},grid:{display:false},border:{display:false}}}}});
+  return new Chart(document.getElementById(id),{type:'bar',data:{labels:d.map(x=>trn(x[0],28)),datasets:[{data:d.map(x=>x[1]),backgroundColor:DARK_AX.bar,borderRadius:2,barThickness:12}]},options:{onClick:(event,elements)=>{if(elements.length)cxShowCategory(col,d[elements[0].index][0]);},responsive:true,indexAxis:'y',plugins:{legend:{display:false},tooltip:{backgroundColor:'#16161a',titleColor:'#ededed',bodyColor:'#ededed',borderColor:'#27272d',borderWidth:1,padding:8}},scales:{x:{ticks:{font:{size:10},color:DARK_AX.text},grid:{color:DARK_AX.grid},border:{display:false}},y:{ticks:{font:{size:10},color:DARK_AX.text},grid:{display:false},border:{display:false}}}}});
 }
 
 function mkHBarStatus(id){
@@ -941,17 +978,14 @@ function mkHBarStatus(id){
   var d=Object.entries(c).sort((a,b)=>b[1]-a[1]).slice(0,8);
   if(!d.length)return null;
   var colors=d.map(x=>{var s=String(x[0]).toLowerCase();if(s.includes('cerrad')||s.includes('resuelt'))return '#22c55e';if(s.includes('proceso')||s.includes('seguimien'))return '#fbbf24';if(s.includes('nuev')||s.includes('abiert')||s.includes('sin atender'))return '#f87171';return '#60a5fa';});
-  return new Chart(document.getElementById(id),{type:'bar',data:{labels:d.map(x=>trn(x[0],22)),datasets:[{data:d.map(x=>x[1]),backgroundColor:colors,borderRadius:2,barThickness:12}]},options:{responsive:true,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10},color:DARK_AX.text},grid:{color:DARK_AX.grid},border:{display:false}},y:{ticks:{font:{size:10},color:DARK_AX.text},grid:{display:false},border:{display:false}}}}});
+  return new Chart(document.getElementById(id),{type:'bar',data:{labels:d.map(x=>trn(x[0],22)),datasets:[{data:d.map(x=>x[1]),backgroundColor:colors,borderRadius:2,barThickness:12}]},options:{onClick:(event,elements)=>{if(elements.length)cxShowCategory('statusEfectivo',d[elements[0].index][0]);},responsive:true,indexAxis:'y',plugins:{legend:{display:false}},scales:{x:{ticks:{font:{size:10},color:DARK_AX.text},grid:{color:DARK_AX.grid},border:{display:false}},y:{ticks:{font:{size:10},color:DARK_AX.text},grid:{display:false},border:{display:false}}}}});
 }
 
 function mkMonthBar(id){
-  var c={};filtered.forEach(r=>{var m=r.mes;if(m)c[m]=(c[m]||0)+1;});
-  var mo=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  var moAbr={Enero:'Ene',Febrero:'Feb',Marzo:'Mar',Abril:'Abr',Mayo:'May',Junio:'Jun',Julio:'Jul',Agosto:'Ago',Septiembre:'Sep',Octubre:'Oct',Noviembre:'Nov',Diciembre:'Dic'};
-  var s=Object.entries(c).sort((a,b)=>{var ia=mo.findIndex(m=>a[0].toLowerCase().includes(m.toLowerCase()));var ib=mo.findIndex(m=>b[0].toLowerCase().includes(m.toLowerCase()));if(ia>=0&&ib>=0)return ia-ib;return a[0].localeCompare(b[0]);});
-  if(!s.length)return null;
-  return new Chart(document.getElementById(id),{type:'bar',data:{labels:s.map(x=>moAbr[x[0]]||x[0]),datasets:[{data:s.map(x=>x[1]),backgroundColor:DARK_AX.bar,borderRadius:2,barThickness:18}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:_commonAxes()}});
+  var d=CXMetrics.months(filtered);if(!d.length)return null;
+  return new Chart(document.getElementById(id),{type:'bar',data:{labels:d.map(e=>e[0]),datasets:[{data:d.map(e=>e[1]),backgroundColor:DARK_AX.bar,borderRadius:2}]},options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:_commonAxes(),onClick:(event,elements)=>{if(!elements.length)return;var key=d[elements[0].index][0];F.anio=key.slice(0,4);F.mes=_moNombres[Number(key.slice(5))-1];buildFilters();applyFilters();cxShowCases('all','Casos de '+key);}}});
 }
+
 
 let regDisplayed=[];
 function regSearchApply(){tblPg=0;renderRegistros();}
@@ -1065,7 +1099,7 @@ function regOpenModal(idx){
       {l:'Nombre del Contacto',v:r.nombre_del_contacto},{l:'Teléfono del Contacto',v:r.telefono_del_contacto},
       {l:'Correo del Contacto',v:r.correo_del_contacto},
       {l:'Detalle de la Incidencia',v:r.detalle_de_la_incidencia,full:true},
-      {l:'Tiempo Respuesta',v:r.tiempo_de_respuesta},{l:'Fecha Solución',v:r.fecha_de_solucion,ed:'fecha_de_solucion',tp:'date'},
+      {l:'Días hasta resolución',v:r.tiempo_de_respuesta},{l:'Fecha Solución',v:r.fecha_de_solucion,ed:'fecha_de_solucion',tp:'date'},
       {l:'Carta Convenio',v:r.carta_convenio},{l:'Titular',v:r.titular_del_servicio},
       {l:'Comentarios',v:r.comentarios_de_seguimiento,full:true}
     ];
@@ -1527,7 +1561,11 @@ function _setEscalarEmail(e){
 }
 // ── Campañas WhatsApp ──
 const BOT_URL='https://avantex-bot.onrender.com';
-const BOT_TOKEN='avantex_dashboard_2026';
+async function botAuthHeaders(){
+  const result=await sb.auth.getSession();var authSession=result.data&&result.data.session;
+  if(!authSession||!authSession.access_token)throw new Error('Tu sesión expiró. Inicia sesión otra vez.');
+  return {'Content-Type':'application/json','Authorization':'Bearer '+authSession.access_token};
+}
 let _cmpElegibles=[];
 
 // Bodies oficiales de las plantillas aprobadas en Meta (deben coincidir EXACTO con lo aprobado)
@@ -1592,9 +1630,11 @@ function _cmpParsearListaManual(){
   return clientes;
 }
 
-async function cmpPreview(){
+async function cmpPreview(btn){
   var tipo=document.getElementById('cmp-tipo').value;
-  var btn=event.target;
+  btn=btn||document.querySelector('[onclick="cmpPreview(this)"]');
+  _cmpElegibles=[];var sendButton=document.getElementById('cmp-btn-enviar');sendButton.disabled=true;sendButton.style.opacity='.4';
+  document.getElementById('cmp-preview-card').style.display='none';
   btn.disabled=true;btn.innerHTML='<i class="fa-solid fa-spinner fa-spin"></i> Buscando...';
   try{
     if(tipo==='ventas'){
@@ -1607,11 +1647,11 @@ async function cmpPreview(){
       var dmin=parseInt(document.getElementById('cmp-dias-min').value||'7');
       var dmax=parseInt(document.getElementById('cmp-dias-max').value||'30');
       var r=await fetch(BOT_URL+'/dashboard/api/campania/preview_nps',{
-        method:'POST',headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({admin_token:BOT_TOKEN,dias_min:dmin,dias_max:dmax,excluir_dias_nps:90,template_excluir:'nps_avantex'})
+        method:'POST',headers:await botAuthHeaders(),
+        body:JSON.stringify({dias_min:dmin,dias_max:dmax,excluir_dias_nps:90,template_excluir:'nps_avantex'})
       });
       var d=await r.json();
-      if(!d.ok){alert('Error: '+(d.error||'?'));return;}
+      if(!d.ok)throw new Error(d.error||'No se pudo obtener una vista previa completa.');
       _cmpElegibles=d.clientes||[];
       document.getElementById('cmp-preview-card').style.display='';
       document.getElementById('cmp-preview-count').textContent=d.total_elegibles+' clientes elegibles para NPS';
@@ -1641,9 +1681,9 @@ async function cmpEnviarCampania(){
     progress.textContent='Enviando '+(i+1)+' de '+_cmpElegibles.length+' · OK: '+ok+' · Fail: '+fail;
     try{
       var r=await fetch(BOT_URL+'/dashboard/api/campania/enviar_uno',{
-        method:'POST',headers:{'Content-Type':'application/json'},
+        method:'POST',headers:await botAuthHeaders(),
         body:JSON.stringify({
-          admin_token:BOT_TOKEN,template_name:template,language:'es_MX',
+          template_name:template,language:'es_MX',
           telefono:c.telefono,nombre:c.nombre,
           params:{customer_name:(c.nombre||'Cliente')},
           campania:campania
@@ -1713,40 +1753,41 @@ function cmpVerMensaje(idx){
   modal.classList.add('on');
 }
 
+let _cmpHistGeneration=0;
 async function cmpCargarHistorial(){
+  var generation=++_cmpHistGeneration;
   var tbody=document.getElementById('cmp-hist-tbody');
   var kpis=document.getElementById('cmp-kpis');
   if(!tbody)return;
   tbody.innerHTML='<tr><td colspan="8" style="text-align:center;padding:18px;color:var(--text3)">Cargando...</td></tr>';
   try{
-    const{data,error}=await sb.from('envios_plantillas').select('*').order('created_at',{ascending:false}).limit(500);
-    if(error)throw new Error(error.message);
-    // ── Calcular KPIs ──
-    if(kpis){
-      var total=data.length;
-      var enviados=data.filter(e=>e.estado!=='fallido'&&e.estado!=='pendiente').length;
-      var respondidos=data.filter(e=>e.respuesta_score!=null).length;
-      var promotores=data.filter(e=>e.respuesta_categoria==='promotor').length;
-      var pasivos=data.filter(e=>e.respuesta_categoria==='pasivo').length;
-      var detractores=data.filter(e=>e.respuesta_categoria==='detractor').length;
-      var tasaResp=enviados?Math.round(respondidos*100/enviados):0;
-      // NPS Score = %promotores - %detractores (sobre respondidos)
-      var nps='—';
-      if(respondidos>0){
-        var pctP=Math.round(promotores*100/respondidos);
-        var pctD=Math.round(detractores*100/respondidos);
-        nps=(pctP-pctD)+'';
-      }
-      var npsColor=(nps==='—'||parseInt(nps)<0)?'#dc2626':(parseInt(nps)<30?'#d97706':'#059669');
-      kpis.innerHTML=
-        _cmpKpiCard('Total envíos',total,'#0d8bf2','#eff6ff','')+
-        _cmpKpiCard('Entregados',enviados,'#0d8bf2','#eff6ff','')+
-        _cmpKpiCard('Respondieron',respondidos,'#2563eb','#eff6ff',tasaResp+'% tasa resp.')+
-        _cmpKpiCard('Promotores',promotores,'#059669','#ecfdf5',respondidos?Math.round(promotores*100/respondidos)+'%':'—')+
-        _cmpKpiCard('Detractores',detractores,'#dc2626','#fef2f2',respondidos?Math.round(detractores*100/respondidos)+'%':'—')+
-        _cmpKpiCard('NPS Score',nps,npsColor,'#fffbeb','promotores - detractores');
+    var template=document.getElementById('cmp-hist-template').value;
+    var campaign=document.getElementById('cmp-hist-campaign').value.trim();
+    var from=document.getElementById('cmp-hist-from').value,to=document.getElementById('cmp-hist-to').value;
+    if(from&&to&&from>to)throw new Error('La fecha inicial debe ser anterior a la final.');
+    var data=[],offset=0;
+    while(true){
+      var query=sb.from('envios_plantillas').select('*').eq('template_name',template).order('created_at',{ascending:false}).order('id',{ascending:false}).range(offset,offset+999);
+      if(campaign)query=query.eq('campania',campaign);
+      if(from)query=query.gte('created_at',from+'T00:00:00-06:00');
+      if(to){var next=new Date(to+'T12:00:00Z');next.setUTCDate(next.getUTCDate()+1);query=query.lt('created_at',next.toISOString().slice(0,10)+'T00:00:00-06:00');}
+      const result=await query;if(generation!==_cmpHistGeneration)return;if(result.error)throw new Error(result.error.message);
+      if(!result.data||!result.data.length)break;data.push(...result.data);offset+=result.data.length;
     }
-    if(!data||!data.length){tbody.innerHTML='<tr><td colspan="9" style="text-align:center;padding:18px;color:var(--text3)">Sin envíos aún</td></tr>';return;}
+    document.getElementById('cmp-hist-scope').textContent=data.length+' envíos · '+(campaign||'Todas las campañas')+' · '+(from||'inicio')+' a '+(to||'hoy');
+    if(kpis){
+      var sent=data.filter(e=>['enviado','entregado','leido','respondido'].includes(e.estado)).length;
+      var delivered=data.filter(e=>['entregado','leido'].includes(e.estado)).length;
+      var max=template==='nps_avantex'?10:5,min=template==='nps_avantex'?0:1;
+      var responses=data.map(e=>CXMetrics.score(e.respuesta_score,min,max)).filter(n=>n!=null),result=CXMetrics.nps(data);
+      var metric=template==='nps_avantex'?(result.value==null?'Sin respuestas':String(result.value)):(responses.length?(responses.reduce((a,n)=>a+n,0)/responses.length).toFixed(1)+' / 5':'Sin respuestas');
+      kpis.innerHTML=_cmpKpiCard('Intentos',data.length,'var(--text)','var(--surface2)','')+
+        _cmpKpiCard('Aceptados',sent,'var(--text)','var(--surface2)','No equivale a entregados')+
+        _cmpKpiCard('Entrega confirmada',delivered,'var(--text)','var(--surface2)','Estados entregado / leído')+
+        _cmpKpiCard('Respuestas válidas',responses.length,'var(--text)','var(--surface2)',sent?Math.round(responses.length*100/sent)+'% sobre aceptados':'Sin envíos aceptados')+
+        _cmpKpiCard(template==='nps_avantex'?'NPS 0–10':'Satisfacción ventas',metric,'var(--text)','var(--surface2)',template==='nps_avantex'?result.promoters+' promotores · '+result.detractors+' detractores':'Respuestas 1–5');
+    }
+    if(!data.length){tbody.innerHTML='<tr><td colspan="9" style="padding:18px">Sin envíos para esta encuesta y período.</td></tr>';return;}
     var colorEstado=function(e){
       if(e==='respondido')return'background:var(--green-bg);color:var(--green)';
       if(e==='enviado')return'background:var(--blue-bg);color:var(--blue)';
@@ -1771,7 +1812,7 @@ async function cmpCargarHistorial(){
       '<td style="font-size:11px;color:var(--text2);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="'+esc(e.respuesta_cliente||'')+'">'+esc((e.respuesta_cliente||'').slice(0,60))+'</td>'+
       '<td><button onclick="cmpVerMensaje('+idx+')" class="btn-clear" style="padding:3px 8px;font-size:10px"><i class="fa-brands fa-whatsapp" style="color:#25d366"></i> Ver</button></td>'+
     '</tr>').join('');
-  }catch(e){tbody.innerHTML='<tr><td colspan="8" style="color:var(--red);text-align:center;padding:18px">Error: '+e.message+'</td></tr>';}
+  }catch(e){if(generation!==_cmpHistGeneration)return;if(kpis)kpis.textContent='No se pudieron calcular los indicadores.';tbody.innerHTML='<tr><td colspan="8" style="color:var(--red);text-align:center;padding:18px">Error: '+esc(e.message)+'</td></tr>';}
 }
 
 async function enviarEscalamiento(){
@@ -1790,9 +1831,9 @@ async function enviarEscalamiento(){
   try{
     var resp=await fetch('https://avantex-bot.onrender.com/dashboard/api/escalar_ticket_email',{
       method:'POST',
-      headers:{'Content-Type':'application/json'},
+      headers:await botAuthHeaders(),
       body:JSON.stringify({
-        admin_token:'avantex_dashboard_2026',
+
         folio:folio,email_to:to,email_cc:cc||undefined,
         asunto:asunto||undefined,mensaje_adicional:msg||undefined
       })
@@ -2012,18 +2053,18 @@ async function regChangeStatus(){
     if(isWA){
       var folio=r.folio_ticket||r.folio;
       if(folio){
-        var upd={estatus:newStatus};
+        var upd={estatus:newStatus,resolved_at:isCierreStatus?(r._tk&&r._tk.resolved_at||new Date().toISOString()):null};
         if(isCierreStatus){upd.diagnostico=diag;upd.causa_raiz=causa;}
         const{error}=await sb.from('tickets').update(upd).eq('folio',folio);
         if(error)throw error;
-        if(r._tk){r._tk.estatus=newStatus;if(isCierreStatus){r._tk.diagnostico=diag;r._tk.causa_raiz=causa;}}
+        if(r._tk){r._tk.estatus=newStatus;r._tk.resolved_at=upd.resolved_at;r.tiempo_de_respuesta=CXMetrics.days(r);if(isCierreStatus){r._tk.diagnostico=diag;r._tk.causa_raiz=causa;}}
       }
     } else {
       var id=r.id;
       if(id){
         var upd={status:newStatus};
         if(isCierreStatus){upd.diagnostico=diag;upd.anlisis_de_causa_raz=causa;upd.fecha_de_solucion=new Date().toISOString().slice(0,10);
-          if(r.fecha_de_la_solicitud){var d1=new Date(r.fecha_de_la_solicitud),d2=new Date();upd.tiempo_de_respuesta=Math.round((d2-d1)/(1000*60*60*24));}
+          if(r.fecha_de_la_solicitud){var d1=new Date(r.fecha_de_la_solicitud),d2=new Date();upd.tiempo_de_respuesta=(d2-d1)/86400000;}
         }
         const{error}=await sb.from('base_general').update(upd).eq('id',id);
         if(error)throw error;
@@ -2059,6 +2100,7 @@ function loadCancelaciones(){
 
 var _cancMesInicial=true;
 function cancBuildFilters(){
+  var ids=['canc-f-stcanc','canc-f-servicio','canc-f-anio','canc-f-mes'];var previous=ids.map(id=>document.getElementById(id).value),initial=_cancMesInicial;
   var stCanc=[...new Set(cancAll.map(r=>r.status_cancelacion).filter(v=>v!=null&&String(v).trim()!==''))].sort();
   var servicios=[...new Set(cancAll.map(r=>r.tipo_de_servicio).filter(v=>v!=null&&String(v).trim()!==''))].sort();
   var moOrd=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -2071,6 +2113,7 @@ function cancBuildFilters(){
   var mesActual=moOrd[new Date().getMonth()];
   document.getElementById('canc-f-mes').innerHTML='<option value="">Mes: Todos</option>'+moOrd.map(v=>'<option value="'+v+'"'+((_cancMesInicial&&v===mesActual)?' selected':'')+'>'+v+'</option>').join('');
   if(_cancMesInicial){document.getElementById('canc-f-mes').value=mesActual;document.getElementById('canc-f-anio').value=anioActual;_cancMesInicial=false;}
+  if(!initial)ids.forEach((id,i)=>document.getElementById(id).value=previous[i]);
 }
 
 function cancApply(){
@@ -2096,7 +2139,7 @@ function cancApply(){
   var retenidos=cancFiltered.filter(r=>_sc(r).includes('retenid'));
   var downgrades=cancFiltered.filter(r=>_sc(r).includes('downgrade'));
   var migraciones=cancFiltered.filter(r=>_sc(r).includes('migrac'));
-  var enNego=cancFiltered.filter(r=>{var s=_sc(r);return s.includes('negociac')||s.includes('proceso')||s===''||s.includes('nuevo')||s.includes('pendient')||s.includes('sin atender');});
+  var enNego=cancFiltered.filter(r=>{var s=_sc(r);return s.includes('negociac')||s.includes('proceso')||s===''||s.includes('nuevo')||s.includes('pendient')||s.includes('sin atender')||s.includes('escalad');});
   // MONTOS: cuando hay filtro año/mes activo, sumar usando _mes_efectivo (mes que Finanzas verá afectado)
   var hayFiltroMes=!!fa||!!fm;
   var canceladosMonto, retenidosMonto, negoMonto, downgradesMonto, migracionesMonto;
@@ -2114,7 +2157,7 @@ function cancApply(){
     retenidosMonto =basePool.filter(r=>_sc(r).includes('retenid'));
     downgradesMonto=basePool.filter(r=>_sc(r).includes('downgrade'));
     migracionesMonto=basePool.filter(r=>_sc(r).includes('migrac'));
-    negoMonto      =basePool.filter(r=>{var s=_sc(r);return s.includes('negociac')||s.includes('proceso')||s===''||s.includes('nuevo')||s.includes('pendient')||s.includes('sin atender');});
+    negoMonto      =basePool.filter(r=>{var s=_sc(r);return s.includes('negociac')||s.includes('proceso')||s===''||s.includes('nuevo')||s.includes('pendient')||s.includes('sin atender')||s.includes('escalad');});
   } else {
     canceladosMonto=cancelados; retenidosMonto=retenidos; negoMonto=enNego; downgradesMonto=downgrades; migracionesMonto=migraciones;
   }
@@ -2124,14 +2167,14 @@ function cancApply(){
   // Downgrade: CUENTA COMO RETENIDO. Sigue facturando monto_nuevo_downgrade; lo PERDIDO = orig - nuevo
   var montoDowngradeNuevo=downgradesMonto.reduce((a,r)=>{
     var orig=Number(r.facturacin_sin_iva)||0;
-    var nuevo=Number(r.monto_nuevo_downgrade);
-    return a+(isFinite(nuevo)&&nuevo>0?nuevo:orig);
+    var nuevo=CXMetrics.number(r.monto_nuevo_downgrade);
+    return a+(nuevo!=null&&nuevo>=0?nuevo:0);
   },0);
   var montoDowngradeOrig=downgradesMonto.reduce((a,r)=>a+(Number(r.facturacin_sin_iva)||0),0);
   var montoDowngradePerdido=downgradesMonto.reduce((a,r)=>{
     var orig=Number(r.facturacin_sin_iva)||0;
-    var nuevo=Number(r.monto_nuevo_downgrade)||0;
-    return a+Math.max(0,orig-nuevo);
+    var nuevo=CXMetrics.number(r.monto_nuevo_downgrade);
+    return a+(nuevo==null?0:Math.max(0,orig-nuevo));
   },0);
   // Retenidos TOTALES (conteo) = Retenida + Migración + Downgrade (el cliente se queda)
   var retenidosFull=retenidosMonto.concat(migracionesMonto).concat(downgradesMonto);
@@ -2140,68 +2183,21 @@ function cancApply(){
   var montoNego=negoMonto.reduce((a,r)=>a+(Number(r.facturacin_sin_iva)||0),0);
   // Total = recurrencia original en juego (downgrade a su valor original, sin doble conteo)
   var montoTotal=montoCancelado+montoRetenidoPuro+montoDowngradeOrig+montoNego;
-  // ── Metas operativas ──
-  var RECURRENCIA_TOTAL = 4600000;          // $4.6M MXN recurrencia mensual
-  var META_RETENCION_PCT = 70;              // % retención objetivo
-  var META_CHURN_MONTO = RECURRENCIA_TOTAL * 0.01;  // 1% = $46,000 máximo cancelable
-  // Retenidos TOTALES = Retenida + Migración + Downgrade (en todos el cliente se queda)
-  var retenidosTotales = retenidosFull.length;
-  // Tasa SOBRE EL TOTAL: incluye también las solicitudes en negociación (aún abiertas)
-  var baseTasa = retenidosTotales + canceladosMonto.length + negoMonto.length;
-  var tasaRet = baseTasa ? Math.round(retenidosTotales * 100 / baseTasa) : 0;
-  // Churn vs Meta: suma cancelados completos + monto PERDIDO en downgrades
-  var churnTotal = montoCancelado + montoDowngradePerdido;
-  // La meta de churn es MENSUAL; sólo es comparable con un filtro de mes activo
-  var pctMontoVsMeta = (hayFiltroMes && META_CHURN_MONTO) ? Math.round(churnTotal * 100 / META_CHURN_MONTO) : null;
-  var colorRet  = tasaRet>=META_RETENCION_PCT?'var(--green)':(tasaRet>=50?'var(--amber)':'var(--red)');
-  var bgRet     = 'var(--surface2)';
-  var colorMnt  = pctMontoVsMeta==null?'var(--text3)':(pctMontoVsMeta<80?'var(--green)':(pctMontoVsMeta<100?'var(--amber)':'var(--red)'));
-  var bgMnt     = 'var(--surface2)';
-  var widthRet  = Math.min(tasaRet,100);
-  var widthMnt  = pctMontoVsMeta==null?0:Math.min(pctMontoVsMeta,100);
-
-  var sufMonto = hayFiltroMes ? ' · afecta el mes filtrado' : '';
+  var ret=CXMetrics.retention(cancFiltered);
+  var churnTotal=montoCancelado+montoDowngradePerdido;
+  var missingMoney=downgradesMonto.filter(r=>CXMetrics.number(r.monto_nuevo_downgrade)==null).length;
+  var sufMonto = hayFiltroMes ? ' · montos por fecha efectiva' : '';
+  sufMonto+=(missingMoney?' · '+missingMoney+' downgrade(s) sin monto nuevo; retención y pérdida incompletas':'');
   document.getElementById('canc-kpis').innerHTML=
-    '<div class="kpi"><div class="lbl">Total solicitudes</div><div class="val">$'+montoTotal.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+total+' solicitudes'+sufMonto+'</div></div>'+
+    '<div class="kpi"><div class="lbl">Monto registrado en solicitudes</div><div class="val">$'+montoTotal.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+total+' solicitudes'+sufMonto+'</div></div>'+
     '<div class="kpi c-red"><div class="lbl">Cancelados</div><div class="val">$'+montoCancelado.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+canceladosMonto.length+' solicitudes</div></div>'+
     '<div class="kpi c-green"><div class="lbl">Retenidos</div><div class="val">$'+montoRetenido.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+retenidosFull.length+' solicitudes'+((migracionesMonto.length||downgradesMonto.length)?' ('+retenidosMonto.length+' ret'+(migracionesMonto.length?' · '+migracionesMonto.length+' migr':'')+(downgradesMonto.length?' · '+downgradesMonto.length+' down':'')+')':'')+'</div></div>'+
     '<div class="kpi"><div class="lbl">Downgrades</div><div class="val">$'+montoDowngradeNuevo.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+downgradesMonto.length+' · sigue facturando'+(montoDowngradePerdido>0?' · perdido $'+montoDowngradePerdido.toLocaleString('es-MX',{minimumFractionDigits:0}):'')+'</div></div>'+
     '<div class="kpi c-amber"><div class="lbl">En negociación</div><div class="val">$'+montoNego.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+negoMonto.length+' solicitudes</div></div>';
 
-  // ── Segunda fila: metas operativas con barra de progreso ──
   document.getElementById('canc-metas').innerHTML=
-    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 18px;border-left:2px solid '+colorRet+'">'+
-      '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">'+
-        '<span style="font-size:11px;font-weight:500;color:var(--text3)">Tasa de retención</span>'+
-        '<span style="font-size:10px;color:var(--text3)">Meta '+META_RETENCION_PCT+'%</span>'+
-      '</div>'+
-      '<div style="display:flex;justify-content:space-between;align-items:baseline">'+
-        '<span style="font-size:22px;font-weight:600;color:'+colorRet+';letter-spacing:-.02em;font-variant-numeric:tabular-nums">'+tasaRet+'%</span>'+
-        '<span style="font-size:11px;color:var(--text3)">'+retenidosTotales+' / '+baseTasa+' del total</span>'+
-      '</div>'+
-      '<div style="margin-top:10px;background:var(--surface2);border-radius:4px;height:5px;overflow:hidden">'+
-        '<div style="background:'+colorRet+';width:'+widthRet+'%;height:100%;transition:width .3s"></div>'+
-      '</div>'+
-      '<div style="font-size:11px;color:var(--text3);margin-top:6px">'+
-        (tasaRet>=META_RETENCION_PCT ? 'Cumpliendo meta' : (META_RETENCION_PCT-tasaRet)+' puntos abajo de la meta')+
-      '</div>'+
-    '</div>'+
-    '<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 18px;border-left:2px solid '+colorMnt+'">'+
-      '<div style="display:flex;justify-content:space-between;align-items:baseline;margin-bottom:6px">'+
-        '<span style="font-size:11px;font-weight:500;color:var(--text3)">Churn vs meta de monto</span>'+
-        '<span style="font-size:10px;color:var(--text3)">Meta máx 1% · $'+META_CHURN_MONTO.toLocaleString('es-MX')+'</span>'+
-      '</div>'+
-      '<div style="display:flex;justify-content:space-between;align-items:baseline">'+
-        '<span style="font-size:22px;font-weight:600;color:'+colorMnt+';letter-spacing:-.02em;font-variant-numeric:tabular-nums">'+(pctMontoVsMeta==null?'—':pctMontoVsMeta+'%')+'</span>'+
-        '<span style="font-size:11px;color:var(--text3)">$'+churnTotal.toLocaleString('es-MX',{minimumFractionDigits:0})+(pctMontoVsMeta==null?' histórico':'')+'</span>'+
-      '</div>'+
-      '<div style="margin-top:10px;background:var(--surface2);border-radius:4px;height:5px;overflow:hidden">'+
-        '<div style="background:'+colorMnt+';width:'+widthMnt+'%;height:100%;transition:width .3s"></div>'+
-      '</div>'+
-      '<div style="font-size:11px;color:var(--text3);margin-top:6px">'+
-        (pctMontoVsMeta==null ? 'Selecciona un mes para comparar vs la meta mensual' : (pctMontoVsMeta<100 ? 'Dentro del rango aceptable' : 'Excediendo meta por '+(pctMontoVsMeta-100)+'%'))+
-      '</div>'+
-    '</div>';
+    '<div class="chart-card"><h3>Retención entre decisiones</h3><p style="font-size:26px;margin:12px 0">'+(ret.rate==null?'Sin decisiones':ret.rate+'%')+'</p><p style="color:var(--text2);font-size:13px">'+ret.kept+' retenidas de '+(ret.kept+ret.lost)+' decisiones · '+ret.open+' sin resultado de cancelación. Usa fecha de creación, igual que la tabla.</p></div>'+
+    '<div class="chart-card"><h3>Montos registrados</h3><p style="font-size:26px;margin:12px 0">$'+churnTotal.toLocaleString('es-MX')+'</p><p style="color:var(--text2);font-size:13px">Cancelaciones y reducción registrada por downgrade. '+(hayFiltroMes?'Usa fecha efectiva cuando está disponible; puede diferir de la tabla por fecha de creación.':'Todo el histórico seleccionado.')+' Sin comparación con una meta financiera no configurada.</p></div>';
 
   cancPg=0;cancRender();
 }
@@ -2260,11 +2256,13 @@ function loadTickets(){
 }
 
 function tkBuildFilters(){
+  var previousStatus=document.getElementById('tk-f-estatus').value,previousService=document.getElementById('tk-f-servicio').value;
   var estatus=[...new Set(tkAll.map(r=>r.estatus).filter(v=>v!=null&&String(v).trim()!==''))].sort();
   var servicios=[...new Set(tkAll.map(r=>r.servicio).filter(v=>v!=null&&String(v).trim()!==''))].sort();
   var se=document.getElementById('tk-f-estatus'),ss=document.getElementById('tk-f-servicio');
   se.innerHTML='<option value="">Estatus: Todos</option>'+estatus.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
   ss.innerHTML='<option value="">Servicio: Todos</option>'+servicios.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
+  se.value=previousStatus;ss.value=previousService;
 }
 
 function tkApply(){
@@ -2289,23 +2287,15 @@ function tkRender(){
   var h='',baseIdx=tkPg*TK_LIM;
   pg.forEach((r,i)=>{
     h+='<tr class="tk-row" onclick="tkOpenModal('+(baseIdx+i)+')">';
-    h+='<td>'+esc(r.folio||'—')+'</td>';
-    h+='<td>'+(r.created_at?esc(r.created_at.slice(0,10)):'<span class="null-v">—</span>')+'</td>';
-    h+='<td>'+esc(r.telefono||'—')+'</td>';
-    h+='<td>'+esc(trn(r.nombre||'—',24))+'</td>';
-    h+='<td>'+esc(trn(r.empresa||'—',22))+'</td>';
-    h+='<td>'+esc(r.servicio||'—')+'</td>';
-    h+='<td>'+esc(r.tipo||'—')+'</td>';
-    h+='<td>'+esc(r.categoria||'—')+'</td>';
-    h+='<td>'+esc(trn(r.subtipo||'—',20))+'</td>';
-    h+='<td title="'+esc(r.mensaje||'')+'">'+esc(trn(r.mensaje||'—',30))+'</td>';
+    h+='<td>'+esc(r.folio||'—')+'<div style="color:var(--text3)">'+esc((r.created_at||'').slice(0,10))+'</div></td>';
+    h+='<td>'+esc(r.nombre||'Sin nombre')+'<div style="color:var(--text3)">'+esc(r.empresa||'')+'</div></td>';
+    h+='<td>'+esc(r.tipo||'Sin asunto')+'<div style="color:var(--text3)">'+esc(r.servicio||'')+'</div></td>';
     h+='<td>'+(r.prioridad?tkPriBadge(r.prioridad):'<span class="null-v">—</span>')+'</td>';
     h+='<td>'+(r.estatus?sBadge(r.estatus):'<span class="null-v">—</span>')+'</td>';
     h+='<td>'+esc(r.agente||'—')+'</td>';
-    h+='<td>'+(r.csat!=null?esc(String(r.csat)):'<span class="null-v">—</span>')+'</td>';
     h+='</tr>';
   });
-  if(!pg.length)h='<tr><td colspan="14" style="text-align:center;padding:30px;color:var(--text3)">Sin tickets</td></tr>';
+  if(!pg.length)h='<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text3)">Sin tickets</td></tr>';
   document.getElementById('tk-tbody').innerHTML=h;
   document.getElementById('tk-pag-info').textContent=tkFiltered.length?(tkPg*TK_LIM+1)+'–'+Math.min((tkPg+1)*TK_LIM,tkFiltered.length)+' de '+tkFiltered.length:'';
   document.getElementById('tk-pag-num').textContent=tp?(tkPg+1)+'/'+tp:'';
@@ -2425,11 +2415,12 @@ async function tkChangeStatus(){
   var msgEl=document.getElementById('tk-status-msg');
   msgEl.textContent='Guardando...';msgEl.style.color='var(--blue)';
   try{
-    const{error}=await sb.from('tickets').update({estatus:newStatus}).eq('folio',r.folio);
+    var fields={estatus:newStatus,resolved_at:['Resuelto','Cerrado'].includes(newStatus)?(r.resolved_at||new Date().toISOString()):null};
+    const{error}=await sb.from('tickets').update(fields).eq('folio',r.folio);
     if(error)throw error;
-    r.estatus=newStatus;
+    r.estatus=newStatus;r.resolved_at=fields.resolved_at;
     var match=allData.find(d=>d._source==='whatsapp'&&d._tk===r);
-    if(match)match.status=newStatus;
+    if(match){match.status=newStatus;match.tiempo_de_respuesta=CXMetrics.days(match);}
     msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';_refreshVista();
     setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
   }catch(e){
@@ -2705,7 +2696,7 @@ async function permClienteChange(){
     sb.schema('public').from('cs_permisos_sucursales').select('id,suc_id,nombre,solicitante,zona,horario,tipo,tecnicos_default').eq('account_id',accId).order('zona').order('nombre'),
     sb.schema('public').from('cs_tecnicos').select('nombre,ine_url,account_id,activo').or('account_id.eq.'+accId+',account_id.is.null').order('nombre')
   ]);
-  if(rs.error){ tbody.innerHTML='<tr><td colspan="6" style="padding:20px;color:#dc2626">'+rs.error.message+'</td></tr>'; return; }
+  if(rs.error){ tbody.innerHTML='<tr><td colspan="6" style="padding:20px;color:#dc2626">'+rs.esc(error.message)+'</td></tr>'; return; }
   permTecnicos = (rt.data||[]).filter(t=>t.activo!==false);
   permTecSet = new Set(permTecnicos.filter(t=>t.ine_url).map(t=>(t.nombre||'').trim()));
   permSucursales = (rs.data||[]).map(s=>({ ...s, tecnicos:(s.tecnicos_default||'').split(',').map(x=>x.trim()).filter(Boolean), sel:false }));
