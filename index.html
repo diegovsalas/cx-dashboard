@@ -387,7 +387,7 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
     </div>
   </div>
   <!-- Filtros NPS -->
-  <p style="font-size:13px;color:var(--text2);margin-bottom:12px">La selección automática usa tickets cerrados recientemente; no incluye clientes sin tickets ni acredita la vigencia del servicio.</p>
+  <p style="font-size:13px;color:var(--text2);margin-bottom:12px">Esta vista parte de cierres recientes; todavía no incluye clientes sin tickets. Revisa todo el historial para excluir cancelaciones efectivas e incidencias o cancelaciones en proceso, además de agentes y NPS recientes. No acredita la vigencia contractual ni verifica bajas de comunicaciones.</p>
   <div id="cmp-filtros-nps" style="display:grid;grid-template-columns:repeat(2,1fr);gap:12px;margin-bottom:14px">
     <div>
       <label style="font-size:11px;color:var(--text2);text-transform:uppercase;font-weight:600">Mínimo días post-resolución</label>
@@ -531,6 +531,7 @@ function isAromatex(){
 }
 function puedeEscalar(){return user&&(isAdmin()||ESCALATE_EMAILS.includes(user.email.toLowerCase()));}
 const LIM=50;
+const CX_SERVICE_CATALOG=['Aromatex','Pestex','Weldex','Café Origen Selecto'];
 const PAL=['#2563eb','#059669','#d97706','#dc2626','#7c3aed','#ec4899','#0891b2','#65a30d','#ea580c','#6366f1','#14b8a6','#e11d48'];
 var _moNombres=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 var _cxToday=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Monterrey',year:'numeric',month:'2-digit'}).formatToParts(new Date());
@@ -758,7 +759,7 @@ function loadAnalisis(){
     var mo=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
     var anios=[...new Set(allData.map(r=>r._anio).filter(Boolean))].sort((a,b)=>String(b).localeCompare(String(a)));
     var meses=[...new Set(allData.map(r=>r.mes).filter(Boolean))].sort((a,b)=>mo.indexOf(a)-mo.indexOf(b));
-    var servs=[...new Set(allData.map(r=>r.tipo_de_servicio).filter(Boolean))].sort();
+    var servs=[...new Set([...CX_SERVICE_CATALOG,...allData.map(r=>r.tipo_de_servicio).filter(Boolean)])].sort();
     var sa=document.getElementById('an-f-anio');anios.forEach(a=>sa.insertAdjacentHTML('beforeend','<option value="'+esc(a)+'">'+esc(a)+'</option>'));
     var sm=document.getElementById('an-f-mes');meses.forEach(m=>sm.insertAdjacentHTML('beforeend','<option value="'+esc(m)+'">'+esc(m)+'</option>'));
     var ss=document.getElementById('an-f-servicio');servs.forEach(s=>ss.insertAdjacentHTML('beforeend','<option value="'+esc(s)+'">'+esc(s)+'</option>'));
@@ -859,6 +860,7 @@ function buildFB(cid){
   var basic='',advanced='';
   defs.forEach((d,i)=>{
     var vals=d.key==='status'?[...new Set(allData.flatMap(r=>[r.status,r.status_cancelacion]).filter(Boolean))]:[...new Set(allData.map(r=>r[d.col]).filter(v=>v!=null&&String(v).trim()!==''))];
+    if(d.key==='tipo_servicio')vals=[...new Set([...CX_SERVICE_CATALOG,...vals])];
     if(F[d.key]&&!vals.includes(F[d.key]))vals.push(F[d.key]);
     if(d.key==='anio')vals.sort((a,b)=>String(b).localeCompare(String(a)));
     else if(d.key==='mes')vals.sort((a,b)=>_moNombres.indexOf(a)-_moNombres.indexOf(b));else vals.sort();
@@ -1764,7 +1766,9 @@ async function cmpPreview(btn){
       if(!d.ok)throw new Error(d.error||'No se pudo obtener una vista previa completa.');
       _cmpElegibles=d.clientes||[];
       document.getElementById('cmp-preview-card').style.display='';
-      document.getElementById('cmp-preview-count').textContent=d.total_elegibles+' clientes elegibles para NPS';
+      var exclusionLabels={cancelacion_efectiva:'cancelación efectiva',asunto_en_proceso:'asunto en proceso',agente:'agente',nps_reciente:'NPS reciente',numero_invalido:'número inválido'};
+      var exclusionText=Object.entries(d.exclusiones||{}).filter(([key,count])=>count>0).map(([key,count])=>count+' por '+(exclusionLabels[key]||key)).join(' · ');
+      document.getElementById('cmp-preview-count').textContent=d.total_elegibles+' contactos de cierres recientes'+(exclusionText?' | Exclusiones: '+exclusionText+'. Los motivos pueden coincidir.':'');
       var rows=_cmpElegibles.map(c=>'<tr><td style="font-family:monospace;font-size:11px">'+esc(c.telefono)+'</td><td>'+esc(c.nombre||'')+'</td><td>'+esc(c.empresa||'')+'</td><td>'+esc(c.servicio||'')+'</td><td style="font-family:monospace">'+esc(c.folio_referencia||'')+'</td><td style="font-size:11px;color:var(--text2)">'+(c.resuelto_at||'').slice(0,10)+'</td></tr>').join('');
       document.getElementById('cmp-preview-tbody').innerHTML=rows||'<tr><td colspan="6" style="text-align:center;padding:18px;color:var(--text3)">Sin clientes en ese rango</td></tr>';
     }
@@ -2212,7 +2216,7 @@ var _cancMesInicial=true;
 function cancBuildFilters(){
   var ids=['canc-f-stcanc','canc-f-servicio','canc-f-anio','canc-f-mes'];var previous=ids.map(id=>document.getElementById(id).value),initial=_cancMesInicial;
   var stCanc=[...new Set(cancAll.map(r=>r.status_cancelacion).filter(v=>v!=null&&String(v).trim()!==''))].sort();
-  var servicios=[...new Set(cancAll.map(r=>r.tipo_de_servicio).filter(v=>v!=null&&String(v).trim()!==''))].sort();
+  var servicios=[...new Set([...CX_SERVICE_CATALOG,...cancAll.map(r=>r.tipo_de_servicio).filter(v=>v!=null&&String(v).trim()!=='')])].sort();
   var moOrd=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
   var anios=[...new Set(cancAll.map(r=>r._anio).filter(v=>v!=null&&String(v).trim()!==''))].sort((a,b)=>String(b).localeCompare(String(a)));
   document.getElementById('canc-f-stcanc').innerHTML='<option value="">Status Cancelación: Todos</option>'+stCanc.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
@@ -2368,7 +2372,7 @@ function loadTickets(){
 function tkBuildFilters(){
   var previousStatus=document.getElementById('tk-f-estatus').value,previousService=document.getElementById('tk-f-servicio').value;
   var estatus=[...new Set(tkAll.map(r=>r.estatus).filter(v=>v!=null&&String(v).trim()!==''))].sort();
-  var servicios=[...new Set(tkAll.map(r=>r.servicio).filter(v=>v!=null&&String(v).trim()!==''))].sort();
+  var servicios=[...new Set([...CX_SERVICE_CATALOG,...tkAll.map(r=>r.servicio).filter(v=>v!=null&&String(v).trim()!=='')])].sort();
   var se=document.getElementById('tk-f-estatus'),ss=document.getElementById('tk-f-servicio');
   se.innerHTML='<option value="">Estatus: Todos</option>'+estatus.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
   ss.innerHTML='<option value="">Servicio: Todos</option>'+servicios.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');

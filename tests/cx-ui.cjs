@@ -18,6 +18,10 @@ window.supabase={createClient:()=>({from:t=>new Query(t),schema:()=>({from:t=>ne
 await page.route('**/*',async route=>{let url=route.request().url();if(url==='http://localhost:8000/')return route.fulfill({contentType:'text/html',body:fs.readFileSync(root+'/index.html','utf8')});if(url.includes('chart.umd'))return route.fulfill({contentType:'application/javascript',body:chartScript});if(url.includes('supabase-js'))return route.fulfill({contentType:'application/javascript',body:mock});return route.fulfill({status:204,body:''});});
 await page.goto('http://localhost:8000/');page.setDefaultTimeout(10000);await page.waitForFunction(()=>document.querySelector('#cx-load-status').textContent.startsWith('Actualizado'));
 assert.equal(await page.locator('#page-dashboard').isVisible(),true);
+assert.equal(await page.locator('select[data-fkey="tipo_servicio"]').first().locator('option[value="Café Origen Selecto"]').count(),1);
+await page.evaluate(()=>{goPage('analisis')});
+assert.equal(await page.locator('#an-f-servicio option[value="Café Origen Selecto"]').count(),1);
+await page.evaluate(()=>{goPage('dashboard')});
 assert.deepEqual(await page.locator('#kpis .val').allTextContents(),['5','3','1','1','2']);
 await page.locator('#kpis button').nth(1).click();assert.match(await page.locator('#cx-cases .tbl-header').innerText(),/Pendientes · 3 casos/);assert.equal(await page.locator('#cx-cases th').count(),6);
 await page.evaluate(()=>chartInstances.c1.options.onClick({},[{index:0}]));assert.match(await page.locator('#cx-cases .tbl-header').innerText(),/Incidencia · 2 casos/);await page.locator('#kpis button').nth(1).click();
@@ -26,7 +30,9 @@ await page.evaluate(()=>{document.getElementById('an-f-servicio').insertAdjacent
 await page.evaluate(()=>{goPage('campanias')});await page.waitForFunction(()=>document.querySelector('#cmp-kpis').textContent.includes('25'));assert.match(await page.locator('#cmp-kpis').innerText(),/Entrega confirmada\s*2/i);assert.match(await page.locator('#cmp-kpis').innerText(),/NPS 0–10\s*25/);
 await page.evaluate(()=>{window.__slowNps=true;cmpCargarHistorial();document.getElementById('cmp-hist-template').value='ventas_satisfaccion_nuevos';cmpCargarHistorial();});await page.waitForTimeout(250);assert.match(await page.locator('#cmp-kpis').innerText(),/Satisfacción ventas/i);assert.doesNotMatch(await page.locator('#cmp-kpis').innerText(),/NPS 0–10/);
 await page.evaluate(()=>{goPage('cancelaciones')});assert.match(await page.locator('#canc-metas').innerText(),/100%/);
+assert.equal(await page.locator('#canc-f-servicio option[value="Café Origen Selecto"]').count(),1);
 await page.evaluate(()=>{goPage('tickets')});assert.equal(await page.locator('#tk-tbody').locator('tr').count(),5);
+assert.equal(await page.locator('#tk-f-servicio option[value="Café Origen Selecto"]').count(),1);
 // La misma gestión simplificada se abre desde Tickets; ningún cambio escribe antes de guardar.
 await page.evaluate(()=>tkOpenModal(tkFiltered.findIndex(t=>t.folio==='C003')));
 await page.waitForFunction(()=>document.querySelector('#tk-modal-title').textContent.includes('Cancelación'));
