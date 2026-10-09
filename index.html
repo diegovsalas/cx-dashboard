@@ -154,6 +154,14 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
 .cx-kpi-hint{font-size:12px;color:var(--accent);}
 .filter-bar select{font-size:13px;padding:8px;}.chart-card h3{font-size:15px;}.chart-card .csub{font-size:12px;}
 @media(max-width:900px){#canc-kpis.kpi-row,#cmp-kpis{grid-template-columns:repeat(2,minmax(0,1fr))!important;}#canc-metas{grid-template-columns:1fr!important;}.nav-links{max-width:100%;}.tbl-header{flex-wrap:wrap;}.cx-kpis{grid-template-columns:repeat(2,minmax(0,1fr));}.navbar{height:auto;min-height:48px;flex-wrap:wrap;}.nav-links{flex-wrap:wrap;}}
+
+.cancel-section{border:1px solid var(--border);border-radius:8px;padding:16px;margin-bottom:12px;background:var(--surface);}
+.cancel-section h3,.cancel-section summary{font-size:15px;font-weight:600;}.cancel-section summary{cursor:pointer;}
+.cancel-content{padding-top:14px;}.cancel-section .detail-item{margin:12px 0;}.cancel-section .detail-val{white-space:pre-wrap;overflow-wrap:anywhere;}
+.cancel-identity{display:flex;flex-direction:column;gap:6px;margin:12px 0;font-size:13px;}.cancel-identity span,.cancel-help{color:var(--text2);font-size:13px;line-height:1.5;}
+.cancel-section .comment-area{min-height:85px;}.cancel-save{position:sticky;bottom:0;background:var(--surface);border-top:1px solid var(--border);padding:12px 0;display:flex;gap:12px;align-items:center;font-size:13px;}
+.cancel-section .detail-label{font-size:12px;}.cancel-content .detail-item{padding:10px 0;border-bottom:1px solid var(--border);}
+@media(max-width:600px){.cancel-section{padding:12px;}.cancel-section input{max-width:100%!important;min-width:0;}.cancel-save{flex-wrap:wrap;}}
 </style>
 </head>
 <body>
@@ -1037,7 +1045,7 @@ function regOpenModal(idx){
   var r=regDisplayed[idx];if(!r)return;
   if(typeof event!=='undefined'&&event&&event.currentTarget)_marcarFilaActiva(event.currentTarget);
   var isWA=r._source==='whatsapp';
-  var isCancelacion=r.tipo_de_solicitud&&r.tipo_de_solicitud.toLowerCase().includes('cancelac');
+  var isCancelacion=CXMetrics.isCancel(r);
   var title=isWA?'Ticket <span style="color:var(--blue)">'+(esc(r.folio_ticket||r.folio||'—'))+'</span>':isCancelacion?'Cancelación <span style="color:var(--red)">'+(esc(r.folio_ticket||'—'))+'</span>':'Registro <span style="color:var(--blue)">'+(esc(r.folio_ticket||'—'))+'</span>';
   document.getElementById('tk-modal-title').innerHTML=title;
   var fields=[];
@@ -1316,6 +1324,7 @@ function regOpenModal(idx){
   }
   h+='</div>';
   document.getElementById('tk-modal-body').innerHTML=h;
+  if(isCancelacion)cxSimplifyCancellation(r);
   document.getElementById('tk-modal').classList.add('on');
   document.body.classList.add('detail-open');
   // Marcar textareas como dirty al editar (para que el refresh no sobrescriba edición activa)
@@ -1325,6 +1334,96 @@ function regOpenModal(idx){
   });
   // Re-fetch fresco para mostrar valores actualizados (anti-overwrite)
   _refreshRegistroFresco(r);
+}
+
+// La cancelación usa los mismos campos y permisos en Resumen, Casos y Tickets.
+function cxSimplifyCancellation(r){
+  var body=document.getElementById('tk-modal-body'),grid=body.firstElementChild;
+  var items=Array.from(grid.children),status=document.getElementById('reg-stcanc-sel');
+  function take(label){return items.find(el=>el.querySelector('.detail-label')?.textContent.trim()===label);}
+  function section(title){var el=document.createElement('section');el.className='cancel-section';el.innerHTML='<h3>'+esc(title)+'</h3>';return el;}
+  function folded(title){var el=document.createElement('details');el.className='cancel-section';el.innerHTML='<summary>'+esc(title)+'</summary><div class="cancel-content"></div>';return el;}
+  function add(parent,el){if(el){el.removeAttribute('style');parent.appendChild(el);}}
+  var summary=section('Solicitud del cliente');
+  summary.innerHTML+='<div class="cancel-identity"><strong>'+esc(r.nombre_del_cliente_nuevo||r.propiedad||'Cliente sin nombre registrado')+'</strong><span>'+esc([r.tipo_de_servicio,r.telefono,r.fecha_de_la_solicitud].filter(Boolean).join(' · '))+'</span><span>Responsable: '+esc(r.ejecutivo_asignado||'Sin asignar')+(r._prioridad?' · Prioridad '+esc(r._prioridad):'')+'</span></div>';
+  var message=take('Mensaje')||take('Detalle de la Incidencia');
+  if(message){add(summary,message);message.querySelector('.detail-label').textContent='Lo que solicita';}
+  else summary.innerHTML+='<p>'+esc(r.motivo_de_cancelacin||'Sin motivo registrado')+'</p>';
+  var manage=section('Gestionar cancelación');
+  var outcome=take('Status Cancelación');add(manage,outcome);
+  if(outcome)outcome.querySelector('.detail-label').textContent='Estado de la cancelación';
+  if(status){
+    status.removeAttribute('onchange');
+    Array.from(status.options).forEach(o=>{if(o.value==='Negociacion')o.textContent='En negociación';});
+    if(!Array.from(status.options).some(o=>o.value==='En proceso'))status.add(new Option('En proceso','En proceso'));
+    if(!r.status_cancelacion)status.value='En proceso';
+  }
+  manage.insertAdjacentHTML('beforeend','<p class="cancel-help">Registra la gestión y guarda los cambios. Cambiar este estado no suspende el servicio ni modifica cargos automáticamente.</p>');
+  if(!isAdmin())manage.querySelector('.cancel-help').textContent='Consulta del caso. Tu usuario no tiene permiso para modificar la gestión.';
+  add(manage,take('Comentarios de Seguimiento'));
+  var comment=manage.querySelector('#reg-comentarios');if(comment)comment.placeholder='Qué se hizo y cuál es el siguiente paso (responsable y fecha).';
+  var retention=folded('Retención · diagnóstico, oferta y causa');
+  var retentionBlock=take('🎯 Retención de Cliente');
+  var effective=document.getElementById('reg-fecha-efectiva');
+  var effectiveBlock=effective?effective.closest('div').parentElement:null;
+  if(!effectiveBlock&&retentionBlock)effectiveBlock=retentionBlock.querySelector('.detail-label + div > div');
+  if(effectiveBlock)effectiveBlock.remove();
+  add(retention.lastElementChild,retentionBlock);
+  if(retentionBlock)retentionBlock.querySelector('.detail-label').remove();
+  var money=folded('Facturación y fecha efectiva');
+  add(money.lastElementChild,take('Facturación sin IVA'));add(money.lastElementChild,effectiveBlock);
+  var advanced=folded('Datos del cliente y opciones avanzadas');
+  // Mantener los controles de datos y contrato disponibles sin ocupar la vista principal.
+  items.forEach(el=>{if(el.parentElement===grid)add(advanced.lastElementChild,el);});
+  var internal=advanced.querySelector('#reg-status-sel');if(internal)internal.closest('.detail-item').querySelector('.detail-label').textContent='Estado interno del ticket';
+  var deletion=Array.from(advanced.lastElementChild.children).find(el=>el.querySelector('[onclick="regDeleteRecord()"]'));
+  if(deletion){var danger=folded('Eliminar registro');add(danger.lastElementChild,deletion);advanced.lastElementChild.appendChild(danger);}
+  // Escalar permanece accesible en la gestión principal según el rol existente.
+  var escalation=advanced.querySelector('[onclick="abrirModalEscalar()"]');if(escalation)add(manage,escalation.parentElement);
+  var sticky=document.createElement('div');sticky.className='cancel-save';
+  if(isAdmin())sticky.innerHTML='<button class="btn-save-comment" id="cancel-save" onclick="cxSaveCancellation()">Guardar gestión</button><span id="cancel-save-msg" role="status" aria-live="polite">Sin cambios pendientes</span>';
+  grid.replaceWith(summary,manage,retention,money,advanced,sticky);
+  ['reg-save-comment','reg-save-diag-previo','reg-save-oferta','reg-save-causaraiz','reg-save-fecha-ef','reg-save-dg'].forEach(id=>document.getElementById(id)?.remove());
+  money.querySelector('[onclick="regSaveMonto()"]')?.remove();
+  var amountInput=document.getElementById('reg-monto-input');if(amountInput&&r.facturacin_sin_iva!=null)amountInput.value=r.facturacin_sin_iva;
+
+  var controls=['reg-stcanc-sel','reg-comentarios','reg-diag-previo','reg-oferta','reg-causa-raiz-canc','reg-fecha-efectiva','reg-monto-input','reg-dg-desc','reg-dg-monto'];
+  controls.forEach(id=>{var el=document.getElementById(id);if(!el)return;el.dataset.dirty='0';el.addEventListener('input',()=>{el.dataset.dirty='1';var msg=document.getElementById('cancel-save-msg');if(msg)msg.textContent='Cambios sin guardar';});});
+  if(status)status.addEventListener('change',()=>{status.dataset.dirty='1';document.getElementById('reg-dg-fields').style.display=status.value==='Downgrade'?'block':'none';});
+  document.getElementById('tk-modal-title').innerHTML='Cancelación <span style="color:var(--red)">'+esc(r.folio_ticket||r.folio||'—')+'</span>';
+}
+async function cxSaveCancellation(){
+  var r=regDisplayed[_regModalIdx];if(!r||!isAdmin())return;
+  var btn=document.getElementById('cancel-save'),msg=document.getElementById('cancel-save-msg');
+  var fields={'reg-stcanc-sel':'status_cancelacion','reg-comentarios':'comentarios_de_seguimiento','reg-diag-previo':'diagnostico_previo_cancelacion','reg-oferta':'oferta_retencion','reg-causa-raiz-canc':'causa_raiz_cancelacion','reg-fecha-efectiva':'fecha_efectiva_cancelacion','reg-monto-input':'facturacin_sin_iva','reg-dg-desc':'descripcion_downgrade','reg-dg-monto':'monto_nuevo_downgrade'};
+  var update={},changed=[],locked=[];
+  try{
+    Object.entries(fields).forEach(([id,col])=>{var el=document.getElementById(id);if(!el||el.dataset.dirty!=='1')return;var value=el.value;
+      if(col==='facturacin_sin_iva'||col==='monto_nuevo_downgrade'){value=value.trim()===''?null:Number(value);if(value!=null&&(!Number.isFinite(value)||value<0))throw new Error('El importe debe ser un número mayor o igual a cero.');}
+      if(col==='fecha_efectiva_cancelacion')value=value||null;
+      update[col]=value;changed.push(el);
+    });
+    if(!changed.length){msg.textContent='Sin cambios pendientes';return;}
+    if(update.status_cancelacion==='Downgrade'||'monto_nuevo_downgrade' in update||'descripcion_downgrade' in update){
+      var dg=document.getElementById('reg-dg-desc').value.trim(),amount=Number(document.getElementById('reg-dg-monto').value);
+      if(!dg||!Number.isFinite(amount)||amount<=0)throw new Error('Para registrar un downgrade, describe el cambio e indica el nuevo importe mayor a cero.');
+      update.descripcion_downgrade=dg;update.monto_nuevo_downgrade=amount;
+    }
+    btn.disabled=true;msg.textContent='Guardando…';
+    locked=Object.keys(fields).map(id=>document.getElementById(id)).filter(Boolean).map(el=>({el,disabled:el.disabled}));locked.forEach(item=>item.el.disabled=true);
+    var isWA=r._source==='whatsapp',data={...update};
+    if(!isWA&&'causa_raiz_cancelacion' in data){data.anlisis_de_causa_raz=data.causa_raiz_cancelacion;delete data.causa_raiz_cancelacion;}
+    var key=isWA?(r.folio_ticket||r.folio):r.id;if(!key)throw new Error('No se pudo identificar el registro.');
+    var result=await sb.from(isWA?'tickets':'base_general').update(data).eq(isWA?'folio':'id',key).select();
+    if(result.error)throw new Error(result.error.message);
+    if(!result.data?.length)throw new Error('No se actualizó el registro. Revisa tus permisos e intenta de nuevo.');
+    Object.assign(r,update);if(isWA&&r._tk)Object.assign(r._tk,update);if(!isWA&&data.anlisis_de_causa_raz!==undefined)r.anlisis_de_causa_raz=data.anlisis_de_causa_raz;
+    if('fecha_efectiva_cancelacion' in update){var date=update.fecha_efectiva_cancelacion||r.fecha_de_la_solicitud||'';r._anio_efectivo=date.slice(0,4);r._mes_efectivo=_moNombres[Number(date.slice(5,7))-1]||'';}
+    changed.forEach(el=>el.dataset.dirty='0');msg.textContent='Gestión guardada';msg.style.color='var(--green)';
+    var stillCurrent=document.getElementById('cancel-save')===btn;
+    _refreshVista();if(stillCurrent){_regModalIdx=regDisplayed.indexOf(r);if(_regModalIdx<0){regDisplayed.push(r);_regModalIdx=regDisplayed.length-1;}}
+  }catch(e){msg.textContent=e.message;msg.style.color='var(--red)';}
+  finally{btn.disabled=false;locked.forEach(item=>item.el.disabled=item.disabled);}
 }
 
 async function regDeleteRecord(){
@@ -2311,6 +2410,7 @@ var _tkModalIdx=null;
 function tkOpenModal(idx){
   _tkModalIdx=idx;
   var r=tkFiltered[idx];if(!r)return;
+  if(/cancelac/i.test(r.tipo||'')){var mapped=allData.find(d=>d._tk===r);if(mapped){regDisplayed=[mapped];regOpenModal(0);return;}}
   if(typeof event!=='undefined'&&event&&event.currentTarget)_marcarFilaActiva(event.currentTarget);
   document.getElementById('tk-modal-title').innerHTML='Ticket <span style="color:var(--blue)">'+esc(r.folio||'—')+'</span>';
   var fields=[
@@ -2596,6 +2696,7 @@ async function _refreshRegistroFresco(r){
       fresco=data;
     }
     if(!fresco)return;
+    if(CXMetrics.isCancel(r)&&regDisplayed[_regModalIdx]!==r)return;
     // Actualizar referencia en memoria
     if(fresco.comentarios_de_seguimiento!==undefined)r.comentarios_de_seguimiento=fresco.comentarios_de_seguimiento||'';
     if(fresco.status_cancelacion!==undefined)r.status_cancelacion=fresco.status_cancelacion||r.status_cancelacion;
@@ -2616,7 +2717,7 @@ async function _refreshRegistroFresco(r){
     _safeUpdate('reg-diag-previo',r.diagnostico_previo_cancelacion);
     // Actualizar select de status si existe y no está siendo modificado
     const sel=document.getElementById('reg-stcanc-sel');
-    if(sel&&document.activeElement!==sel&&fresco.status_cancelacion){
+    if(sel&&document.activeElement!==sel&&sel.dataset.dirty!=='1'&&fresco.status_cancelacion){
       sel.value=fresco.status_cancelacion;
     }
   }catch(e){console.warn('[refresh] re-fetch falló:',e);}
