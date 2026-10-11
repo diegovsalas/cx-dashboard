@@ -771,6 +771,14 @@ function loadAnalisis(){
 function anClear(){['an-f-anio','an-f-mes','an-f-servicio'].forEach(id=>document.getElementById(id).value='');anApply();}
 function _anEsCanc(r){return (r.tipo_de_solicitud||'')==='Solicitud de Cancelación'||/cancelac/i.test(r.tipo_de_incidencia||'');}
 function _anTema(r){
+  // En WhatsApp la clasificación documentada prevalece sobre palabras de otros campos.
+  if(r._source==='whatsapp'){
+    var category=String(r.categora||(r._tk&&r._tk.categoria)||'').trim();
+    var normalized=category.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+    if(!category||normalized==='cancelacion de servicio')return 'Motivo pendiente de precisar';
+    var detail=String(r.submotvio_canc||r.submotvio||(r._tk&&r._tk.subtipo)||'').trim();
+    return normalized==='otro'&&detail?'Otro · '+detail:category;
+  }
   var t=((r.submotvio_canc||'')+' '+(r.motivo_de_cancelacin||'')+' '+(r.causa_raiz_cancelacion||'')+' '+(r.submotvio||'')+' '+(r.mensaje||'')).toLowerCase();
   var has=function(arr){return arr.some(k=>t.indexOf(k)>=0);};
   if(has(['no se realiz','sin servicio','falta de servicio','no recibió respuesta','no recibio respuesta','falta de respuesta','respuesta tard','doble cobro','reembolso','conciliaci','mala gesti','equipo dañad','equipo danad','no se reflej','desconfianza']))return 'Falla operativa / gestión Avantex';
@@ -820,6 +828,7 @@ function anApply(){
   document.getElementById('an-cols').innerHTML=
     _anBars('Motivos de cancelación · por tema (n='+canc.length+')',temas,canc.length,'#ef4444')+
     _anBars('Incidencias recurrentes · por categoría (n='+inci.length+')',cats,inci.length,'#6366f1');
+  document.getElementById('an-cols').insertAdjacentHTML('beforeend','<p style="grid-column:1/-1;font-size:12px;color:var(--text2)">Tickets WhatsApp: categoría documentada. Histórico: agrupación estimada por texto. Los motivos pendientes no se asignan por palabras clave.</p>');
   // Detalle: clientes en riesgo (2+ fallas de equipo) + tabla de cancelaciones
   var cliId=function(r){return (r.propiedad||r.nombre_del_cliente_nuevo||r.telefono||'(sin nombre)');};
   var fc={};inci.filter(r=>/falla en el equipo/i.test(r.categora||'')||/falla en el equipo/i.test(r.tipo_de_incidencia||'')).forEach(r=>{var c=cliId(r);fc[c]=(fc[c]||0)+1;});

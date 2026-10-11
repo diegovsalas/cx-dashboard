@@ -11,3 +11,11 @@ ctx.cxSyncTicketCategory(r,{categoria:'',subtipo:''});assert.equal(r.motivo_de_c
 const incident={tipo_de_solicitud:'Incidencia',_tk:{}};ctx.cxSyncTicketCategory(incident,{categoria:'Equipo',subtipo:'Apagado'});assert.equal(incident.categora,'Equipo');assert.equal(incident.motivo_de_cancelacin,undefined);
 assert.ok(html.includes('if(isWA){cxSyncTicketCategory(r,fresco);cxRenderCategoryLabel(r);}'));
 console.log('OK: categoría y subtipo frescos actualizan modelo, ticket y etiqueta sin perder campos no consultados.');
+
+const topicCode=html.slice(html.indexOf('function _anTema('),html.indexOf('function _anBars('));vm.runInContext(topicCode,ctx);
+assert.equal(ctx._anTema({_source:'whatsapp',categora:'Económico',mensaje:'No huele, ofrece descuento'}),'Económico');
+assert.equal(ctx._anTema({_source:'whatsapp',categora:'Cambio de proveedor'}),'Cambio de proveedor');
+assert.equal(ctx._anTema({_source:'whatsapp',categora:'Cancelación de servicio',mensaje:'Ya no lo quiero'}),'Motivo pendiente de precisar');
+assert.equal(ctx._anTema({_source:'whatsapp',categora:'Otro',submotvio_canc:'Motivos personales'}),'Otro · Motivos personales');
+assert.equal(ctx._anTema({_source:'base_general',motivo_de_cancelacin:'Recorte de presupuesto'}),'Económico / presupuesto');
+console.log('OK: gráficos respetan categoría documentada y detalle; no inventan motivos pendientes.');
