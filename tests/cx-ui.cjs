@@ -36,6 +36,11 @@ assert.equal(await page.locator('#tk-f-servicio option[value="Café Origen Selec
 // La misma gestión simplificada se abre desde Tickets; ningún cambio escribe antes de guardar.
 await page.evaluate(()=>tkOpenModal(tkFiltered.findIndex(t=>t.folio==='C003')));
 await page.waitForFunction(()=>document.querySelector('#tk-modal-title').textContent.includes('Cancelación'));
+// Una reclasificación externa debe aparecer al refrescar el modal abierto.
+await page.evaluate(async()=>{const ticket=tickets.find(t=>t.folio==='C003');ticket.categoria='Otro';ticket.subtipo='Motivos personales';await _refreshRegistroFresco(regDisplayed[_regModalIdx]);});
+assert.match(await page.locator('#cancel-classification').innerText(),/Otro.*Motivos personales/);
+assert.equal(await page.evaluate(()=>regDisplayed[_regModalIdx].motivo_de_cancelacin),'Otro');
+
 assert.equal(await page.locator('#reg-save-comment').count(),0);
 assert.equal(await page.locator('#cancel-save').isVisible(),true);
 assert.equal(await page.locator('#reg-monto-input').isVisible(),false);

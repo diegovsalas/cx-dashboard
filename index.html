@@ -1353,6 +1353,8 @@ function cxSimplifyCancellation(r){
   var message=take('Mensaje')||take('Detalle de la Incidencia');
   if(message){add(summary,message);message.querySelector('.detail-label').textContent='Lo que solicita';}
   else summary.innerHTML+='<p>'+esc(r.motivo_de_cancelacin||'Sin motivo registrado')+'</p>';
+  var classification=document.createElement('p');classification.id='cancel-classification';
+  classification.style.cssText='font-size:13px;color:var(--text2)';summary.appendChild(classification);cxRenderCategoryLabel(r);
   var manage=section('Gestionar cancelación');
   var stageBlock=take('Status');add(manage,stageBlock);
   if(stageBlock)stageBlock.querySelector('.detail-label').textContent='Estado de gestión';
@@ -2694,6 +2696,21 @@ function _iniciarPollingDatos(){
 }
 
 // Fix 2: Re-fetch del registro al abrir modal — evita "last write wins" en comentarios
+function cxSyncTicketCategory(r,fresco){
+  if(fresco.categoria!==undefined)r.categora=fresco.categoria||'';
+  if(fresco.subtipo!==undefined)r.submotvio=fresco.subtipo||'';
+  if(CXMetrics.isCancel(r)){
+    if(fresco.categoria!==undefined)r.motivo_de_cancelacin=r.categora||r.mensaje||'';
+    if(fresco.subtipo!==undefined)r.submotvio_canc=r.submotvio;
+  }
+  if(r._tk)Object.assign(r._tk,fresco);
+}
+function cxRenderCategoryLabel(r){
+  const el=document.getElementById('cancel-classification');
+  if(el)el.textContent='Categoría documentada: '+(r.categora||r._tk?.categoria||'Sin categoría')+
+    ((r.submotvio_canc||r.submotvio)?' · Detalle: '+(r.submotvio_canc||r.submotvio):'');
+}
+
 async function _refreshRegistroFresco(r){
   if(!r)return;
   try{
@@ -2721,7 +2738,7 @@ async function _refreshRegistroFresco(r){
     if(fresco.anlisis_de_causa_raz!==undefined)r.anlisis_de_causa_raz=fresco.anlisis_de_causa_raz||'';
     if(fresco.diagnostico_previo_cancelacion!==undefined)r.diagnostico_previo_cancelacion=fresco.diagnostico_previo_cancelacion||'';
     if(fresco.fecha_efectiva_cancelacion!==undefined)r.fecha_efectiva_cancelacion=fresco.fecha_efectiva_cancelacion||null;
-    if(isWA&&r._tk)Object.assign(r._tk,fresco);
+    if(isWA){cxSyncTicketCategory(r,fresco);cxRenderCategoryLabel(r);}
     // Helper: actualizar textarea si no está en focus ni siendo editado
     function _safeUpdate(id,val){
       const el=document.getElementById(id);

@@ -1,0 +1,13 @@
+const fs=require('node:fs');const vm=require('node:vm');const assert=require('node:assert/strict');
+const html=fs.readFileSync(require('node:path').join(__dirname,'../index.html'),'utf8');
+const code=html.slice(html.indexOf('function cxSyncTicketCategory('),html.indexOf('async function _refreshRegistroFresco('));
+const label={textContent:''};const ctx={CXMetrics:{isCancel:r=>/cancelac/i.test(r.tipo_de_solicitud||'')},document:{getElementById:()=>label}};
+vm.createContext(ctx);vm.runInContext(code,ctx);
+const r={tipo_de_solicitud:'Solicitud de Cancelación',categora:'Cancelación de servicio',motivo_de_cancelacin:'Cancelación de servicio',mensaje:'Texto original',submotvio:'',submotvio_canc:'',_tk:{categoria:'Cancelación de servicio'}};
+ctx.cxSyncTicketCategory(r,{categoria:'Otro',subtipo:'Motivos personales'});ctx.cxRenderCategoryLabel(r);
+assert.equal(r.categora,'Otro');assert.equal(r.motivo_de_cancelacin,'Otro');assert.equal(r.submotvio_canc,'Motivos personales');assert.equal(r._tk.categoria,'Otro');assert.match(label.textContent,/Otro.*Motivos personales/);
+ctx.cxSyncTicketCategory(r,{comentarios_de_seguimiento:'Cambio ajeno'});assert.equal(r.motivo_de_cancelacin,'Otro');
+ctx.cxSyncTicketCategory(r,{categoria:'',subtipo:''});assert.equal(r.motivo_de_cancelacin,'Texto original');assert.equal(r.submotvio_canc,'');
+const incident={tipo_de_solicitud:'Incidencia',_tk:{}};ctx.cxSyncTicketCategory(incident,{categoria:'Equipo',subtipo:'Apagado'});assert.equal(incident.categora,'Equipo');assert.equal(incident.motivo_de_cancelacin,undefined);
+assert.ok(html.includes('if(isWA){cxSyncTicketCategory(r,fresco);cxRenderCategoryLabel(r);}'));
+console.log('OK: categoría y subtipo frescos actualizan modelo, ticket y etiqueta sin perder campos no consultados.');
