@@ -789,13 +789,30 @@ function _anTema(r){
   if(has(['ya no lo necesita','ya no requiere','no requiere','bajo uso','no se requiere','no lo queremos','ya no le interesa','no aprovech','poco uso','reducción de personal','reduccion de personal']))return '“Ya no lo necesita” / bajo uso';
   return 'Otro / sin clasificar';
 }
+function _anGrupo(r){
+  // Mismo nivel de resumen en ambas fuentes; se conserva _anTema para el detalle.
+  var t=_anTema(r).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase();
+  if(t==='motivo pendiente de precisar'||t==='otro / sin clasificar')return 'Motivo pendiente de precisar';
+  if(t==='economico'||t==='economico / presupuesto')return 'Económico y presupuesto';
+  if(['fallo de servicio','falla operativa / gestion avantex','insatisfaccion aroma / servicio','calidad del aroma','calidad del servicio','insatisfaccion general','falla en el equipo'].includes(t))return 'Servicio, aroma y equipo';
+  if(['cierre / mudanza / fin contrato','cierre de operacion','reubicacion','fin de contrato'].includes(t)||/otro · (reduccion por desocupacion de area|dejo de contar con las instalaciones)$/.test(t))return 'Operación, ubicación y contrato';
+  if(t==='bajo uso'||t==='“ya no lo necesita” / bajo uso'||/otro · (desinteres en el servicio|servicio ya no requerido)$/.test(t))return 'Uso, necesidad e interés';
+  if(t==='cambio de proveedor')return 'Cambio de proveedor';
+  return 'Otros motivos documentados';
+}
+function _anMotivosDetalle(canc){
+  var detail={};
+  canc.forEach(function(r){var group=_anGrupo(r),topic=_anTema(r),key=group+'\n'+topic;if(!detail[key])detail[key]={group:group,topic:topic,n:0,bot:0,hist:0};detail[key].n++;detail[key][r._source==='whatsapp'?'bot':'hist']++;});
+  var rows=Object.values(detail).sort(function(a,b){return a.group.localeCompare(b.group)||b.n-a.n;});
+  return '<details style="grid-column:1/-1;background:var(--surface);padding:14px;border:1px solid var(--border);border-radius:8px"><summary style="cursor:pointer;font-weight:600">Ver categorías y procedencia de los motivos</summary><div style="overflow:auto;margin-top:12px"><table class="dt"><thead><tr><th>Grupo</th><th>Categoría / detalle</th><th>Bot</th><th>Histórico</th><th>Total</th></tr></thead><tbody>'+rows.map(function(d){return '<tr><td>'+esc(d.group)+'</td><td>'+esc(d.topic)+'</td><td>'+d.bot+'</td><td>'+d.hist+'</td><td>'+d.n+'</td></tr>';}).join('')+'</tbody></table></div></details>';
+}
 function _anBars(title,counter,total,color){
   var entries=Object.keys(counter).map(k=>[k,counter[k]]).sort((a,b)=>b[1]-a[1]);
   var max=entries.length?entries[0][1]:1;
   var h='<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 18px"><h3 style="font-size:14px;font-weight:700;margin-bottom:14px">'+title+'</h3>';
   if(!entries.length)h+='<div style="font-size:12px;color:var(--text3)">Sin datos en el periodo</div>';
   entries.forEach(function(e){
-    var pct=total?Math.round(e[1]*100/total):0;var w=Math.round(e[1]*100/max);
+    var pct=total?(e[1]*100/total).toFixed(1):'0.0';var w=Math.round(e[1]*100/max);
     h+='<div style="margin-bottom:10px"><div style="display:flex;justify-content:space-between;font-size:12px;margin-bottom:3px"><span>'+esc(e[0])+'</span><span style="color:var(--text3);font-variant-numeric:tabular-nums">'+e[1]+' · '+pct+'%</span></div><div style="background:var(--surface2);border-radius:4px;height:6px;overflow:hidden"><div style="background:'+color+';width:'+w+'%;height:100%"></div></div></div>';
   });
   return h+'</div>';
@@ -823,12 +840,14 @@ function anApply(){
     '<div class="kpi"><div class="lbl">Tasa de retención</div><div class="val" style="color:'+colTasa+'">'+(tasa==null?'Sin decisiones':tasa+'%')+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+nReten+'/'+cerrados+' cerrados · '+abiertos+' abiertos</div></div>';
   // Columnas: motivos por tema | incidencias por categoría
   var temas={},cats={};
-  canc.forEach(r=>{var k=_anTema(r);temas[k]=(temas[k]||0)+1;});
+  canc.forEach(r=>{var k=_anGrupo(r);temas[k]=(temas[k]||0)+1;});
   inci.forEach(r=>{var k=(r.categora||r.tipo_de_incidencia||'(sin categoría)').trim()||'(sin categoría)';cats[k]=(cats[k]||0)+1;});
   document.getElementById('an-cols').innerHTML=
-    _anBars('Motivos de cancelación · por tema (n='+canc.length+')',temas,canc.length,'#ef4444')+
+    _anBars('Motivos de cancelación · grupos unificados (n='+canc.length+')',temas,canc.length,'#ef4444')+
     _anBars('Incidencias recurrentes · por categoría (n='+inci.length+')',cats,inci.length,'#6366f1');
-  document.getElementById('an-cols').insertAdjacentHTML('beforeend','<p style="grid-column:1/-1;font-size:12px;color:var(--text2)">Tickets WhatsApp: categoría documentada. Histórico: agrupación estimada por texto. Los motivos pendientes no se asignan por palabras clave.</p>');
+  var nBot=canc.filter(r=>r._source==='whatsapp').length;
+  var years=[...new Set(canc.map(r=>r._anio).filter(Boolean))].sort().join(', ');
+  document.getElementById('an-cols').insertAdjacentHTML('beforeend','<p style="grid-column:1/-1;font-size:12px;color:var(--text2)">Periodo: '+esc(fa||('todos los años disponibles ('+years+')'))+'. '+nBot+' solicitudes del bot y '+(canc.length-nBot)+' del histórico. Son solicitudes registradas, no clientes únicos ni bajas confirmadas. Bot: categoría documentada; histórico: agrupación estimada por texto. El resumen une temas equivalentes; conserva la categoría original en el detalle.</p>'+_anMotivosDetalle(canc));
   // Detalle: clientes en riesgo (2+ fallas de equipo) + tabla de cancelaciones
   var cliId=function(r){return (r.propiedad||r.nombre_del_cliente_nuevo||r.telefono||'(sin nombre)');};
   var fc={};inci.filter(r=>/falla en el equipo/i.test(r.categora||'')||/falla en el equipo/i.test(r.tipo_de_incidencia||'')).forEach(r=>{var c=cliId(r);fc[c]=(fc[c]||0)+1;});
@@ -855,8 +874,8 @@ function anApply(){
 let _anCanc=[];
 function anDescargar(){
   var cliId=function(r){return (r.propiedad||r.nombre_del_cliente_nuevo||r.telefono||'');};
-  var rows=[['Fecha','Cliente','Tema','Motivo','Status','Servicio']];
-  _anCanc.forEach(r=>rows.push([r.fecha_de_la_solicitud||'',cliId(r),_anTema(r),r.submotvio_canc||r.submotvio||r.causa_raiz_cancelacion||'',r.status_cancelacion||'',r.tipo_de_servicio||'']));
+  var rows=[['Fecha','Cliente','Grupo unificado','Categoría / tema','Motivo / detalle','Status','Servicio','Fuente','Clasificación']];
+  _anCanc.forEach(r=>rows.push([r.fecha_de_la_solicitud||'',cliId(r),_anGrupo(r),_anTema(r),r.submotvio_canc||r.submotvio||r.causa_raiz_cancelacion||'',r.status_cancelacion||'',r.tipo_de_servicio||'',r._source==='whatsapp'?'Bot':'Histórico',r._source==='whatsapp'?'Documentada':'Estimada por texto']));
   var csv=rows.map(row=>row.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
   var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);a.download='analisis_cancelaciones.csv';a.click();
 }

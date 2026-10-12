@@ -19,3 +19,13 @@ assert.equal(ctx._anTema({_source:'whatsapp',categora:'Cancelación de servicio'
 assert.equal(ctx._anTema({_source:'whatsapp',categora:'Otro',submotvio_canc:'Motivos personales'}),'Otro · Motivos personales');
 assert.equal(ctx._anTema({_source:'base_general',motivo_de_cancelacin:'Recorte de presupuesto'}),'Económico / presupuesto');
 console.log('OK: gráficos respetan categoría documentada y detalle; no inventan motivos pendientes.');
+assert.equal(ctx._anGrupo({_source:'whatsapp',categora:'Económico'}),ctx._anGrupo({_source:'base_general',motivo_de_cancelacin:'Recorte de presupuesto'}));
+for(const c of ['Fallo de servicio','Calidad del aroma','Calidad del servicio','Insatisfacción general','Falla en el equipo'])assert.equal(ctx._anGrupo({_source:'whatsapp',categora:c}),'Servicio, aroma y equipo');
+for(const c of ['Cierre de operación','Reubicación','Fin de contrato'])assert.equal(ctx._anGrupo({_source:'whatsapp',categora:c}),'Operación, ubicación y contrato');
+assert.equal(ctx._anGrupo({_source:'whatsapp',categora:'Otro',submotvio_canc:'Desinterés en el servicio'}),'Uso, necesidad e interés');
+assert.equal(ctx._anGrupo({_source:'whatsapp',categora:'Otro',submotvio_canc:'Revisión de necesidades y costo-beneficio'}),'Otros motivos documentados');
+assert.equal(ctx._anGrupo({_source:'whatsapp',categora:'',mensaje:'Problemas económicos'}),'Motivo pendiente de precisar');
+assert.equal(ctx._anGrupo({_source:'base_general',motivo_de_cancelacin:'Desconocido'}),'Motivo pendiente de precisar');
+assert.ok(html.includes("(e[1]*100/total).toFixed(1)"));
+assert.ok(html.includes("cliId(r),_anGrupo(r),_anTema(r)"));
+console.log('OK: temas equivalentes de ambas fuentes se agrupan, conservando motivos originales y pendientes.');
