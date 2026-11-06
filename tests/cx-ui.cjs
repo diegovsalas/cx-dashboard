@@ -26,6 +26,8 @@ assert.deepEqual(await page.locator('#kpis .val').allTextContents(),['5','3','1'
 await page.locator('#kpis button').nth(1).click();assert.match(await page.locator('#cx-cases .tbl-header').innerText(),/Pendientes · 3 casos/);assert.equal(await page.locator('#cx-cases th').count(),6);
 await page.evaluate(()=>chartInstances.c1.options.onClick({},[{index:0}]));assert.match(await page.locator('#cx-cases .tbl-header').innerText(),/Incidencia · 2 casos/);await page.locator('#kpis button').nth(1).click();
 await page.locator('#cx-cases tbody tr').first().click();assert.equal(await page.locator('#tk-modal').isVisible(),true);await page.evaluate(()=>tkCloseModal());
+await page.evaluate(()=>goPage('tickets'));await page.locator('#tk-f-calidad').selectOption('incompletos');assert.ok(await page.evaluate(()=>tkFiltered.length>0&&tkFiltered.every(r=>CXMetrics.qualityIssues({_tk:r,tipo_de_solicitud:r.tipo,status:r.estatus}).length)));await page.evaluate(()=>tkClear());
+
 await page.evaluate(()=>{document.getElementById('an-f-servicio').insertAdjacentHTML('beforeend','<option value="Pestex">Pestex</option>');document.getElementById('an-f-servicio').value='Pestex';clearF();});assert.equal(await page.locator('#an-f-servicio').inputValue(),'Pestex');
 await page.evaluate(()=>{goPage('campanias')});await page.waitForFunction(()=>document.querySelector('#cmp-kpis').textContent.includes('25'));assert.match(await page.locator('#cmp-kpis').innerText(),/Entrega confirmada\s*2/i);assert.match(await page.locator('#cmp-kpis').innerText(),/NPS 0–10\s*25/);
 await page.evaluate(()=>{window.__slowNps=true;cmpCargarHistorial();document.getElementById('cmp-hist-template').value='ventas_satisfaccion_nuevos';cmpCargarHistorial();});await page.waitForTimeout(250);assert.match(await page.locator('#cmp-kpis').innerText(),/Satisfacción ventas/i);assert.doesNotMatch(await page.locator('#cmp-kpis').innerText(),/NPS 0–10/);
@@ -80,6 +82,14 @@ assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=windo
 await page.evaluate(()=>{user={email:'consulta@grupoavantex.com'};regOpenModal(_regModalIdx);});
 assert.equal(await page.locator('#cancel-save').count(),0);assert.equal(await page.locator('#reg-stcanc-sel').count(),0);
 assert.match(await page.locator('.cancel-help').innerText(),/no tiene permiso/);await page.evaluate(()=>user={email:'diegovelazquez@grupoavantex.com'});
+await page.evaluate(()=>regOpenModal(_regModalIdx));
+await page.locator('#cancel-stage').selectOption('Cerrado');await page.locator('#cancel-confirm').check();await page.locator('#reg-stcanc-sel').selectOption('Cancelada');
+const beforeMissingDate=await page.evaluate(()=>window.__writes.length);await page.locator('#cancel-save').click();
+assert.match(await page.locator('#cancel-save-msg').innerText(),/fecha efectiva/);assert.equal(await page.evaluate(()=>window.__writes.length),beforeMissingDate);
+await page.locator('summary').filter({hasText:'Facturación y fecha efectiva'}).click();await page.locator('#reg-fecha-efectiva').fill('2026-10-15');await page.locator('#cancel-save').click();
+await page.waitForFunction(()=>document.querySelector('#cancel-save-msg').textContent==='Gestión guardada');
+assert.equal(await page.evaluate(()=>allData.find(r=>r.folio==='C003')._tk.fecha_efectiva_cancelacion),'2026-10-15');
+
 await page.evaluate(()=>tkCloseModal());
 await page.evaluate(async()=>{goPage('dashboard');window.__failTickets=true;await loadData();_refreshVista();});assert.match(await page.locator('#cx-load-status').innerText(),/Se conservan/);assert.equal(await page.evaluate(()=>allData.length),5);
 await page.screenshot({path:path.join(artifacts,'desktop.png'),fullPage:true});

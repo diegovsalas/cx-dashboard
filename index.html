@@ -353,6 +353,7 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
 <span class="flabel" style="margin:0">Filtros:</span>
 <select id="tk-f-estatus" onchange="tkApply()"><option value="">Estatus: Todos</option></select>
 <select id="tk-f-servicio" onchange="tkApply()"><option value="">Servicio: Todos</option></select>
+<select id="tk-f-calidad" onchange="tkApply()"><option value="">Calidad: Todos</option><option value="incompletos">Cancelaciones con datos incompletos</option></select>
 <button class="btn-clear" onclick="tkClear()">Limpiar</button>
 <span class="active-filters" id="af-tickets"></span>
 </div>
@@ -529,6 +530,10 @@ function isAromatex(){
   var e=user.email.toLowerCase();
   return e.endsWith('@aromatex.mx')||AROMATEX_LEGACY_EMAILS.includes(e);
 }
+// Usuarios no-admin que pueden editar el detalle de casos, registros y tickets
+// (status, tipo, comentarios, cancelaciones). No ven páginas de admin ni campos de superadmin.
+const EDITOR_EMAILS=['itzelramirez@grupoavantex.com','johanamartinez@grupoavantex.com'];
+function puedeEditar(){return user&&(isAdmin()||EDITOR_EMAILS.includes(user.email.toLowerCase()));}
 function puedeEscalar(){return user&&(isAdmin()||ESCALATE_EMAILS.includes(user.email.toLowerCase()));}
 const LIM=50;
 const CX_SERVICE_CATALOG=['Aromatex','Pestex','Weldex','Café Origen Selecto'];
@@ -560,7 +565,16 @@ var CXMetrics=(function(){
   function group(rows,kind){if(kind==='all')return rows;if(kind==='pending')return rows.filter(isPending);if(kind==='escalated')return rows.filter(r=>norm(r.status).includes('escalad'));if(kind==='cancel')return rows.filter(r=>isCancel(r)&&isPending(r));if(kind==='closed')return rows.filter(r=>closed(state(r)));if(kind==='unassigned')return rows.filter(r=>isPending(r)&&!norm(r.ejecutivo_asignado));if(kind==='urgent')return rows.filter(r=>isPending(r)&&/alta|urgent/.test(norm(r._prioridad)));return [];}
   function retention(rows){var c=rows.filter(isCancel),final=c.filter(r=>closed(state(r))),kept=final.filter(r=>/retenid|migrac|downgrade/.test(norm(cancelOutcome(r)))).length,lost=final.filter(r=>cancelOutcome(r)==='Cancelada').length;return {kept,lost,open:c.length-kept-lost,rate:kept+lost?Math.round(100*kept/(kept+lost)):null};}
   function dedup(rows){var seen=new Set();return rows.filter(r=>{var id=r._tk?r._tk.id||r._tk.folio:r.id;if(!id)return true;var k=r._source+':'+id;if(seen.has(k))return false;seen.add(k);return true;});}
-  return {norm,number,median,isCancel,state,cancelOutcome,cancelWorkflow,closed,pending,isPending,category,days,score,csat,nps,months,matches,group,retention,dedup};
+  function qualityIssues(r){
+    if(!isCancel(r))return [];
+    var t=r._tk||r,issues=[],result=norm(t.status_cancelacion||r.status_cancelacion),stage=state(r),cause=t.causa_raiz_cancelacion||r.causa_raiz_cancelacion||r.anlisis_de_causa_raz||'',cat=norm(t.categoria||r.categoria);
+    if(closed(stage)&&!['retenida','cancelada','downgrade','migracion','cancelado por morosidad'].includes(result))issues.push('Cierre sin resultado definitivo');
+    if(['cancelada','cancelado por morosidad'].includes(result)&&!(t.fecha_efectiva_cancelacion||r.fecha_efectiva_cancelacion))issues.push('Falta fecha efectiva de baja');
+    if(!String(cause).trim()&&['','cancelacion de servicio'].includes(cat))issues.push('Falta causa específica');
+    return issues;
+  }
+  function validateCancelDate(stage,result,date){if(closed(stage)&&['cancelada','cancelado por morosidad'].includes(norm(result))&&!/^\d{4}-\d{2}-\d{2}$/.test(date||''))throw new Error('Indica la fecha efectiva de baja antes de cerrar.');}
+  return {norm,number,median,isCancel,state,cancelOutcome,cancelWorkflow,closed,pending,isPending,category,days,score,csat,nps,months,matches,group,retention,dedup,qualityIssues,validateCancelDate};
 })();
 // CX_METRICS_END
 
@@ -1150,7 +1164,7 @@ function regOpenModal(idx){
   h+='<div class="detail-item full" style="background:var(--surface2);padding:14px;border-radius:6px;margin-bottom:8px;border:1px solid var(--border)">';
   h+='<div class="detail-label">Status</div>';
   h+='<div style="display:flex;align-items:center;gap:12px;margin-top:4px">';
-  if(isAdmin()){
+  if(puedeEditar()){
     h+='<select class="status-select" id="reg-status-sel" onchange="regChangeStatus()">';
     _statusOpts.forEach(s=>{h+='<option value="'+esc(s)+'"'+(curStatus.toLowerCase()===s.toLowerCase()?' selected':'')+'>'+esc(s)+'</option>';});
     if(curStatus&&!_statusOpts.some(s=>s.toLowerCase()===curStatus.toLowerCase())){h+='<option value="'+esc(curStatus)+'" selected>'+esc(curStatus)+'</option>';}
@@ -1161,7 +1175,7 @@ function regOpenModal(idx){
   }
   h+='</div></div>';
   // Reclasificar tipo de solicitud — admin only
-  if(isAdmin()){
+  if(puedeEditar()){
     var curTS=r.tipo_de_solicitud||'';
     var tsOpts=['Incidencia / Queja','Solicitud de Cancelación','Solicitud Operativa'];
     h+='<div class="detail-item full" style="background:var(--surface2);padding:14px;border-radius:6px;margin-bottom:8px;border:1px solid var(--border)">';
@@ -1181,7 +1195,7 @@ function regOpenModal(idx){
     var montoVal=r.facturacin_sin_iva!=null?Number(r.facturacin_sin_iva):0;
     h+='<div class="detail-item full" style="background:var(--red-bg);padding:14px;border-radius:6px;margin-bottom:8px;border:1px solid rgba(248,113,113,.25)">';
     h+='<div class="detail-label">Facturación sin IVA</div>';
-    if(isAdmin()){
+    if(puedeEditar()){
       h+='<div style="display:flex;align-items:center;gap:12px;margin-top:4px">';
       h+='<span style="font-size:18px;font-weight:700;color:var(--red)">$</span>';
       h+='<input type="number" step="0.01" min="0" id="reg-monto-input" value="'+(montoVal||'')+'" style="padding:8px 12px;border:2px solid var(--border);border-radius:8px;font-size:16px;font-weight:700;color:var(--red);width:200px;font-family:inherit;" placeholder="0.00">';
@@ -1199,7 +1213,7 @@ function regOpenModal(idx){
     h+='<div class="detail-item full" style="background:var(--red-bg);padding:14px;border-radius:6px;margin-bottom:8px;border:1px solid rgba(248,113,113,.25)">';
     h+='<div class="detail-label">Status Cancelación</div>';
     h+='<div style="display:flex;align-items:center;gap:12px;margin-top:4px">';
-    if(isAdmin()){
+    if(puedeEditar()){
       h+='<select class="status-select" id="reg-stcanc-sel" onchange="regChangeStCanc()">';
       ['Negociacion','Retenida','Downgrade','Cancelada'].forEach(s=>{h+='<option value="'+s+'"'+(curStCanc.toLowerCase()===s.toLowerCase()?' selected':'')+'>'+s+'</option>';});
       if(curStCanc&&!['negociacion','retenida','downgrade','cancelada'].includes(curStCanc.toLowerCase())){h+='<option value="'+esc(curStCanc)+'" selected>'+esc(curStCanc)+'</option>';}
@@ -1215,7 +1229,7 @@ function regOpenModal(idx){
     var dgVisible=(curStCanc||'').toLowerCase()==='downgrade'?'block':'none';
     h+='<div id="reg-dg-fields" style="display:'+dgVisible+';margin-top:10px;padding:12px;background:var(--blue-bg);border-radius:6px;border-left:2px solid var(--blue)">';
     h+='<div class="detail-label" style="color:#1e40af;font-weight:700;font-size:11px">🔽 DETALLE DEL DOWNGRADE</div>';
-    if(isAdmin()){
+    if(puedeEditar()){
       h+='<div style="margin-top:8px">';
       h+='<div class="detail-label" style="font-size:11px">Descripción del cambio</div>';
       h+='<input class="info-input" id="reg-dg-desc" value="'+esc(dgDesc)+'" placeholder="Ej: De 2 a 1 difusor · Cambio a plan básico" style="width:100%;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px">';
@@ -1244,7 +1258,7 @@ function regOpenModal(idx){
     var fechaEf=r.fecha_efectiva_cancelacion||'';
     h+='<div>';
     h+='<div class="detail-label" style="font-size:11px">📅 Fecha efectiva de cancelación (mes al que afecta el monto)</div>';
-    if(isAdmin()){
+    if(puedeEditar()){
       h+='<div style="display:flex;align-items:center;gap:10px;margin-top:4px">';
       h+='<input type="date" class="finput" id="reg-fecha-efectiva" value="'+esc(fechaEf)+'" style="padding:8px 10px;font-size:13px;max-width:200px;margin:0">';
       h+='<button class="btn-save-comment" id="reg-save-fecha-ef" onclick="regSaveFechaEfectiva()" style="padding:7px 14px"><i class="fa-solid fa-floppy-disk"></i> Guardar</button>';
@@ -1258,7 +1272,7 @@ function regOpenModal(idx){
     // Diagnóstico previo
     h+='<div>';
     h+='<div class="detail-label" style="font-size:11px">Diagnóstico previo (estado del cliente antes de la negociación)</div>';
-    if(isAdmin()){
+    if(puedeEditar()){
       h+='<textarea class="comment-area" id="reg-diag-previo" placeholder="Ej: Cliente de 3 años, 8 equipos, 2 quejas previas no resueltas en últimos 60 días. Antigüedad del contrato: 18 meses.">'+esc(diagPrev)+'</textarea>';
       h+='<div style="display:flex;align-items:center;gap:12px"><button class="btn-save-comment" id="reg-save-diag-previo" onclick="regSaveDiagnosticoPrevio()"><i class="fa-solid fa-floppy-disk"></i> Guardar diagnóstico</button>';
       h+='<span class="status-msg" id="reg-diag-previo-msg"></span></div>';
@@ -1270,7 +1284,7 @@ function regOpenModal(idx){
     // Oferta de retención
     h+='<div>';
     h+='<div class="detail-label" style="font-size:11px">Oferta de retención (qué se ofreció al cliente)</div>';
-    if(isAdmin()){
+    if(puedeEditar()){
       h+='<textarea class="comment-area" id="reg-oferta" placeholder="Ej: 1 mes de pausa sin cobro · 20% descuento por 3 meses · downgrade de equipo...">'+esc(oferta)+'</textarea>';
       h+='<div style="display:flex;align-items:center;gap:12px"><button class="btn-save-comment" id="reg-save-oferta" onclick="regSaveOferta()"><i class="fa-solid fa-floppy-disk"></i> Guardar oferta</button>';
       h+='<span class="status-msg" id="reg-oferta-msg"></span></div>';
@@ -1282,7 +1296,7 @@ function regOpenModal(idx){
     // Causa raíz de la cancelación
     h+='<div>';
     h+='<div class="detail-label" style="font-size:11px">Causa raíz (por qué se va realmente el cliente)</div>';
-    if(isAdmin()){
+    if(puedeEditar()){
       h+='<textarea class="comment-area" id="reg-causa-raiz-canc" placeholder="Análisis profundo: motivo real detrás del motivo declarado.">'+esc(causaR)+'</textarea>';
       h+='<div style="display:flex;align-items:center;gap:12px"><button class="btn-save-comment" id="reg-save-causaraiz" onclick="regSaveCausaRaizCanc()"><i class="fa-solid fa-floppy-disk"></i> Guardar causa raíz</button>';
       h+='<span class="status-msg" id="reg-causaraiz-msg"></span></div>';
@@ -1300,7 +1314,7 @@ function regOpenModal(idx){
     if(isCancelacion&&(f.l==='Diagnóstico'||f.l==='Causa Raíz'))return;
     h+='<div class="detail-item'+(f.full?' full':'')+'">';
     h+='<div class="detail-label">'+f.l+'</div>';
-    if(f.ed&&(f.sa?isSuperAdmin():isAdmin())){
+    if(f.ed&&(f.sa?isSuperAdmin():puedeEditar())){
       var eid='reg-ed-'+(_edIdx++);
       if(f.opts){
         h+='<select class="status-select" id="'+eid+'" data-col="'+f.ed+'" onchange="regInlineSave(this)">';
@@ -1331,7 +1345,7 @@ function regOpenModal(idx){
   var comentarios=r.comentarios_de_seguimiento||'';
   h+='<div class="detail-item full" style="margin-top:12px">';
   h+='<div class="detail-label">Comentarios de Seguimiento</div>';
-  if(isAdmin()){
+  if(puedeEditar()){
     h+='<textarea class="comment-area" id="reg-comentarios">'+esc(comentarios)+'</textarea>';
     h+='<div style="display:flex;align-items:center;gap:12px"><button class="btn-save-comment" id="reg-save-comment" onclick="regSaveComment()"><i class="fa-solid fa-floppy-disk"></i> Guardar comentarios</button>';
     h+='<span class="status-msg" id="reg-comment-msg"></span></div>';
@@ -1396,9 +1410,9 @@ function cxSimplifyCancellation(r){
     var resultValue=CXMetrics.cancelOutcome(r);if(resultValue==='Migracion')status.add(new Option('Migración (resultado existente)','Migracion'));status.value=resultValue;
     var dgFields=document.getElementById('reg-dg-fields')||outcome.querySelector('#reg-dg-fields');if(dgFields)dgFields.style.display=resultValue==='Downgrade'?'block':'none';
   }
-  if(isAdmin())manage.insertAdjacentHTML('beforeend','<label id="cancel-close-confirm" style="display:'+(stageValue==='Cerrado'?'block':'none')+';font-size:13px;margin:12px 0"><input type="checkbox" id="cancel-confirm"> Confirmo que completé las acciones aplicables de baja, conciliación o recolección y no quedan pendientes de esta gestión.</label>');
+  if(puedeEditar())manage.insertAdjacentHTML('beforeend','<label id="cancel-close-confirm" style="display:'+(stageValue==='Cerrado'?'block':'none')+';font-size:13px;margin:12px 0"><input type="checkbox" id="cancel-confirm"> Confirmo que completé las acciones aplicables de baja, conciliación o recolección y no quedan pendientes de esta gestión.</label>');
   manage.insertAdjacentHTML('beforeend','<p class="cancel-help">En negociación se registra como En proceso. Cierra únicamente cuando termine la gestión; el resultado indica si el cliente continúa, cambia su servicio o cancela.</p>');
-  if(!isAdmin())manage.querySelector('.cancel-help').textContent='Consulta del caso. Tu usuario no tiene permiso para modificar la gestión.';
+  if(!puedeEditar())manage.querySelector('.cancel-help').textContent='Consulta del caso. Tu usuario no tiene permiso para modificar la gestión.';
   add(manage,take('Comentarios de Seguimiento'));
   var comment=manage.querySelector('#reg-comentarios');if(comment)comment.placeholder='Qué se hizo y cuál es el siguiente paso (responsable y fecha).';
   var retention=folded('Retención · diagnóstico, oferta y causa');
@@ -1420,7 +1434,7 @@ function cxSimplifyCancellation(r){
   // Escalar permanece accesible en la gestión principal según el rol existente.
   var escalation=advanced.querySelector('[onclick="abrirModalEscalar()"]');if(escalation)add(manage,escalation.parentElement);
   var sticky=document.createElement('div');sticky.className='cancel-save';
-  if(isAdmin())sticky.innerHTML='<button class="btn-save-comment" id="cancel-save" onclick="cxSaveCancellation()">Guardar gestión</button><span id="cancel-save-msg" role="status" aria-live="polite">Sin cambios pendientes</span>';
+  if(puedeEditar())sticky.innerHTML='<button class="btn-save-comment" id="cancel-save" onclick="cxSaveCancellation()">Guardar gestión</button><span id="cancel-save-msg" role="status" aria-live="polite">Sin cambios pendientes</span>';
   grid.replaceWith(summary,manage,retention,money,advanced,sticky);
   ['reg-save-comment','reg-save-diag-previo','reg-save-oferta','reg-save-causaraiz','reg-save-fecha-ef','reg-save-dg'].forEach(id=>document.getElementById(id)?.remove());
   money.querySelector('[onclick="regSaveMonto()"]')?.remove();
@@ -1433,7 +1447,7 @@ function cxSimplifyCancellation(r){
   document.getElementById('tk-modal-title').innerHTML='Cancelación <span style="color:var(--red)">'+esc(r.folio_ticket||r.folio||'—')+'</span>';
 }
 async function cxSaveCancellation(){
-  var r=regDisplayed[_regModalIdx];if(!r||!isAdmin())return;
+  var r=regDisplayed[_regModalIdx];if(!r||!puedeEditar())return;
   var btn=document.getElementById('cancel-save'),msg=document.getElementById('cancel-save-msg');
   var fields={'cancel-stage':'status','reg-stcanc-sel':'status_cancelacion','reg-comentarios':'comentarios_de_seguimiento','reg-diag-previo':'diagnostico_previo_cancelacion','reg-oferta':'oferta_retencion','reg-causa-raiz-canc':'causa_raiz_cancelacion','reg-fecha-efectiva':'fecha_efectiva_cancelacion','reg-monto-input':'facturacin_sin_iva','reg-dg-desc':'descripcion_downgrade','reg-dg-monto':'monto_nuevo_downgrade'};
   var update={},changed=[],locked=[];
@@ -1444,7 +1458,7 @@ async function cxSaveCancellation(){
       update[col]=value;changed.push(el);
     });
     if(!changed.length){msg.textContent='Sin cambios pendientes';return;}
-    var pair=CXMetrics.cancelWorkflow(document.getElementById('cancel-stage').value,document.getElementById('reg-stcanc-sel').value,document.getElementById('cancel-confirm').checked);Object.assign(update,pair);
+    var pair=CXMetrics.cancelWorkflow(document.getElementById('cancel-stage').value,document.getElementById('reg-stcanc-sel').value,document.getElementById('cancel-confirm').checked);Object.assign(update,pair);CXMetrics.validateCancelDate(pair.status,pair.status_cancelacion,document.getElementById('reg-fecha-efectiva').value);
     if(CXMetrics.closed(pair.status)){update.resolved_at=r._tk&&r._tk.resolved_at||r.fecha_de_solucion||new Date().toISOString();}else update.resolved_at=null;
     if(update.status_cancelacion==='Downgrade'||'monto_nuevo_downgrade' in update||'descripcion_downgrade' in update){
       var dg=document.getElementById('reg-dg-desc').value.trim(),amount=Number(document.getElementById('reg-dg-monto').value);
@@ -2178,6 +2192,7 @@ async function regChangeTipoSolicitud(){
 
 async function regChangeStatus(){
   var r=regDisplayed[_regModalIdx];if(!r)return;
+  if(CXMetrics.isCancel(r)){regOpenModal(_regModalIdx);return;}
   var newStatus=document.getElementById('reg-status-sel').value;
   var msgEl=document.getElementById('reg-status-msg');
   var isCierreStatus=newStatus.toLowerCase()==='resuelto'||newStatus.toLowerCase()==='cerrado';
@@ -2413,17 +2428,18 @@ function tkApply(){
   var fe=document.getElementById('tk-f-estatus').value,fs=document.getElementById('tk-f-servicio').value;
   var q=(document.getElementById('tk-search').value||'').toLowerCase().trim();
   tkFiltered=tkAll.filter(r=>{
+    if(document.getElementById('tk-f-calidad').value==='incompletos'&&!CXMetrics.qualityIssues({_tk:r,tipo_de_solicitud:r.tipo,status:r.estatus}).length)return false;
     if(fe&&r.estatus!==fe)return false;
     if(fs&&r.servicio!==fs)return false;
     if(q&&!inc(r.folio,q)&&!inc(r.telefono,q)&&!inc(r.nombre,q)&&!inc(r.empresa,q)&&!inc(r.servicio,q)&&!inc(r.tipo,q)&&!inc(r.categoria,q)&&!inc(r.mensaje,q)&&!inc(r.agente,q))return false;
     return true;
   });
-  var nf=(fe?1:0)+(fs?1:0);
+  var nf=(fe?1:0)+(fs?1:0)+(document.getElementById('tk-f-calidad').value?1:0);
   document.getElementById('af-tickets').textContent=nf?nf+' filtro'+(nf>1?'s':'')+' · '+tkFiltered.length+' de '+tkAll.length+' tickets':'';
   tkPg=0;tkRender();
 }
 
-function tkClear(){document.getElementById('tk-f-estatus').value='';document.getElementById('tk-f-servicio').value='';document.getElementById('tk-search').value='';tkApply();}
+function tkClear(){document.getElementById('tk-f-estatus').value='';document.getElementById('tk-f-servicio').value='';document.getElementById('tk-f-calidad').value='';document.getElementById('tk-search').value='';tkApply();}
 
 function tkRender(){
   var tp=Math.ceil(tkFiltered.length/TK_LIM),pg=tkFiltered.slice(tkPg*TK_LIM,(tkPg+1)*TK_LIM);
@@ -2433,7 +2449,7 @@ function tkRender(){
     h+='<tr class="tk-row" onclick="tkOpenModal('+(baseIdx+i)+')">';
     h+='<td>'+esc(r.folio||'—')+'<div style="color:var(--text3)">'+esc((r.created_at||'').slice(0,10))+'</div></td>';
     h+='<td>'+esc(r.nombre||'Sin nombre')+'<div style="color:var(--text3)">'+esc(r.empresa||'')+'</div></td>';
-    h+='<td>'+esc(r.tipo||'Sin asunto')+'<div style="color:var(--text3)">'+esc(r.servicio||'')+'</div></td>';
+    var issues=CXMetrics.qualityIssues({_tk:r,tipo_de_solicitud:r.tipo,status:r.estatus});h+='<td>'+esc(r.tipo||'Sin asunto')+'<div style="color:var(--text3)">'+esc(r.servicio||'')+'</div>'+issues.map(issue=>'<div style="color:var(--amber)">'+esc(issue)+'</div>').join('')+'</td>';
     h+='<td>'+(r.prioridad?tkPriBadge(r.prioridad):'<span class="null-v">—</span>')+'</td>';
     h+='<td>'+(r.estatus?sBadge(r.estatus):'<span class="null-v">—</span>')+'</td>';
     h+='<td>'+esc(r.agente||'—')+'</td>';
@@ -2475,7 +2491,7 @@ function tkOpenModal(idx){
   h+='<div class="detail-item full" style="background:var(--surface2);padding:14px;border-radius:6px;margin-bottom:8px;border:1px solid var(--border)">';
   h+='<div class="detail-label">Status</div>';
   h+='<div style="display:flex;align-items:center;gap:12px;margin-top:4px">';
-  if(isAdmin()){
+  if(puedeEditar()){
     h+='<select class="status-select" id="tk-status-sel" onchange="tkChangeStatus()">';
     _statusOpts.forEach(s=>{h+='<option value="'+esc(s)+'"'+(curStatus.toLowerCase()===s.toLowerCase()?' selected':'')+'>'+esc(s)+'</option>';});
     if(curStatus&&!_statusOpts.some(s=>s.toLowerCase()===curStatus.toLowerCase())){h+='<option value="'+esc(curStatus)+'" selected>'+esc(curStatus)+'</option>';}
@@ -2483,7 +2499,7 @@ function tkOpenModal(idx){
   } else {
     h+=sBadge(curStatus||'Sin status');
   }
-  if(isAdmin())h+='<span class="status-msg" id="tk-status-msg"></span>';
+  if(puedeEditar())h+='<span class="status-msg" id="tk-status-msg"></span>';
   h+='</div></div>';
   // Zona editable
   var curZona=r.zona||'';
@@ -2497,7 +2513,7 @@ function tkOpenModal(idx){
   h+='<span class="status-msg" id="tk-zona-msg"></span>';
   h+='</div></div>';
   // Reclasificar tipo — admin only
-  if(isAdmin()){
+  if(puedeEditar()){
     var esCancActual=(r.tipo||'').toLowerCase().includes('cancelac');
     var tsActual=esCancActual?'Solicitud de Cancelación':'Incidencia / Queja';
     h+='<div class="detail-item full" style="background:var(--surface2);padding:14px;border-radius:6px;margin-bottom:8px;border:1px solid var(--border)">';
@@ -2556,6 +2572,7 @@ async function tkDeleteRecord(){
 
 async function tkChangeStatus(){
   var r=tkFiltered[_tkModalIdx];if(!r)return;
+  if(/cancelac/i.test(r.tipo||'')){var mapped=allData.find(d=>d._tk===r);if(mapped){regDisplayed=[mapped];regOpenModal(0);}return;}
   var newStatus=document.getElementById('tk-status-sel').value;
   var msgEl=document.getElementById('tk-status-msg');
   msgEl.textContent='Guardando...';msgEl.style.color='var(--blue)';

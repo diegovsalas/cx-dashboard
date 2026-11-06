@@ -24,3 +24,12 @@ test('cierre exige resultado y confirmación; se guardan ambos campos juntos',()
 test('esperar respuesta mantiene la gestión pendiente',()=>assert.equal(M.isPending(row('Esperando respuesta')),true));
 
 test('negociación es etapa y no un resultado final',()=>assert.throws(()=>M.cancelWorkflow('Cerrado','Negociacion',true),/resultado válido/));
+
+test('cola de calidad distingue resultado, fecha y causa faltantes',()=>{
+ const r=row('Cerrado',{tipo_de_solicitud:'Solicitud de Cancelación',_tk:{estatus:'Cerrado',status_cancelacion:null,categoria:'Cancelación de servicio'}});
+ same(M.qualityIssues(r),['Cierre sin resultado definitivo','Falta causa específica']);
+ r._tk.status_cancelacion='Cancelada';same(M.qualityIssues(r),['Falta fecha efectiva de baja','Falta causa específica']);
+ r._tk.fecha_efectiva_cancelacion='2026-10-15';r._tk.causa_raiz_cancelacion='Cierre de sucursal';same(M.qualityIssues(r),[]);
+ assert.throws(()=>M.validateCancelDate('Cerrado','Cancelada',''),/fecha efectiva/);
+ M.validateCancelDate('Cerrado','Retenida','');M.validateCancelDate('En proceso','Cancelada','');
+});
