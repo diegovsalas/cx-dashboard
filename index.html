@@ -9,6 +9,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="/env.js"></script>
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 :root{
@@ -507,8 +508,12 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
 // ═══════════════════════════════════════
 // PON TUS DATOS AQUI
 // ═══════════════════════════════════════
-const SUPABASE_URL='https://cyntwgxryfbrboehcdex.supabase.co';
-const SUPABASE_ANON_KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5bnR3Z3hyeWZicmJvZWhjZGV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDc0NzksImV4cCI6MjA5MDEyMzQ3OX0.htDzxKHSm9QKlqgp2dqR1WnArmR_JdJ3yn7O4eGxEWQ';
+// Configuración por ambiente: /env.js (server.js) la define con variables de entorno.
+// Sin /env.js se usa producción, para no cambiar el comportamiento actual.
+const CX_ENV=window.CX_ENV||{};
+const SUPABASE_URL=CX_ENV.supabaseUrl||'https://cyntwgxryfbrboehcdex.supabase.co';
+const SUPABASE_ANON_KEY=CX_ENV.supabaseAnonKey||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImN5bnR3Z3hyeWZicmJvZWhjZGV4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzQ1NDc0NzksImV4cCI6MjA5MDEyMzQ3OX0.htDzxKHSm9QKlqgp2dqR1WnArmR_JdJ3yn7O4eGxEWQ';
+if(CX_ENV.name==='staging'){document.addEventListener('DOMContentLoaded',function(){var b=document.createElement('div');b.textContent='AMBIENTE DE PRUEBAS · datos de contacto enmascarados · no es producción';b.style.cssText='position:fixed;top:0;left:0;right:0;z-index:9999;background:#d97706;color:#fff;font:600 12px/24px sans-serif;text-align:center';document.body.appendChild(b);document.body.style.paddingTop='24px';document.title='[PRUEBAS] '+document.title;});}
 // ═══════════════════════════════════════
 
 // Tablas del bot (base_general, tickets, envios_plantillas, etc.) viven en schema 'legacy'.

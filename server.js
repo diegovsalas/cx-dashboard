@@ -25,6 +25,27 @@ app.get('/guia.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'guia.html'));
 });
 
+// Configuración pública por ambiente (solo URL y anon key, nunca service key).
+// APP_ENV=staging exige un proyecto Supabase distinto al de producción.
+const PROD_SUPABASE_REF = 'cyntwgxryfbrboehcdex';
+const APP_ENV = process.env.APP_ENV || 'production';
+if (APP_ENV === 'staging') {
+  const url = process.env.SUPABASE_URL || '';
+  if (!url || !process.env.SUPABASE_ANON_KEY || url.includes(PROD_SUPABASE_REF)) {
+    console.error('APP_ENV=staging requiere SUPABASE_URL y SUPABASE_ANON_KEY de un proyecto distinto a producción.');
+    process.exit(1);
+  }
+}
+app.get('/env.js', (req, res) => {
+  res.type('application/javascript').set('Cache-Control', 'no-store');
+  if (APP_ENV !== 'staging') return res.send('window.CX_ENV={name:"production"};');
+  res.send('window.CX_ENV=' + JSON.stringify({
+    name: 'staging',
+    supabaseUrl: process.env.SUPABASE_URL,
+    supabaseAnonKey: process.env.SUPABASE_ANON_KEY,
+  }) + ';');
+});
+
 // Health check para Render
 app.get('/health', (req, res) => {
   res.status(200).json({ status: 'ok', timestamp: new Date().toISOString() });
