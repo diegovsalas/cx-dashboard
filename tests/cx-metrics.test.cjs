@@ -44,7 +44,7 @@ test('H2: fecha rellenada o faltante no entra a la mediana; la recuperada sí',(
  assert.equal(M.days(tk('A2',null)),61.083333333333336);
  assert.equal(M.days({status:'Resuelta',_source:'base_general',id:7,fecha_de_la_solicitud:'2025-06-01',tiempo_de_respuesta:'12'}),null);
  assert.equal(M.days(tk('A3','2026-04-01T22:00:00Z')),0.5);
- same(M.resolutionStats([tk('A1','2026-04-02T10:00:00Z'),tk('A2',null),tk('A3','2026-04-01T22:00:00Z'),row('Nuevo')]),{median:30.791666666666668,n:2,excluded:1});
+ same(M.resolutionStats([tk('A1','2026-04-02T10:00:00Z'),tk('A2',null),tk('A3','2026-04-01T22:00:00Z'),tk('A4',null),row('Nuevo')]),{median:30.791666666666668,n:2,excluded:2,motivos:{sin_fecha:0,sintetica:1,inconsistente:0,otro:1}});
 });
 test('H2: un cierre nuevo deja sin efecto la marca anterior',()=>{
  M.setResolutionQuality([{fuente:'tickets',registro:'A1',estado:'sin_fecha',fecha_original:null}]);
