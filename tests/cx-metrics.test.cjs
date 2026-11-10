@@ -44,10 +44,21 @@ test('H2: fecha rellenada o faltante no entra a la mediana; la recuperada sí',(
  assert.equal(M.days(tk('A2',null)),61.083333333333336);
  assert.equal(M.days({status:'Resuelta',_source:'base_general',id:7,fecha_de_la_solicitud:'2025-06-01',tiempo_de_respuesta:'12'}),null);
  assert.equal(M.days(tk('A3','2026-04-01T22:00:00Z')),0.5);
- same(M.resolutionStats([tk('A1','2026-04-02T10:00:00Z'),tk('A2',null),tk('A3','2026-04-01T22:00:00Z'),tk('A4',null),row('Nuevo')]),{median:30.791666666666668,n:2,excluded:2,motivos:{sin_fecha:0,sintetica:1,inconsistente:0,otro:1}});
+ same(M.resolutionStats([tk('A1','2026-04-02T10:00:00Z'),tk('A2',null),tk('A3','2026-04-01T22:00:00Z'),tk('A4',null),row('Nuevo')]),{median:30.791666666666668,n:2,closed:4,excluded:2,motivos:{sin_fecha:0,sintetica:1,inconsistente:0,otro:1},coverage:0.5,measurable:false,minCoverage:0.8});
 });
 test('H2: un cierre nuevo deja sin efecto la marca anterior',()=>{
  M.setResolutionQuality([{fuente:'tickets',registro:'A1',estado:'sin_fecha',fecha_original:null}]);
  assert.equal(M.days(row('Cerrado',{_tk:{folio:'A1',created_at:'2026-11-01T00:00:00Z',resolved_at:'2026-11-02T00:00:00Z'}})),1);
  M.setResolutionQuality([]);
+});
+
+test('KPI tiempo de cierre: medible solo con 80% de cobertura; serie por mes',()=>{
+ M.setResolutionQuality([]);
+ const tk=(m,i,res)=>row('Cerrado',{fecha_de_la_solicitud:`2026-${m}-01`,_tk:{folio:m+i,created_at:`2026-${m}-01T00:00:00Z`,resolved_at:res?`2026-${m}-0${res}T00:00:00Z`:null}});
+ const sep=[1,2,3,4,5].map(i=>tk('09',i,2)), jul=[tk('07',1,3),...[2,3,4,5].map(i=>tk('07',i,null))];
+ const s1=M.resolutionStats(sep);assert.equal(s1.measurable,true);assert.equal(s1.median,1);assert.equal(s1.coverage,1);
+ const s2=M.resolutionStats(jul);assert.equal(s2.measurable,false);assert.equal(s2.coverage,0.2);
+ same(M.resolutionByMonth([...jul,...sep]).map(m=>[m.month,m.measurable,m.coverage]),[['2026-07',false,0.2],['2026-09',true,1]]);
+ assert.equal(M.group([...jul,...sep],'res_missing').length,4);assert.equal(M.group([...jul,...sep],'res_ok').length,6);
+ assert.equal(M.fmtDays(0.5),'12.0 h');assert.equal(M.fmtDays(6.04),'6.0 d');
 });

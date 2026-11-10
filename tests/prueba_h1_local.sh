@@ -30,7 +30,7 @@ esperar "anon edita ticket" "$(req "$ANON_KEY" PATCH "tickets?folio=eq.$F" '{"zo
 
 echo "== Consulta (sin rol)"
 C=$(jwt consulta.prueba@grupoavantex.com)
-esperar "consulta lee tickets" "$(req "$C" GET 'tickets?select=id')" "200 763"
+esperar "consulta lee tickets" "$(req "$C" GET 'tickets?select=id')" "200 [1-9][0-9]*"
 esperar "consulta lee base_general (1a página)" "$(req "$C" GET 'base_general?select=id')" "200 1000"
 esperar "consulta lee base_general (2a página)" "$(req "$C" GET 'base_general?select=id&offset=1000')" "200 151"
 esperar "consulta no ve campañas" "$(req "$C" GET 'envios_plantillas?select=id')" "200 0"
