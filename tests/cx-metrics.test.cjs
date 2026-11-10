@@ -33,3 +33,21 @@ test('cola de calidad distingue resultado, fecha y causa faltantes',()=>{
  assert.throws(()=>M.validateCancelDate('Cerrado','Cancelada',''),/fecha efectiva/);
  M.validateCancelDate('Cerrado','Retenida','');M.validateCancelDate('En proceso','Cancelada','');
 });
+
+test('H2: fecha rellenada o faltante no entra a la mediana; la recuperada sí',()=>{
+ M.setResolutionQuality([
+  {fuente:'tickets',registro:'A1',estado:'sintetica',fecha_original:'2026-04-02T10:00:00+00:00'},
+  {fuente:'tickets',registro:'A2',estado:'recuperada',fecha_original:null,fecha_recuperada:'2026-06-01T12:00:00+00:00'},
+  {fuente:'base_general',registro:'7',estado:'sin_fecha',fecha_original:null}]);
+ const tk=(folio,resolved_at)=>row('Cerrado',{_tk:{folio,created_at:'2026-04-01T10:00:00Z',resolved_at}});
+ assert.equal(M.days(tk('A1','2026-04-02T10:00:00Z')),null);
+ assert.equal(M.days(tk('A2',null)),61.083333333333336);
+ assert.equal(M.days({status:'Resuelta',_source:'base_general',id:7,fecha_de_la_solicitud:'2025-06-01',tiempo_de_respuesta:'12'}),null);
+ assert.equal(M.days(tk('A3','2026-04-01T22:00:00Z')),0.5);
+ same(M.resolutionStats([tk('A1','2026-04-02T10:00:00Z'),tk('A2',null),tk('A3','2026-04-01T22:00:00Z'),row('Nuevo')]),{median:30.791666666666668,n:2,excluded:1});
+});
+test('H2: un cierre nuevo deja sin efecto la marca anterior',()=>{
+ M.setResolutionQuality([{fuente:'tickets',registro:'A1',estado:'sin_fecha',fecha_original:null}]);
+ assert.equal(M.days(row('Cerrado',{_tk:{folio:'A1',created_at:'2026-11-01T00:00:00Z',resolved_at:'2026-11-02T00:00:00Z'}})),1);
+ M.setResolutionQuality([]);
+});
