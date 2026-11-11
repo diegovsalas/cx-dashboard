@@ -537,7 +537,7 @@ function isAromatex(){
 }
 // Usuarios no-admin que pueden editar el detalle de casos, registros y tickets
 // (status, tipo, comentarios, cancelaciones). No ven páginas de admin ni campos de superadmin.
-const EDITOR_EMAILS=['itzelramirez@grupoavantex.com','johanamartinez@grupoavantex.com'];
+const EDITOR_EMAILS=['itzelramirez@grupoavantex.com','johanamartinez@grupoavantex.com','anakaren@grupoavantex.com'];
 function puedeEditar(){return user&&(isAdmin()||EDITOR_EMAILS.includes(user.email.toLowerCase()));}
 function puedeEscalar(){return user&&(isAdmin()||ESCALATE_EMAILS.includes(user.email.toLowerCase()));}
 const LIM=50;
@@ -710,13 +710,13 @@ async function cxFetchData(){
   // Cargar tickets WhatsApp y mapear a campos unificados
   // Filtro por canal según rol del usuario:
   //   - Rubi (Aromatex) → solo canal_origen='aromatex'
-  //   - Usuarios CX (no admin) → solo canal_origen='cx' (excluyen Aromatex)
+  //   - Usuarios CX (no admin ni editoras) → solo canal_origen=cx (excluyen Aromatex)
   //   - Admins → todos
   let tOff=0;
   while(true){
     let q=sb.from('tickets').select('*').order('created_at',{ascending:false}).order('id',{ascending:false}).range(tOff,tOff+999);
     if(isAromatex())q=q.eq('canal_origen','aromatex');
-    else if(!isAdmin())q=q.or('canal_origen.eq.cx,canal_origen.is.null');
+    else if(!isAdmin()&&!puedeEditar())q=q.or('canal_origen.eq.cx,canal_origen.is.null'); // editoras ven CX y Aromatex, igual que en el bot
     const{data,error}=await q;
     if(error)throw new Error('Tickets: '+error.message);
     if(!data.length)break;
