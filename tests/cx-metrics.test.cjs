@@ -62,3 +62,13 @@ test('KPI tiempo de cierre: medible solo con 80% de cobertura; serie por mes',()
  assert.equal(M.group([...jul,...sep],'res_missing').length,4);assert.equal(M.group([...jul,...sep],'res_ok').length,6);
  assert.equal(M.fmtDays(0.5),'12.0 h');assert.equal(M.fmtDays(6.04),'6.0 d');
 });
+
+test('H4: cada cancelación cae en un solo grupo y los grupos suman el total',()=>{
+ const c=(status,status_cancelacion)=>row(status,{tipo_de_solicitud:'Solicitud de Cancelación',status_cancelacion});
+ const rows=[c('Cerrado','Cancelada'),c('Resuelta','Retenida'),c('Cerrado','Downgrade'),c('Cerrado','Migración'),c('Sin atender','Cancelada'),c('En proceso',''),c('Cerrado','Negociacion'),c('Cerrado',''),row('Nuevo')];
+ same(rows.map(M.cancelBucket),['cancelada','retenida','downgrade','migracion','abierta_con_resultado','en_gestion','cerrada_sin_resultado','cerrada_sin_resultado',null]);
+ const s=M.cancelSummary(rows);
+ assert.equal(s.total,8);
+ assert.equal(s.cancelada+s.retenidas_total+s.abiertas+s.cerrada_sin_resultado,s.total);
+ const r=M.retention(rows);assert.equal(r.lost,s.cancelada);assert.equal(r.kept,s.retenidas_total);assert.equal(r.open,s.abiertas+s.cerrada_sin_resultado);
+});

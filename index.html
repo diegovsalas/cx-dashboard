@@ -579,6 +579,9 @@ var CXMetrics=(function(){
   function months(rows){var c={};rows.forEach(r=>{var d=r.fecha_de_la_solicitud||r._tk&&r._tk.created_at||'';var k=String(d).slice(0,7);if(/^\d{4}-\d{2}$/.test(k))c[k]=(c[k]||0)+1;});return Object.entries(c).sort((a,b)=>a[0].localeCompare(b[0]));}
   function matches(r,f){return (!f.anio||String(r._anio)===f.anio)&&(!f.mes||r.mes===f.mes)&&(!f.origen||r._source===f.origen)&&(!f.tipo_solicitud||r.tipo_de_solicitud===f.tipo_solicitud)&&(!f.tipo_servicio||r.tipo_de_servicio===f.tipo_servicio)&&(!f.zona||r.zona===f.zona)&&(!f.status||r.status===f.status||r.status_cancelacion===f.status)&&(!f.tipo_incidencia||r.tipo_de_incidencia===f.tipo_incidencia)&&(!f.ejecutivo||r.ejecutivo_asignado===f.ejecutivo);}
   function group(rows,kind){if(kind==='all')return rows;if(kind==='pending')return rows.filter(isPending);if(kind==='escalated')return rows.filter(r=>norm(r.status).includes('escalad'));if(kind==='cancel')return rows.filter(r=>isCancel(r)&&isPending(r));if(kind==='closed')return rows.filter(r=>closed(state(r)));if(kind==='unassigned')return rows.filter(r=>isPending(r)&&!norm(r.ejecutivo_asignado));if(kind==='urgent')return rows.filter(r=>isPending(r)&&/alta|urgent/.test(norm(r._prioridad)));if(kind==='res_ok')return group(rows,'closed').filter(r=>days(r)!=null);if(kind==='res_missing')return group(rows,'closed').filter(r=>days(r)==null);return [];}
+  // H4: cada solicitud de cancelación cae en un solo grupo, por estado de gestión y resultado.
+  function cancelBucket(r){if(!isCancel(r))return null;var o=cancelOutcome(r);if(!closed(state(r)))return o?'abierta_con_resultado':'en_gestion';return {Cancelada:'cancelada',Retenida:'retenida',Migracion:'migracion',Downgrade:'downgrade'}[o]||'cerrada_sin_resultado';}
+  function cancelSummary(rows){var s={total:0,cancelada:0,retenida:0,migracion:0,downgrade:0,en_gestion:0,abierta_con_resultado:0,cerrada_sin_resultado:0};rows.forEach(function(r){var b=cancelBucket(r);if(!b)return;s.total++;s[b]++;});s.retenidas_total=s.retenida+s.migracion+s.downgrade;s.abiertas=s.en_gestion+s.abierta_con_resultado;s.por_revisar=s.abierta_con_resultado+s.cerrada_sin_resultado;return s;}
   function retention(rows){var c=rows.filter(isCancel),final=c.filter(r=>closed(state(r))),kept=final.filter(r=>/retenid|migrac|downgrade/.test(norm(cancelOutcome(r)))).length,lost=final.filter(r=>cancelOutcome(r)==='Cancelada').length;return {kept,lost,open:c.length-kept-lost,rate:kept+lost?Math.round(100*kept/(kept+lost)):null};}
   function dedup(rows){var seen=new Set();return rows.filter(r=>{var id=r._tk?r._tk.id||r._tk.folio:r.id;if(!id)return true;var k=r._source+':'+id;if(seen.has(k))return false;seen.add(k);return true;});}
   function qualityIssues(r){
@@ -590,7 +593,7 @@ var CXMetrics=(function(){
     return issues;
   }
   function validateCancelDate(stage,result,date){if(closed(stage)&&['cancelada','cancelado por morosidad'].includes(norm(result))&&!/^\d{4}-\d{2}-\d{2}$/.test(date||''))throw new Error('Indica la fecha efectiva de baja antes de cerrar.');}
-  return {norm,number,median,isCancel,state,cancelOutcome,cancelWorkflow,closed,pending,isPending,category,days,score,csat,nps,months,matches,group,retention,dedup,qualityIssues,validateCancelDate,setResolutionQuality,resolutionQuality,resolutionStats,resolutionByMonth,fmtDays};
+  return {norm,number,median,isCancel,state,cancelOutcome,cancelWorkflow,closed,pending,isPending,category,days,score,csat,nps,months,matches,group,retention,dedup,qualityIssues,validateCancelDate,cancelBucket,cancelSummary,setResolutionQuality,resolutionQuality,resolutionStats,resolutionByMonth,fmtDays};
 })();
 // CX_METRICS_END
 
@@ -2328,17 +2331,15 @@ function cancApply(){
   document.getElementById('af-canc').textContent=nf?nf+' filtro'+(nf>1?'s':'')+' · '+cancFiltered.length+' de '+cancAll.length:'';
   // KPIs con desglose por status_cancelacion (lista respeta fecha de creación)
   var total=cancFiltered.length;
-  var _sc=function(r){return(r.status_cancelacion||'').toLowerCase();};
-  var cancelados=cancFiltered.filter(r=>{var s=_sc(r);return s.includes('cancelad')||s.includes('baja');});
-  var retenidos=cancFiltered.filter(r=>_sc(r).includes('retenid'));
-  var downgrades=cancFiltered.filter(r=>_sc(r).includes('downgrade'));
-  var migraciones=cancFiltered.filter(r=>_sc(r).includes('migrac'));
-  var enNego=cancFiltered.filter(r=>{var s=_sc(r);return s.includes('negociac')||s.includes('proceso')||s===''||s.includes('nuevo')||s.includes('pendient')||s.includes('sin atender')||s.includes('escalad');});
-  // MONTOS: cuando hay filtro año/mes activo, sumar usando _mes_efectivo (mes que Finanzas verá afectado)
+  // Un solo criterio para conteos, montos y retención (CXMetrics.cancelBucket).
+  var _b=function(rows,grupos){return rows.filter(function(r){return grupos.indexOf(CXMetrics.cancelBucket(r))>=0;});};
+  var cancelados=_b(cancFiltered,['cancelada']),retenidos=_b(cancFiltered,['retenida']),downgrades=_b(cancFiltered,['downgrade']),migraciones=_b(cancFiltered,['migracion']);
+  var enNego=_b(cancFiltered,['en_gestion','abierta_con_resultado']),sinResultado=_b(cancFiltered,['cerrada_sin_resultado']);
+  var resumen=CXMetrics.cancelSummary(cancFiltered);
+  // MONTOS: con filtro año/mes se suman por _mes_efectivo (mes que Finanzas verá afectado)
   var hayFiltroMes=!!fa||!!fm;
-  var canceladosMonto, retenidosMonto, negoMonto, downgradesMonto, migracionesMonto;
+  var canceladosMonto, retenidosMonto, negoMonto, downgradesMonto, migracionesMonto, sinResultadoMonto;
   if(hayFiltroMes){
-    // Re-filtrar desde cancAll aplicando todos los filtros menos año/mes, luego mes EFECTIVO
     var basePool=cancAll.filter(r=>{
       if(fsc&&r.status_cancelacion!==fsc)return false;
       if(fv&&r.tipo_de_servicio!==fv)return false;
@@ -2347,13 +2348,10 @@ function cancApply(){
       if(fm&&r._mes_efectivo!==fm)return false;
       return true;
     });
-    canceladosMonto=basePool.filter(r=>{var s=_sc(r);return s.includes('cancelad')||s.includes('baja');});
-    retenidosMonto =basePool.filter(r=>_sc(r).includes('retenid'));
-    downgradesMonto=basePool.filter(r=>_sc(r).includes('downgrade'));
-    migracionesMonto=basePool.filter(r=>_sc(r).includes('migrac'));
-    negoMonto      =basePool.filter(r=>{var s=_sc(r);return s.includes('negociac')||s.includes('proceso')||s===''||s.includes('nuevo')||s.includes('pendient')||s.includes('sin atender')||s.includes('escalad');});
+    canceladosMonto=_b(basePool,['cancelada']);retenidosMonto=_b(basePool,['retenida']);downgradesMonto=_b(basePool,['downgrade']);migracionesMonto=_b(basePool,['migracion']);
+    negoMonto=_b(basePool,['en_gestion','abierta_con_resultado']);sinResultadoMonto=_b(basePool,['cerrada_sin_resultado']);
   } else {
-    canceladosMonto=cancelados; retenidosMonto=retenidos; negoMonto=enNego; downgradesMonto=downgrades; migracionesMonto=migraciones;
+    canceladosMonto=cancelados; retenidosMonto=retenidos; negoMonto=enNego; downgradesMonto=downgrades; migracionesMonto=migraciones; sinResultadoMonto=sinResultado;
   }
   var montoCancelado=canceladosMonto.reduce((a,r)=>a+(Number(r.facturacin_sin_iva)||0),0);
   // Retenidos completos: status Retenida + Migración (el cliente sigue pagando todo)
@@ -2375,8 +2373,9 @@ function cancApply(){
   // Monto retenido = retenidos puros + lo que siguen facturando los downgrades
   var montoRetenido=montoRetenidoPuro+montoDowngradeNuevo;
   var montoNego=negoMonto.reduce((a,r)=>a+(Number(r.facturacin_sin_iva)||0),0);
+  var montoSinResultado=sinResultadoMonto.reduce((a,r)=>a+(Number(r.facturacin_sin_iva)||0),0);
   // Total = recurrencia original en juego (downgrade a su valor original, sin doble conteo)
-  var montoTotal=montoCancelado+montoRetenidoPuro+montoDowngradeOrig+montoNego;
+  var montoTotal=montoCancelado+montoRetenidoPuro+montoDowngradeOrig+montoNego+montoSinResultado;
   var ret=CXMetrics.retention(cancFiltered);
   var churnTotal=montoCancelado+montoDowngradePerdido;
   var missingMoney=downgradesMonto.filter(r=>CXMetrics.number(r.monto_nuevo_downgrade)==null).length;
@@ -2384,13 +2383,15 @@ function cancApply(){
   sufMonto+=(missingMoney?' · '+missingMoney+' downgrade(s) sin monto nuevo; retención y pérdida incompletas':'');
   document.getElementById('canc-kpis').innerHTML=
     '<div class="kpi"><div class="lbl">Monto registrado en solicitudes</div><div class="val">$'+montoTotal.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+total+' solicitudes'+sufMonto+'</div></div>'+
-    '<div class="kpi c-red"><div class="lbl">Cancelados</div><div class="val">$'+montoCancelado.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+canceladosMonto.length+' solicitudes</div></div>'+
-    '<div class="kpi c-green"><div class="lbl">Retenidos</div><div class="val">$'+montoRetenido.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+retenidosFull.length+' solicitudes'+((migracionesMonto.length||downgradesMonto.length)?' ('+retenidosMonto.length+' ret'+(migracionesMonto.length?' · '+migracionesMonto.length+' migr':'')+(downgradesMonto.length?' · '+downgradesMonto.length+' down':'')+')':'')+'</div></div>'+
+    '<div class="kpi c-red"><div class="lbl">Cancelaciones confirmadas</div><div class="val">$'+montoCancelado.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+canceladosMonto.length+' cerradas con resultado Cancelada</div></div>'+
+    '<div class="kpi c-green"><div class="lbl">Retenidas</div><div class="val">$'+montoRetenido.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+retenidosFull.length+' solicitudes'+((migracionesMonto.length||downgradesMonto.length)?' ('+retenidosMonto.length+' ret'+(migracionesMonto.length?' · '+migracionesMonto.length+' migr':'')+(downgradesMonto.length?' · '+downgradesMonto.length+' down':'')+')':'')+'</div></div>'+
     '<div class="kpi"><div class="lbl">Downgrades</div><div class="val">$'+montoDowngradeNuevo.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+downgradesMonto.length+' · sigue facturando'+(montoDowngradePerdido>0?' · perdido $'+montoDowngradePerdido.toLocaleString('es-MX',{minimumFractionDigits:0}):'')+'</div></div>'+
-    '<div class="kpi c-amber"><div class="lbl">En negociación</div><div class="val">$'+montoNego.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+negoMonto.length+' solicitudes</div></div>';
+    '<div class="kpi c-amber"><div class="lbl">En gestión</div><div class="val">$'+montoNego.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+negoMonto.length+' abiertas'+(resumen.abierta_con_resultado?' · '+resumen.abierta_con_resultado+' ya traen resultado (por revisar)':'')+'</div></div>'+
+    '<div class="kpi"><div class="lbl">Cerradas sin resultado</div><div class="val">$'+montoSinResultado.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+sinResultadoMonto.length+' por revisar: no indican si el cliente se quedó o se fue</div></div>'+
+    '<div style="grid-column:1/-1;font-size:12px;color:var(--text2);margin-top:4px">Cuadre: '+resumen.total+' solicitudes = '+resumen.cancelada+' confirmadas + '+resumen.retenida+' retenidas + '+resumen.downgrade+' downgrade + '+resumen.migracion+' migración + '+resumen.abiertas+' en gestión + '+resumen.cerrada_sin_resultado+' cerradas sin resultado. Una cancelación solo cuenta como confirmada o retenida cuando el caso está cerrado.</div>';
 
   document.getElementById('canc-metas').innerHTML=
-    '<div class="chart-card"><h3>Retención entre decisiones</h3><p style="font-size:26px;margin:12px 0">'+(ret.rate==null?'Sin decisiones':ret.rate+'%')+'</p><p style="color:var(--text2);font-size:13px">'+ret.kept+' retenidas de '+(ret.kept+ret.lost)+' decisiones · '+ret.open+' sin resultado de cancelación. Usa fecha de creación, igual que la tabla.</p></div>'+
+    '<div class="chart-card"><h3>Retención entre decisiones</h3><p style="font-size:26px;margin:12px 0">'+(ret.rate==null?'Sin decisiones':ret.rate+'%')+'</p><p style="color:var(--text2);font-size:13px">'+ret.kept+' retenidas (incluye downgrade y migración) de '+(ret.kept+ret.lost)+' cerradas con resultado · '+resumen.abiertas+' en gestión y '+resumen.cerrada_sin_resultado+' cerradas sin resultado no entran. Usa fecha de creación, igual que la tabla.</p></div>'+
     '<div class="chart-card"><h3>Montos registrados</h3><p style="font-size:26px;margin:12px 0">$'+churnTotal.toLocaleString('es-MX')+'</p><p style="color:var(--text2);font-size:13px">Cancelaciones y reducción registrada por downgrade. '+(hayFiltroMes?'Usa fecha efectiva cuando está disponible; puede diferir de la tabla por fecha de creación.':'Todo el histórico seleccionado.')+' Sin comparación con una meta financiera no configurada.</p></div>';
 
   cancPg=0;cancRender();
