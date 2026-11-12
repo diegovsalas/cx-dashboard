@@ -117,3 +117,10 @@ test('H12: histórico y bot comparten catálogo de servicio, zona, responsable y
   assert.equal(b.tipo_de_incidencia,'Falla en el equipo: Equipo dañado');
   same([M.canon({tipo_de_servicio:'Fumigación'}).tipo_de_servicio,M.canon({tipo_de_servicio:'Intendencia'}).tipo_de_servicio,M.canon({zona:''}).zona,M.canon({ejecutivo_asignado:'nuevoagente'}).ejecutivo_asignado],['Pestex','Weldex','','nuevoagente']);
 });
+test('H13: el mismo teléfono en 3 formatos es un cliente; el histórico agrupa por sucursal normalizada',()=>{
+  const tk=(tel,extra={})=>({_source:'whatsapp',_tk:{telefono:tel},fecha_de_la_solicitud:'2026-10-01',...extra});
+  assert.equal(M.phoneKey('5218180297448'),M.phoneKey('528180297448'));assert.equal(M.phoneKey('8180297448'),'8180297448');assert.equal(M.phoneKey('web_123'),'');
+  const r=M.atRisk([tk('5218180297448',{propiedad:'Sucursal Norte'}),tk('528180297448'),tk('8112988903'),
+    {propiedad:'Wizeline  GDL',fecha_de_la_solicitud:'2025-07-01'},{propiedad:'wizeline gdl',fecha_de_la_solicitud:'2025-08-01'}],2);
+  same(r.map(x=>[x.key,x.n]),[['tel:8180297448',2],['txt:wizeline gdl',2]]);
+});

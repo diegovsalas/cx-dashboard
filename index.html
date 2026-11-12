@@ -349,7 +349,7 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
 <span class="flabel" style="margin:0">Filtros:</span>
 <span class="cx-periodo" id="tk-periodo"></span>
 <select id="tk-f-estatus" onchange="tkApply()"><option value="">Estatus: Todos</option></select>
-<select id="tk-f-calidad" onchange="tkApply()"><option value="">Calidad: Todos</option><option value="incompletos">Cancelaciones con datos incompletos</option></select>
+<select id="tk-f-calidad" onchange="tkApply()"><option value="">Calidad: Todos</option><option value="incompletos">Cancelaciones con datos incompletos</option><option value="sin_sucursal">Sin sucursal</option><option value="sin_zona">Sin zona</option></select>
 <button class="btn-clear" onclick="tkClear()">Limpiar</button>
 <span class="active-filters" id="af-tickets"></span>
 </div>
@@ -554,6 +554,12 @@ var CXMetrics=(function(){
   function canonOf(map,v){if(v==null||String(v).trim()==='')return v;return map[norm(v)]||String(v).trim();}
   function canonText(v){if(!v)return v;return String(v).replace(/\bdanado\b/gi,'dañado').replace(/\bvibracion\b/gi,'vibración').replace(/^Cambio de aroma\b/,'Cambio de Aroma');}
   function canon(r){r.tipo_de_servicio=canonOf(SERVICIO,r.tipo_de_servicio);r.zona=canonOf(ZONA,r.zona);r.ejecutivo_asignado=canonOf(AGENTE,r.ejecutivo_asignado);r.tipo_de_incidencia=canonText(r.tipo_de_incidencia);r.submotvio=canonText(r.submotvio);return r;}
+  // H13: identidad del cliente. En el bot el teléfono es la identidad (últimos 10 dígitos: 52…, 521… y
+  // 10 dígitos son el mismo número). El histórico no tiene teléfono: se usa sucursal o cliente normalizados.
+  function phoneKey(v){var d=String(v||'').replace(/\D/g,'');return d.length>=10?d.slice(-10):'';}
+  function clientKey(r){var t=r._tk;var k=t?phoneKey(t.telefono):'';if(k)return 'tel:'+k;var n=norm(r.propiedad||r.nombre_del_cliente_nuevo||'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();return n?'txt:'+n:'';}
+  function clientLabel(r){return r.propiedad||r.nombre_del_cliente_nuevo||(r._tk&&r._tk.telefono?'Tel. …'+phoneKey(r._tk.telefono).slice(-4):'(sin identificar)');}
+  function atRisk(rows,min){var g={};rows.forEach(function(r){var k=clientKey(r);if(!k)return;(g[k]=g[k]||{key:k,n:0,label:'',fecha:''}).n++;var f=String(r.fecha_de_la_solicitud||'');if(f>=g[k].fecha){g[k].fecha=f;g[k].label=clientLabel(r);}});return Object.values(g).filter(function(x){return x.n>=(min||2);}).sort(function(a,b){return b.n-a.n;});}
   // H9: un solo criterio de registros de prueba para todas las pantallas. Solo la marca explícita
   // que escribe el equipo («ticket de prueba») o un nombre de cliente «prueba/test»; frases como
   // «mes de prueba» o «canalizado con Rubi Montoya» son casos reales y no se excluyen.
@@ -579,7 +585,7 @@ var CXMetrics=(function(){
     s.rate=s.contactados?s.respondieron/s.contactados:null;
     return s;
   }
-  return {norm,number,median,isCancel,state,cancelOutcome,cancelWorkflow,closed,pending,isPending,knownState,category,days,score,csat,nps,months,matches,group,retention,dedup,qualityIssues,validateCancelDate,cancelBucket,cancelSummary,setResolutionQuality,resolutionQuality,resolutionStats,resolutionByMonth,fmtDays,isTestCampaign,campaignStats,MIN_NPS_N,isTestRecord,mty,mtyHoy,canon};
+  return {norm,number,median,isCancel,state,cancelOutcome,cancelWorkflow,closed,pending,isPending,knownState,category,days,score,csat,nps,months,matches,group,retention,dedup,qualityIssues,validateCancelDate,cancelBucket,cancelSummary,setResolutionQuality,resolutionQuality,resolutionStats,resolutionByMonth,fmtDays,isTestCampaign,campaignStats,MIN_NPS_N,isTestRecord,mty,mtyHoy,canon,phoneKey,clientKey,clientLabel,atRisk};
 })();
 // CX_METRICS_END
 
@@ -856,9 +862,9 @@ function anApply(){
   var years=[...new Set(canc.map(r=>r._anio).filter(Boolean))].sort().join(', ');
   document.getElementById('an-cols').insertAdjacentHTML('beforeend','<p style="grid-column:1/-1;font-size:12px;color:var(--text2)">Periodo: '+esc(fa||('todos los años disponibles ('+years+')'))+'. '+nBot+' solicitudes del bot y '+(canc.length-nBot)+' del histórico. Son solicitudes registradas, no clientes únicos ni bajas confirmadas. Bot: categoría documentada; histórico: agrupación estimada por texto. El resumen une temas equivalentes; conserva la categoría original en el detalle.</p>'+_anMotivosDetalle(canc));
   // Detalle: clientes en riesgo (2+ fallas de equipo) + tabla de cancelaciones
-  var cliId=function(r){return (r.propiedad||r.nombre_del_cliente_nuevo||r.telefono||'(sin nombre)');};
-  var fc={};inci.filter(r=>/falla en el equipo/i.test(r.categora||'')||/falla en el equipo/i.test(r.tipo_de_incidencia||'')).forEach(r=>{var c=cliId(r);fc[c]=(fc[c]||0)+1;});
-  var riesgo=Object.keys(fc).map(k=>[k,fc[k]]).filter(e=>e[1]>=2).sort((a,b)=>b[1]-a[1]);
+  var cliId=CXMetrics.clientLabel;
+  // H13: se agrupa por teléfono (bot) o sucursal/cliente normalizados (histórico), no por texto libre.
+  var riesgo=CXMetrics.atRisk(inci.filter(r=>/falla en el equipo/i.test(r.categora||'')||/falla en el equipo/i.test(r.tipo_de_incidencia||'')),2).map(x=>[x.label,x.n]);
   var dh='';
   dh+='<div style="background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:16px 18px;margin-bottom:16px;border-left:2px solid var(--amber)">'+
       '<h3 style="font-size:14px;font-weight:700;margin-bottom:6px"><i class="fa-solid fa-triangle-exclamation" style="color:var(--amber)"></i> Clientes en riesgo · 2+ fallas de equipo en el periodo</h3>';
@@ -880,7 +886,7 @@ function anApply(){
 }
 let _anCanc=[];
 function anDescargar(){
-  var cliId=function(r){return (r.propiedad||r.nombre_del_cliente_nuevo||r.telefono||'');};
+  var cliId=CXMetrics.clientLabel;
   var rows=[['Fecha','Cliente','Grupo unificado','Categoría / tema','Motivo / detalle','Status','Servicio','Fuente','Clasificación']];
   _anCanc.forEach(r=>rows.push([r.fecha_de_la_solicitud||'',cliId(r),_anGrupo(r),_anTema(r),r.submotvio_canc||r.submotvio||r.causa_raiz_cancelacion||'',r.status_cancelacion||'',r.tipo_de_servicio||'',r._source==='whatsapp'?'Bot':'Histórico',r._source==='whatsapp'?'Documentada':'Estimada por texto']));
   var csv=rows.map(row=>row.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
@@ -2428,7 +2434,10 @@ function tkApply(){
   var fe=document.getElementById('tk-f-estatus').value;
   var q=(document.getElementById('tk-search').value||'').toLowerCase().trim();
   tkFiltered=tkAll.filter(r=>{
-    if(document.getElementById('tk-f-calidad').value==='incompletos'&&!CXMetrics.qualityIssues({_tk:r,tipo_de_solicitud:r.tipo,status:r.estatus}).length)return false;
+    var fq=document.getElementById('tk-f-calidad').value;
+    if(fq==='incompletos'&&!CXMetrics.qualityIssues({_tk:r,tipo_de_solicitud:r.tipo,status:r.estatus}).length)return false;
+    if(fq==='sin_sucursal'&&String(r.empresa||'').trim())return false;
+    if(fq==='sin_zona'&&String(r.zona||'').trim())return false;
     if(fe&&r.estatus!==fe)return false;
     var fila=_tkFila.get(r);if(fila&&!_cxPeriodo(fila,false))return false;
     if(q&&!inc(r.folio,q)&&!inc(r.telefono,q)&&!inc(r.nombre,q)&&!inc(r.empresa,q)&&!inc(r.servicio,q)&&!inc(r.tipo,q)&&!inc(r.categoria,q)&&!inc(r.mensaje,q)&&!inc(r.agente,q))return false;
