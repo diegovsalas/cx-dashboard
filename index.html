@@ -568,6 +568,8 @@ var CXMetrics=(function(){
   function hasCancelReason(cat){return SIN_MOTIVO.indexOf(norm(cat))<0;}
   // Motivo declarado (bot: categoría elegida/clasificada; histórico: tema estimado por texto).
   function cancelReason(r,temaHistorico){if(r._source!=='whatsapp')return 'Histórico · '+(temaHistorico?temaHistorico(r):'sin clasificar');var c=String(r.categora||(r._tk&&r._tk.categoria)||'').trim();if(!hasCancelReason(c))return 'Sin motivo capturado';var d=String(r.submotvio||(r._tk&&r._tk.subtipo)||'').trim();return d&&norm(d)!==norm(c)&&!/^otr[ao]/i.test(d)?c+' · '+d:c;}
+  // H16: celdas que Excel interpretaría como fórmula (=, +, -, @, tabulador) se exportan como texto.
+  function csvSafe(v){var s=String(v==null?'':v);return /^[=+\-@\t\r]/.test(s)?"'"+s:s;}
   // H14: duplicados marcados con evidencia. Se excluyen de todo indicador; el registro no se modifica.
   var _dups={};
   function setDuplicates(rows){_dups={};(rows||[]).forEach(function(d){_dups[d.fuente+':'+String(d.registro).toUpperCase()]=d;});}
@@ -597,7 +599,7 @@ var CXMetrics=(function(){
     s.rate=s.contactados?s.respondieron/s.contactados:null;
     return s;
   }
-  return {norm,number,median,isCancel,state,cancelOutcome,cancelWorkflow,closed,pending,isPending,knownState,category,days,score,csat,nps,months,matches,group,retention,dedup,qualityIssues,validateCancelDate,cancelBucket,cancelSummary,setResolutionQuality,resolutionQuality,resolutionStats,resolutionByMonth,fmtDays,isTestCampaign,campaignStats,MIN_NPS_N,isTestRecord,mty,mtyHoy,canon,setDuplicates,duplicateOf,MIN_BASE,hasCancelReason,cancelReason,phoneKey,clientKey,clientLabel,atRisk};
+  return {norm,number,median,isCancel,state,cancelOutcome,cancelWorkflow,closed,pending,isPending,knownState,category,days,score,csat,nps,months,matches,group,retention,dedup,qualityIssues,validateCancelDate,cancelBucket,cancelSummary,setResolutionQuality,resolutionQuality,resolutionStats,resolutionByMonth,fmtDays,isTestCampaign,campaignStats,MIN_NPS_N,isTestRecord,mty,mtyHoy,canon,setDuplicates,duplicateOf,csvSafe,MIN_BASE,hasCancelReason,cancelReason,phoneKey,clientKey,clientLabel,atRisk};
 })();
 // CX_METRICS_END
 
@@ -675,7 +677,7 @@ function _normMes(m){if(!m)return'';var k=m.trim().toLowerCase();return _mesMap[
 async function loadData(){
   if(cxLoad.busy)return false;
   cxLoad.busy=true;cxStatus();
-  try{var data=await cxFetchData();cxLoad.pruebas=data.filter(CXMetrics.isTestRecord).length;cxLoad.duplicados=data.filter(function(r){return !CXMetrics.isTestRecord(r)&&CXMetrics.duplicateOf(r);}).length;allData=data.filter(function(r){return !CXMetrics.isTestRecord(r)&&!CXMetrics.duplicateOf(r);});cxLoad.error='';cxLoad.updated=new Date();return true;}
+  try{var data=await cxFetchData();cxLoad.pruebas=data.filter(CXMetrics.isTestRecord).length;cxLoad.duplicados=data.filter(function(r){return !CXMetrics.isTestRecord(r)&&CXMetrics.duplicateOf(r);}).length;allData=data.filter(function(r){return !CXMetrics.isTestRecord(r)&&!CXMetrics.duplicateOf(r);});cxLoad.error='';cxLoad.updated=new Date();_cxUltimaCarga=Date.now();_cxFirmaDatos().then(f=>{_cxFirma=f;}).catch(()=>{});return true;}
   catch(e){cxLoad.error=e.message||'Error de conexión';return false;}
   finally{cxLoad.busy=false;cxStatus();}
 }
@@ -906,7 +908,7 @@ function anDescargar(){
   var cliId=CXMetrics.clientLabel;
   var rows=[['Fecha','Cliente','Grupo unificado','Categoría / tema','Motivo / detalle','Status','Servicio','Fuente','Clasificación']];
   _anCanc.forEach(r=>rows.push([r.fecha_de_la_solicitud||'',cliId(r),_anGrupo(r),_anTema(r),r.submotvio_canc||r.submotvio||r.causa_raiz_cancelacion||'',r.status_cancelacion||'',r.tipo_de_servicio||'',r._source==='whatsapp'?'Bot':'Histórico',r._source==='whatsapp'?'Documentada':'Estimada por texto']));
-  var csv=rows.map(row=>row.map(c=>'"'+String(c).replace(/"/g,'""')+'"').join(',')).join('\n');
+  var csv=rows.map(row=>row.map(c=>'"'+CXMetrics.csvSafe(c).replace(/"/g,'""')+'"').join(',')).join('\n');
   var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);a.download='analisis_cancelaciones.csv';a.click();
 }
 
@@ -2770,7 +2772,13 @@ function descargarGuia(){
 
 // ── SINCRONIZACIÓN MULTI-USUARIO ──
 // Fix 1: Polling cada 45s para que todos los navegadores vean ediciones de otros agentes
-let _pollDataInterval=null;
+let _pollDataInterval=null,_cxFirma=null,_cxUltimaCarga=Date.now();
+async function _cxFirmaDatos(){
+  const[t,b]=await Promise.all([sb.from('tickets').select('folio,created_at').order('created_at',{ascending:false}).limit(1),
+    sb.from('cx_bitacora_cambios').select('id').order('id',{ascending:false}).limit(1)]);
+  if(t.error)throw t.error;
+  return JSON.stringify([t.data&&t.data[0],b.error?null:b.data&&b.data[0]]);
+}
 function _iniciarPollingDatos(){
   if(_pollDataInterval)clearInterval(_pollDataInterval);
   _pollDataInterval=setInterval(async()=>{
@@ -2778,7 +2786,12 @@ function _iniciarPollingDatos(){
     if(document.hidden)return;  // Pausa cuando la pestaña está oculta
     const modal=document.getElementById('tk-modal');
     if(modal&&modal.classList.contains('on'))return;  // No interrumpir si hay modal abierto
-    try{await loadData();_refreshVista();}
+    try{
+      // H16: dos consultas de 1 fila en vez de descargar todo cada 45 s. Recarga completa si cambió
+      // el último ticket o la bitácora, y de todos modos cada 5 min (cambios que la bitácora no registra).
+      var firma=await _cxFirmaDatos(),vieja=Date.now()-(_cxUltimaCarga||0)>300000;
+      if(firma!==_cxFirma||vieja){await loadData();_cxFirma=firma;_cxUltimaCarga=Date.now();_refreshVista();}
+    }
     catch(e){console.warn('[poll] loadData falló:',e);}
   },45000);
 }
@@ -2847,7 +2860,7 @@ async function _refreshRegistroFresco(r){
 // ── DESCARGA CSV ──
 function _csvEscape(v){
   if(v==null)return'';
-  var s=String(v);
+  var s=CXMetrics.csvSafe(v);
   if(s.indexOf('"')>=0||s.indexOf(',')>=0||s.indexOf('\n')>=0||s.indexOf('\r')>=0)
     return '"'+s.replace(/"/g,'""')+'"';
   return s;

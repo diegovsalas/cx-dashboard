@@ -137,3 +137,6 @@ test('Motivo declarado: detalle útil, sin motivo explícito y base mínima',()=
     ['Bajo uso · Cambio de proveedor','Sin motivo capturado','Sin motivo capturado','Económico','Económico']);
   assert.equal(M.MIN_BASE,30);assert.equal(M.hasCancelReason('Fin de contrato'),true);assert.equal(M.hasCancelReason('Cancelación de servicio'),false);
 });
+test('H16: CSV no exporta fórmulas ejecutables',()=>{
+  same(['=HYPERLINK("x")','+52 811','-5','@SUM(A1)','Hola','52811'].map(M.csvSafe),["'=HYPERLINK(\"x\")","'+52 811","'-5","'@SUM(A1)",'Hola','52811']);
+});
