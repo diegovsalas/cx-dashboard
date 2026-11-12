@@ -72,3 +72,19 @@ test('H4: cada cancelación cae en un solo grupo y los grupos suman el total',()
  assert.equal(s.cancelada+s.retenidas_total+s.abiertas+s.cerrada_sin_resultado,s.total);
  const r=M.retention(rows);assert.equal(r.lost,s.cancelada);assert.equal(r.kept,s.retenidas_total);assert.equal(r.open,s.abiertas+s.cerrada_sin_resultado);
 });
+
+test('H7: campañas cuentan clientes, la última respuesta y separan pruebas',()=>{
+  const r=(telefono,estado,extra={})=>({template_name:'nps_avantex',telefono,estado,...extra});
+  const rows=[r('5218110000001','fallido'),r('528110000001','enviado'),            // reintento: 1 cliente
+    r('528110000002','respondido',{respuesta_score:3,respondido_at:'2026-05-20T10:00:00Z'}),
+    r('528110000002','respondido',{respuesta_score:10,respondido_at:'2026-08-20T10:00:00Z'}), // cuenta la última
+    r('528110000003','fallido'),r('528110000004','leido')];
+  const s=M.campaignStats(rows,'nps_avantex');
+  same([s.intentos,s.clientes,s.contactados,s.soloFallidos,s.entrega,s.respondieron,s.promoters,s.detractors],[6,4,3,1,2,1,1,0]);
+  assert.equal(s.measurable,false);assert.equal(s.value,100);
+  assert.equal(M.isTestCampaign({campania:'NPS-Test-redeploy'}),true);assert.equal(M.isTestCampaign({campania:'NPS-2026-05-20'}),false);
+});
+test('H7: NPS publicable solo con la base mínima de clientes',()=>{
+  const rows=Array.from({length:M.MIN_NPS_N},(_,i)=>({template_name:'nps_avantex',telefono:'52811000'+String(1000+i),estado:'respondido',respuesta_score:i<20?10:0}));
+  const s=M.campaignStats(rows,'nps_avantex');assert.equal(s.measurable,true);assert.equal(s.value,Math.round(100*(20-10)/30));
+});

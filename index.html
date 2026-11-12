@@ -431,7 +431,7 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
 </div>
 
 <div class="tbl-card">
-  <div class="filter-bar"><label>Encuesta <select id="cmp-hist-template" onchange="cmpCargarHistorial()"><option value="nps_avantex">NPS 0–10</option><option value="ventas_satisfaccion_nuevos">Satisfacción de ventas 1–5</option></select></label><label>Campaña <input id="cmp-hist-campaign" placeholder="Todas" onchange="cmpCargarHistorial()"></label><label>Desde <input type="date" id="cmp-hist-from" onchange="cmpCargarHistorial()"></label><label>Hasta <input type="date" id="cmp-hist-to" onchange="cmpCargarHistorial()"></label><span id="cmp-hist-scope" style="font-size:13px"></span></div>
+  <div class="filter-bar"><label>Encuesta <select id="cmp-hist-template" onchange="cmpCargarHistorial()"><option value="nps_avantex">NPS 0–10</option><option value="ventas_satisfaccion_nuevos">Satisfacción de ventas 1–5</option></select></label><label>Campaña <input id="cmp-hist-campaign" placeholder="Todas" onchange="cmpCargarHistorial()"></label><label>Desde <input type="date" id="cmp-hist-from" onchange="cmpCargarHistorial()"></label><label>Hasta <input type="date" id="cmp-hist-to" onchange="cmpCargarHistorial()"></label><label style="display:flex;align-items:center;gap:6px"><input type="checkbox" id="cmp-hist-pruebas" onchange="cmpCargarHistorial()"> Incluir pruebas</label><span id="cmp-hist-scope" style="font-size:13px"></span></div>
 <div id="cmp-kpis" style="display:grid;grid-template-columns:repeat(6,1fr);gap:10px;margin-bottom:16px"></div>
   <div class="tbl-header"><h3>📊 Historial de envíos</h3><button class="btn-clear" onclick="cmpCargarHistorial()"><i class="fa-solid fa-rotate"></i> Refrescar</button></div>
   <div class="tbl-scroll" style="max-height:400px">
@@ -539,7 +539,27 @@ var CXMetrics=(function(){
     return issues;
   }
   function validateCancelDate(stage,result,date){if(closed(stage)&&['cancelada','cancelado por morosidad'].includes(norm(result))&&!/^\d{4}-\d{2}-\d{2}$/.test(date||''))throw new Error('Indica la fecha efectiva de baja antes de cerrar.');}
-  return {norm,number,median,isCancel,state,cancelOutcome,cancelWorkflow,closed,pending,isPending,category,days,score,csat,nps,months,matches,group,retention,dedup,qualityIssues,validateCancelDate,cancelBucket,cancelSummary,setResolutionQuality,resolutionQuality,resolutionStats,resolutionByMonth,fmtDays};
+  // H7: campañas por cliente (no por envío), sin filas de prueba y con base mínima para publicar el NPS.
+  var MIN_NPS_N=30;
+  function isTestCampaign(r){return /test|prueba/i.test(String(r.campania||''));}
+  function campaignStats(rows,template){
+    var esNps=template==='nps_avantex',min=esNps?0:1,max=esNps?10:5,por={};
+    rows.forEach(function(r){var k=String(r.telefono||'').replace(/\D/g,'').slice(-10);if(k)(por[k]=por[k]||[]).push(r);});
+    var s={intentos:rows.length,clientes:0,contactados:0,entrega:0,soloFallidos:0,respondieron:0,promoters:0,detractors:0,pasivos:0,value:null,average:null,measurable:false,minN:MIN_NPS_N},sum=0;
+    Object.keys(por).forEach(function(k){
+      var xs=por[k];s.clientes++;
+      if(xs.some(function(r){return ['enviado','entregado','leido','respondido'].indexOf(r.estado)>=0;}))s.contactados++;else s.soloFallidos++;
+      if(xs.some(function(r){return ['entregado','leido','respondido'].indexOf(r.estado)>=0||r.entregado_at||r.leido_at;}))s.entrega++;
+      var resp=xs.filter(function(r){return score(r.respuesta_score,min,max)!=null;}).sort(function(a,b){return String(b.respondido_at||b.created_at).localeCompare(String(a.respondido_at||a.created_at));});
+      if(!resp.length)return;var n=score(resp[0].respuesta_score,min,max);s.respondieron++;sum+=n;
+      if(esNps){if(n>=9)s.promoters++;else if(n<=6)s.detractors++;else s.pasivos++;}
+    });
+    s.measurable=s.respondieron>=MIN_NPS_N;
+    if(s.respondieron){if(esNps)s.value=Math.round(100*(s.promoters-s.detractors)/s.respondieron);else s.average=sum/s.respondieron;}
+    s.rate=s.contactados?s.respondieron/s.contactados:null;
+    return s;
+  }
+  return {norm,number,median,isCancel,state,cancelOutcome,cancelWorkflow,closed,pending,isPending,category,days,score,csat,nps,months,matches,group,retention,dedup,qualityIssues,validateCancelDate,cancelBucket,cancelSummary,setResolutionQuality,resolutionQuality,resolutionStats,resolutionByMonth,fmtDays,isTestCampaign,campaignStats,MIN_NPS_N};
 })();
 // CX_METRICS_END
 
@@ -1913,18 +1933,17 @@ async function cmpCargarHistorial(){
       const result=await query;if(generation!==_cmpHistGeneration)return;if(result.error)throw new Error(result.error.message);
       if(!result.data||!result.data.length)break;data.push(...result.data);offset+=result.data.length;
     }
-    document.getElementById('cmp-hist-scope').textContent=data.length+' envíos · '+(campaign||'Todas las campañas')+' · '+(from||'inicio')+' a '+(to||'hoy');
+    var pruebas=data.filter(CXMetrics.isTestCampaign).length;
+    if(!document.getElementById('cmp-hist-pruebas').checked)data=data.filter(function(r){return !CXMetrics.isTestCampaign(r);});
+    document.getElementById('cmp-hist-scope').textContent=data.length+' envíos'+(pruebas&&!document.getElementById('cmp-hist-pruebas').checked?' (sin '+pruebas+' de prueba)':'')+' · '+(campaign||'Todas las campañas')+' · '+(from||'inicio')+' a '+(to||'hoy');
     if(kpis){
-      var sent=data.filter(e=>['enviado','entregado','leido','respondido'].includes(e.estado)).length;
-      var delivered=data.filter(e=>['entregado','leido'].includes(e.estado)).length;
-      var max=template==='nps_avantex'?10:5,min=template==='nps_avantex'?0:1;
-      var responses=data.map(e=>CXMetrics.score(e.respuesta_score,min,max)).filter(n=>n!=null),result=CXMetrics.nps(data);
-      var metric=template==='nps_avantex'?(result.value==null?'Sin respuestas':String(result.value)):(responses.length?(responses.reduce((a,n)=>a+n,0)/responses.length).toFixed(1)+' / 5':'Sin respuestas');
-      kpis.innerHTML=_cmpKpiCard('Intentos',data.length,'var(--text)','var(--surface2)','')+
-        _cmpKpiCard('Aceptados',sent,'var(--text)','var(--surface2)','No equivale a entregados')+
-        _cmpKpiCard('Entrega confirmada',delivered,'var(--text)','var(--surface2)','Estados entregado / leído')+
-        _cmpKpiCard('Respuestas válidas',responses.length,'var(--text)','var(--surface2)',sent?Math.round(responses.length*100/sent)+'% sobre aceptados':'Sin envíos aceptados')+
-        _cmpKpiCard(template==='nps_avantex'?'NPS 0–10':'Satisfacción ventas',metric,'var(--text)','var(--surface2)',template==='nps_avantex'?result.promoters+' promotores · '+result.detractors+' detractores':'Respuestas 1–5');
+      var st=CXMetrics.campaignStats(data,template),esNps=template==='nps_avantex';
+      var metric=!st.respondieron?'Sin respuestas':!st.measurable?'Base insuficiente':esNps?String(st.value):st.average.toFixed(1)+' / 5';
+      var detalle=(esNps?st.promoters+' promotores · '+st.pasivos+' pasivos · '+st.detractors+' detractores':st.respondieron+' respuestas 1–5')+(st.measurable?'':' · se publica con '+st.minN+'+ clientes');
+      kpis.innerHTML=_cmpKpiCard('Clientes contactados',st.contactados,'var(--text)','var(--surface2)',st.intentos+' intentos'+(st.soloFallidos?' · '+st.soloFallidos+(st.soloFallidos===1?' cliente':' clientes')+' sin envío exitoso':''))+
+        _cmpKpiCard('Entrega confirmada',st.entrega,'var(--text)','var(--surface2)','Confirmada por Meta (se registra desde nov-2026) o con respuesta')+
+        _cmpKpiCard('Clientes que respondieron',st.respondieron,'var(--text)','var(--surface2)',st.rate!=null?Math.round(st.rate*100)+'% de contactados':'Sin envíos aceptados')+
+        _cmpKpiCard(esNps?'NPS 0–10':'Satisfacción ventas',metric,'var(--text)','var(--surface2)',detalle);
     }
     if(!data.length){tbody.innerHTML='<tr><td colspan="9" style="padding:18px">Sin envíos para esta encuesta y período.</td></tr>';return;}
     var colorEstado=function(e){
