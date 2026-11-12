@@ -104,3 +104,9 @@ test('H10: día y mes en hora de Monterrey; fechas sin hora no se recorren',()=>
   assert.equal(M.mty('2026-03-01'),'2026-03-01 00:00:00');
   assert.equal(M.mty(''),'');assert.equal(M.mty(null),'');
 });
+test('H11: estatus fuera de catálogo sigue pendiente; tipos no reconocidos no inflan incidencias',()=>{
+  assert.equal(M.isPending({status:'Atendido',tipo_de_solicitud:'Incidencia / Queja'}),true);
+  assert.equal(M.knownState('Atendido'),false);assert.equal(M.isPending({status:'Resuelta'}),false);
+  same(['Conversación Aromatex','Conversación Aromatex Web','Otro','Pendiente de clasificación','Solicitud de visita técnica','Falla en el equipo: Equipo danado','Calidad del servicio: Otro','Incidencia urgente','Duda o consulta'].map(M.category),
+    ['Conversación Aromatex','Conversación Aromatex','Sin clasificar','Sin clasificar','Solicitud Operativa','Incidencia / Queja','Incidencia / Queja','Incidencia / Queja','Consulta']);
+});

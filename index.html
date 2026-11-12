@@ -501,8 +501,13 @@ var CXMetrics=(function(){
   function cancelWorkflow(stage,result,confirmed){if(result&&!['Retenida','Downgrade','Cancelada','Migracion'].includes(result))throw new Error('Selecciona un resultado válido de cancelación.');if(closed(stage)&&!result)throw new Error('Para cerrar, selecciona el resultado de la cancelación.');if(closed(stage)&&!confirmed)throw new Error('Confirma que no quedan acciones pendientes antes de cerrar.');return {status:stage,status_cancelacion:result||null};}
   function closed(s){return /cerrad|resuelt|completad|solucionad|retenid|cancelad|baja|downgrade|migrac/.test(norm(s));}
   function pending(s){return /pendient|abiert|proceso|seguimiento|nuev|negociac|sin atender|escalad|esperando/.test(norm(s));}
-  function isPending(r){var effective=state(r);return !closed(effective)&&(pending(effective)||pending(r.status));}
-  function category(type){var t=norm(type);if(t.includes('cancelac'))return 'Solicitud de Cancelación';if(/consulta|duda/.test(t))return 'Consulta';if(/operativ|cambio.*aroma|instalaci|reubicaci|entrega.*aroma|reducci|demo/.test(t))return 'Solicitud Operativa';return 'Incidencia / Queja';}
+  // H11: todo caso que no está finalizado sigue pendiente, aunque su estatus no esté en el catálogo
+  // (p. ej. «Atendido»): antes no contaba ni como pendiente ni como cerrado y desaparecía de ambos.
+  function isPending(r){return !closed(state(r));}
+  function knownState(s){return closed(s)||pending(s);}
+  // H11: catálogo explícito. Solo lo que describe una falla o queja es «Incidencia / Queja»;
+  // las conversaciones de venta de Aromatex y los tipos sin clasificar quedan aparte.
+  function category(type){var t=norm(type);if(t.includes('cancelac'))return 'Solicitud de Cancelación';if(/^conversacion/.test(t))return 'Conversación Aromatex';if(/consulta|duda/.test(t))return 'Consulta';if(/operativ|cambio.*aroma|instalaci|reubicaci|entrega.*aroma|reducci|demo|visita tecnica|suministro|facturaci|capacitaci/.test(t))return 'Solicitud Operativa';if(/falla|calidad|incidencia|queja|urgente|derrame|danad|no huele|sin aroma/.test(t))return 'Incidencia / Queja';return 'Sin clasificar';}
   // Calidad de fechas de resolución (legacy.cx_calidad_resolucion). Una excepción solo aplica
   // mientras la fecha actual siga siendo la original; un cierre nuevo la deja sin efecto.
   var resQuality={};
@@ -564,7 +569,7 @@ var CXMetrics=(function(){
     s.rate=s.contactados?s.respondieron/s.contactados:null;
     return s;
   }
-  return {norm,number,median,isCancel,state,cancelOutcome,cancelWorkflow,closed,pending,isPending,category,days,score,csat,nps,months,matches,group,retention,dedup,qualityIssues,validateCancelDate,cancelBucket,cancelSummary,setResolutionQuality,resolutionQuality,resolutionStats,resolutionByMonth,fmtDays,isTestCampaign,campaignStats,MIN_NPS_N,isTestRecord,mty,mtyHoy};
+  return {norm,number,median,isCancel,state,cancelOutcome,cancelWorkflow,closed,pending,isPending,knownState,category,days,score,csat,nps,months,matches,group,retention,dedup,qualityIssues,validateCancelDate,cancelBucket,cancelSummary,setResolutionQuality,resolutionQuality,resolutionStats,resolutionByMonth,fmtDays,isTestCampaign,campaignStats,MIN_NPS_N,isTestRecord,mty,mtyHoy};
 })();
 // CX_METRICS_END
 
