@@ -124,3 +124,10 @@ test('H13: el mismo teléfono en 3 formatos es un cliente; el histórico agrupa 
     {propiedad:'Wizeline  GDL',fecha_de_la_solicitud:'2025-07-01'},{propiedad:'wizeline gdl',fecha_de_la_solicitud:'2025-08-01'}],2);
   same(r.map(x=>[x.key,x.n]),[['tel:8180297448',2],['txt:wizeline gdl',2]]);
 });
+test('H14: duplicados marcados se identifican por fuente y registro',()=>{
+  M.setDuplicates([{fuente:'tickets',registro:'D0367',principal:'A0368'},{fuente:'base_general',registro:'783',principal:'62'}]);
+  assert.equal(M.duplicateOf({_tk:{folio:'d0367'}}).principal,'A0368');
+  assert.equal(M.duplicateOf({id:783}).principal,'62');
+  assert.equal(M.duplicateOf({_tk:{folio:'A0368'}}),null);assert.equal(M.duplicateOf({id:62}),null);
+  M.setDuplicates([]);
+});

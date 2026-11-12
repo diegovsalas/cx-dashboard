@@ -560,6 +560,10 @@ var CXMetrics=(function(){
   function clientKey(r){var t=r._tk;var k=t?phoneKey(t.telefono):'';if(k)return 'tel:'+k;var n=norm(r.propiedad||r.nombre_del_cliente_nuevo||'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();return n?'txt:'+n:'';}
   function clientLabel(r){return r.propiedad||r.nombre_del_cliente_nuevo||(r._tk&&r._tk.telefono?'Tel. …'+phoneKey(r._tk.telefono).slice(-4):'(sin identificar)');}
   function atRisk(rows,min){var g={};rows.forEach(function(r){var k=clientKey(r);if(!k)return;(g[k]=g[k]||{key:k,n:0,label:'',fecha:''}).n++;var f=String(r.fecha_de_la_solicitud||'');if(f>=g[k].fecha){g[k].fecha=f;g[k].label=clientLabel(r);}});return Object.values(g).filter(function(x){return x.n>=(min||2);}).sort(function(a,b){return b.n-a.n;});}
+  // H14: duplicados marcados con evidencia. Se excluyen de todo indicador; el registro no se modifica.
+  var _dups={};
+  function setDuplicates(rows){_dups={};(rows||[]).forEach(function(d){_dups[d.fuente+':'+String(d.registro).toUpperCase()]=d;});}
+  function duplicateOf(r){var k=r&&r._tk?'tickets:'+String(r._tk.folio||'').toUpperCase():'base_general:'+String(r&&r.id);return _dups[k]||null;}
   // H9: un solo criterio de registros de prueba para todas las pantallas. Solo la marca explícita
   // que escribe el equipo («ticket de prueba») o un nombre de cliente «prueba/test»; frases como
   // «mes de prueba» o «canalizado con Rubi Montoya» son casos reales y no se excluyen.
@@ -585,7 +589,7 @@ var CXMetrics=(function(){
     s.rate=s.contactados?s.respondieron/s.contactados:null;
     return s;
   }
-  return {norm,number,median,isCancel,state,cancelOutcome,cancelWorkflow,closed,pending,isPending,knownState,category,days,score,csat,nps,months,matches,group,retention,dedup,qualityIssues,validateCancelDate,cancelBucket,cancelSummary,setResolutionQuality,resolutionQuality,resolutionStats,resolutionByMonth,fmtDays,isTestCampaign,campaignStats,MIN_NPS_N,isTestRecord,mty,mtyHoy,canon,phoneKey,clientKey,clientLabel,atRisk};
+  return {norm,number,median,isCancel,state,cancelOutcome,cancelWorkflow,closed,pending,isPending,knownState,category,days,score,csat,nps,months,matches,group,retention,dedup,qualityIssues,validateCancelDate,cancelBucket,cancelSummary,setResolutionQuality,resolutionQuality,resolutionStats,resolutionByMonth,fmtDays,isTestCampaign,campaignStats,MIN_NPS_N,isTestRecord,mty,mtyHoy,canon,setDuplicates,duplicateOf,phoneKey,clientKey,clientLabel,atRisk};
 })();
 // CX_METRICS_END
 
@@ -663,7 +667,7 @@ function _normMes(m){if(!m)return'';var k=m.trim().toLowerCase();return _mesMap[
 async function loadData(){
   if(cxLoad.busy)return false;
   cxLoad.busy=true;cxStatus();
-  try{var data=await cxFetchData();cxLoad.pruebas=data.filter(CXMetrics.isTestRecord).length;allData=data.filter(function(r){return !CXMetrics.isTestRecord(r);});cxLoad.error='';cxLoad.updated=new Date();return true;}
+  try{var data=await cxFetchData();cxLoad.pruebas=data.filter(CXMetrics.isTestRecord).length;cxLoad.duplicados=data.filter(function(r){return !CXMetrics.isTestRecord(r)&&CXMetrics.duplicateOf(r);}).length;allData=data.filter(function(r){return !CXMetrics.isTestRecord(r)&&!CXMetrics.duplicateOf(r);});cxLoad.error='';cxLoad.updated=new Date();return true;}
   catch(e){cxLoad.error=e.message||'Error de conexión';return false;}
   finally{cxLoad.busy=false;cxStatus();}
 }
@@ -671,6 +675,8 @@ async function cxFetchData(){
   let nextData=[];let off=0;
   // Calidad de fechas de resolución; si la tabla no existe aún, se calcula como antes.
   try{let q=[],o=0;while(true){const{data,error}=await sb.from('cx_calidad_resolucion').select('fuente,registro,estado,fecha_original,fecha_recuperada').order('fuente').order('registro').range(o,o+999);if(error)throw error;q.push(...data);if(data.length<1000)break;o+=data.length;}CXMetrics.setResolutionQuality(q);}catch(e){CXMetrics.setResolutionQuality([]);}
+  // H14: duplicados marcados (legacy.cx_duplicados). Si la tabla no existe aún, no se excluye nada.
+  try{const{data,error}=await sb.from('cx_duplicados').select('fuente,registro,principal,nivel').limit(5000);if(error)throw error;CXMetrics.setDuplicates(data);}catch(e){CXMetrics.setDuplicates([]);}
   // Rubi (Aromatex) NO ve histórico de base_general — solo tickets WA del canal aromatex
   if(!isAromatex()){
     while(true){
@@ -916,7 +922,7 @@ function buildFB(cid){
 
 function onF(sel){F[sel.dataset.fkey]=sel.value;document.querySelectorAll('select[data-fkey="'+sel.dataset.fkey+'"]').forEach(s=>{s.value=sel.value;});cxClearDetail();applyFilters();_cxAplicarPagina();}
 // H9: Cancelaciones, Análisis y Tickets usan el mismo año, mes, servicio y origen que el Resumen (estado F).
-function _cxPruebasTxt(){return cxLoad.pruebas?' · '+cxLoad.pruebas+' de prueba excluidos':'';}
+function _cxPruebasTxt(){return (cxLoad.pruebas?' · '+cxLoad.pruebas+' de prueba excluidos':'')+(cxLoad.duplicados?' · '+cxLoad.duplicados+' duplicados excluidos':'');}
 function _cxAplicarPagina(){if(curPage==='cancelaciones')cancApply();else if(curPage==='analisis')anApply();else if(curPage==='tickets')tkApply();}
 function buildPeriodo(cid,conOrigen){
   var el=document.getElementById(cid);if(!el)return;
