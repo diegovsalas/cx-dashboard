@@ -658,7 +658,7 @@ function cxRenderCases(){
   rows=rows.slice().sort((a,b)=>String(a.fecha_de_la_solicitud||'').localeCompare(String(b.fecha_de_la_solicitud||'')));cxDetail.rows=rows;
   var pages=Math.max(1,Math.ceil(rows.length/20));cxDetail.page=Math.max(0,Math.min(cxDetail.page,pages-1));var start=cxDetail.page*20;
   var h='<div class="tbl-card" style="margin-bottom:20px"><div class="tbl-header"><h3>'+esc(cxDetail.label)+' · '+rows.length+' casos</h3><button class="btn-clear" onclick="cxExportCases()">Descargar casos</button></div><div class="tbl-scroll"><table class="dt"><thead><tr><th>Folio</th><th>Cliente / sucursal</th><th>Asunto</th><th>Antigüedad</th><th>Estatus</th><th>Responsable</th></tr></thead><tbody>';
-  rows.slice(start,start+20).forEach((r,i)=>{var age=Math.floor((Date.now()-Date.parse(r.fecha_de_la_solicitud))/86400000);h+='<tr class="tk-row" onclick="cxOpenCase('+(start+i)+')"><td>'+esc(r.folio_ticket||r.folio||'—')+'</td><td>'+esc(r.nombre_del_cliente_nuevo||'Sin nombre')+'<div style="color:var(--text3)">'+esc(r.propiedad||'')+'</div></td><td>'+esc(r.tipo_de_incidencia||'Sin asunto')+'</td><td>'+(Number.isFinite(age)?Math.max(0,age)+' días':'Sin fecha')+'</td><td>'+sBadge(statusEfectivo(r)||'Sin estatus')+'</td><td>'+esc(r.ejecutivo_asignado||'Sin asignar')+'</td></tr>';});
+  rows.slice(start,start+20).forEach((r,i)=>{var age=Math.floor((Date.now()-Date.parse(r.fecha_de_la_solicitud))/86400000);h+='<tr class="tk-row" onclick="cxOpenCase('+(start+i)+')"><td>'+cxCaseAnchor(r,r.folio_ticket||r.folio)+'</td><td>'+esc(r.nombre_del_cliente_nuevo||'Sin nombre')+'<div style="color:var(--text3)">'+esc(r.propiedad||'')+'</div></td><td>'+esc(r.tipo_de_incidencia||'Sin asunto')+'</td><td>'+(Number.isFinite(age)?Math.max(0,age)+' días':'Sin fecha')+'</td><td>'+sBadge(statusEfectivo(r)||'Sin estatus')+'</td><td>'+esc(r.ejecutivo_asignado||'Sin asignar')+'</td></tr>';});
   if(!rows.length)h+='<tr><td colspan="6" style="padding:24px">No hay casos para este indicador con los filtros actuales.</td></tr>';
   h+='</tbody></table></div><div class="pag"><span>Página '+(cxDetail.page+1)+' de '+pages+'</span><div class="pag-btns"><button class="pbtn" '+(!cxDetail.page?'disabled':'')+' onclick="cxCasesPage(-1)">Anterior</button><button class="pbtn" '+(cxDetail.page>=pages-1?'disabled':'')+' onclick="cxCasesPage(1)">Siguiente</button></div></div></div>';el.innerHTML=h;
 }
@@ -710,6 +710,7 @@ async function enterApp(){
   await loadData();buildFilters();applyFilters();
   // Rubi entra directo en Tickets (sin home)
   goPage(isAromatex()?'tickets':'dashboard');
+  cxAbrirCasoDesdeUrl();
   _iniciarPollingDatos();
 }
 
@@ -950,8 +951,8 @@ function anApply(){
 let _anCanc=[];
 function anDescargar(){
   var cliId=CXMetrics.clientLabel;
-  var rows=[['Fecha','Cliente','Grupo unificado','Categoría / tema','Motivo / detalle','Status','Servicio','Fuente','Clasificación']];
-  _anCanc.forEach(r=>rows.push([r.fecha_de_la_solicitud||'',cliId(r),_anGrupo(r),_anTema(r),r.submotvio_canc||r.submotvio||r.causa_raiz_cancelacion||'',r.status_cancelacion||'',r.tipo_de_servicio||'',r._source==='whatsapp'?'Bot':'Histórico',r._source==='whatsapp'?'Documentada':'Estimada por texto']));
+  var rows=[['Fecha','Cliente','Grupo unificado','Categoría / tema','Motivo / detalle','Status','Servicio','Fuente','Clasificación','Link del caso']];
+  _anCanc.forEach(r=>rows.push([r.fecha_de_la_solicitud||'',cliId(r),_anGrupo(r),_anTema(r),r.submotvio_canc||r.submotvio||r.causa_raiz_cancelacion||'',r.status_cancelacion||'',r.tipo_de_servicio||'',r._source==='whatsapp'?'Bot':'Histórico',r._source==='whatsapp'?'Documentada':'Estimada por texto',cxCaseLink(r)]));
   var csv=rows.map(row=>row.map(c=>'"'+CXMetrics.csvSafe(c).replace(/"/g,'""')+'"').join(',')).join('\n');
   var a=document.createElement('a');a.href='data:text/csv;charset=utf-8,﻿'+encodeURIComponent(csv);a.download='analisis_cancelaciones.csv';a.click();
 }
@@ -979,6 +980,32 @@ function buildFB(cid){
 
 function onF(sel){F[sel.dataset.fkey]=sel.value;document.querySelectorAll('select[data-fkey="'+sel.dataset.fkey+'"]').forEach(s=>{s.value=sel.value;});cxClearDetail();applyFilters();_cxAplicarPagina();}
 // H9: Cancelaciones, Análisis y Tickets usan el mismo año, mes, servicio y origen que el Resumen (estado F).
+// Link directo a cada caso (equipo interno: pide sesión). Bot = folio; histórico = H + id.
+function cxCaseKey(r){if(!r)return '';if(r._tk)return r._tk.folio||'';if(r._source==='whatsapp')return r.folio||'';if(/^[A-Z]\d{3,}$/.test(String(r.folio||''))&&r.created_at)return r.folio;return r.id!=null?'H'+r.id:'';}
+function cxCaseLink(r){var k=cxCaseKey(r);return k?location.origin+location.pathname+'?caso='+encodeURIComponent(k):'';}
+function cxFindCase(k){k=String(k||'').trim().toUpperCase();if(!k)return null;if(/^H\d+$/.test(k))return allData.find(x=>!x._tk&&String(x.id)===k.slice(1))||null;return allData.find(x=>x._tk&&String(x._tk.folio||'').toUpperCase()===k)||null;}
+function cxCaseAnchor(r,label){var k=cxCaseKey(r);if(!k)return esc(label||'—');return '<a href="'+esc(cxCaseLink(r))+'" onclick="event.stopPropagation();cxAbrirCaso(\''+esc(k)+'\');return false" title="Abrir y copiar link del caso" style="color:var(--blue);text-decoration:none">'+esc(label||k)+'</a>';}
+function cxAbrirCaso(k){var r=cxFindCase(k);if(!r){alert('No se encontró el caso '+k+'. Puede ser de prueba, un duplicado marcado o de un canal que tu usuario no ve.');return false;}regDisplayed=[r];regOpenModal(0);return true;}
+function cxAbrirCasoDesdeUrl(){var k=new URLSearchParams(location.search).get('caso');if(k)cxAbrirCaso(k);}
+async function cxCopiarLink(k){var r=cxFindCase(k),url=cxCaseLink(r)||location.href;try{await navigator.clipboard.writeText(url);}catch(e){prompt('Copia el link del caso:',url);return;}var b=document.getElementById('cx-copy-link');if(b){b.textContent='✓ Link copiado';setTimeout(()=>{if(b)b.textContent='Copiar link';},2000);}}
+var _HIST_CAMPOS={estatus:'Estatus',status:'Estatus',status_cancelacion:'Resultado',resolved_at:'Fecha de cierre',fecha_de_solucion:'Fecha de solución',agente:'Responsable',ejecutivo_asignado:'Responsable',tipo:'Tipo',tipo_de_solicitud:'Tipo de solicitud',prioridad:'Prioridad',zona:'Zona',empresa:'Sucursal',categoria:'Motivo / categoría',fecha_efectiva_cancelacion:'Fecha efectiva de baja',comentarios_de_seguimiento:'Comentarios',diagnostico:'Diagnóstico',causa_raiz:'Causa raíz',anlisis_de_causa_raz:'Causa raíz',oferta_retencion:'Oferta de retención',causa_raiz_cancelacion:'Causa raíz de cancelación',diagnostico_previo_cancelacion:'Diagnóstico previo'};
+function _histValor(campo,v,antes){if(v==null||v==='')return '<span style="color:var(--text3)">vacío</span>';var s=String(v);if(/_at$/.test(campo)&&/T\d\d:/.test(s))s=CXMetrics.mty(s).slice(0,16);if(campo==='comentarios_de_seguimiento'&&antes&&s.startsWith(String(antes)))s='+ '+s.slice(String(antes).length).trim();return esc(s.length>220?s.slice(0,220)+'…':s);}
+// Encabezado de la ficha: link del caso + historial de gestión (bitácora: quién cambió qué y cuándo)
+async function cxDecorarFicha(r){
+  var k=cxCaseKey(r),title=document.getElementById('tk-modal-title'),body=document.getElementById('tk-modal-body');if(!k||!title||!body)return;
+  title.insertAdjacentHTML('beforeend',' <button type="button" id="cx-copy-link" class="btn-clear" style="margin-left:10px;padding:3px 10px;font-size:11px" onclick="cxCopiarLink(\''+esc(k)+'\')">Copiar link</button>');
+  body.insertAdjacentHTML('beforeend','<section class="cancel-section" id="cx-historial"><h3>Historial de gestión</h3><p style="font-size:13px;color:var(--text2)">Cargando…</p></section>');
+  var fuente=r._tk?'tickets':'base_general',reg=r._tk?r._tk.folio:String(r.id),el=document.getElementById('cx-historial');
+  try{
+    const{data,error}=await sb.from('cx_bitacora_cambios').select('campo,valor_anterior,valor_nuevo,cambiado_por,cambiado_at').eq('fuente',fuente).eq('registro',reg).order('cambiado_at',{ascending:false}).order('id',{ascending:false}).limit(200);
+    if(error)throw error;if(!el||!document.body.contains(el))return;
+    var creado=r._tk?CXMetrics.mty(r._tk.created_at).slice(0,16):String(r.fecha_de_la_solicitud||'');
+    var h='<p style="font-size:12px;color:var(--text2);margin:4px 0 8px">Registrado: '+esc(creado||'sin fecha')+(r._tk&&r._tk.agente?' · asignado a '+esc(r._tk.agente):'')+'. La bitácora registra los cambios desde el 10-nov-2026; lo anterior queda en «Comentarios de seguimiento».</p>';
+    if(!data.length)h+='<p style="font-size:13px;color:var(--text3)">Sin cambios registrados en la bitácora.</p>';
+    else h+='<div class="tbl-scroll"><table class="dt"><thead><tr><th>Fecha (Monterrey)</th><th>Quién</th><th>Qué cambió</th><th>Antes</th><th>Después</th></tr></thead><tbody>'+data.map(d=>'<tr><td style="white-space:nowrap">'+esc(CXMetrics.mty(d.cambiado_at).slice(0,16))+'</td><td>'+esc(String(d.cambiado_por||'').replace('@grupoavantex.com',''))+'</td><td>'+esc(_HIST_CAMPOS[d.campo]||d.campo)+'</td><td>'+(d.campo==='comentarios_de_seguimiento'&&d.valor_anterior&&String(d.valor_nuevo||'').startsWith(d.valor_anterior)?'<span style="color:var(--text3)">(se agregó)</span>':_histValor(d.campo,d.valor_anterior))+'</td><td>'+_histValor(d.campo,d.valor_nuevo,d.valor_anterior)+'</td></tr>').join('')+'</tbody></table></div>';
+    el.innerHTML='<h3>Historial de gestión</h3>'+h;
+  }catch(e){if(el)el.innerHTML='<h3>Historial de gestión</h3><p style="font-size:13px;color:var(--red)">No se pudo cargar el historial: '+esc(e.message)+'</p>';}
+}
 function _cxN(n,uno,varios){return n+' '+(n===1?uno:varios);}
 // Tasa con base mínima: con menos de MIN_BASE decisiones se muestra como referencia, con aviso y atajo
 // para ampliar el periodo (quitar el mes) en lugar de esconder el número.
@@ -1178,7 +1205,7 @@ function renderRegistros(){
   pg.forEach((r,i)=>{
     var idx=tblPg*LIM+i;
     h+='<tr class="tk-row" onclick="regOpenModal('+idx+')">';
-    cs.forEach(c=>{var v=r[c.k];if(v==null||String(v).trim()===''){h+='<td class="null-v">—</td>';return;}v=String(v);if(c.k==='status'){h+='<td>'+sBadge(v)+'</td>';return;}if(c.k==='_source'){var bdg;if(v==='whatsapp'){bdg=r._canal==='aromatex'?'<span class="badge" style="background:rgba(13,85,71,.15);color:#5eead4;border:1px solid rgba(13,85,71,.4)">🌿 Aromatex</span>':'<span class="badge bb">📱 WhatsApp</span>';}else{bdg='<span class="badge" style="background:var(--surface2);color:var(--text3)">📁 Histórico</span>';}h+='<td>'+bdg+'</td>';return;}h+='<td>'+esc(trn(v,26))+'</td>';});
+    cs.forEach(c=>{var v=r[c.k];if(c.k==='folio_ticket'&&cxCaseKey(r)){h+='<td>'+cxCaseAnchor(r,v||cxCaseKey(r))+'</td>';return;}if(v==null||String(v).trim()===''){h+='<td class="null-v">—</td>';return;}v=String(v);if(c.k==='status'){h+='<td>'+sBadge(v)+'</td>';return;}if(c.k==='_source'){var bdg;if(v==='whatsapp'){bdg=r._canal==='aromatex'?'<span class="badge" style="background:rgba(13,85,71,.15);color:#5eead4;border:1px solid rgba(13,85,71,.4)">🌿 Aromatex</span>':'<span class="badge bb">📱 WhatsApp</span>';}else{bdg='<span class="badge" style="background:var(--surface2);color:var(--text3)">📁 Histórico</span>';}h+='<td>'+bdg+'</td>';return;}h+='<td>'+esc(trn(v,26))+'</td>';});
     h+='</tr>';
   });
   h+='</tbody></table></div><div class="pag"><span>'+(data.length?tblPg*LIM+1+'–'+Math.min((tblPg+1)*LIM,data.length)+' de '+data.length:'')+'</span><div class="pag-btns"><button class="pbtn" '+(tblPg===0?'disabled':'')+' onclick="tblPg--;renderRegistros()">← Anterior</button><span style="padding:0 6px">'+(tp?tblPg+1+'/'+tp:'')+'</span><button class="pbtn" '+(tblPg>=tp-1?'disabled':'')+' onclick="tblPg++;renderRegistros()">Siguiente →</button></div></div></div>';
@@ -1495,6 +1522,7 @@ function regOpenModal(idx){
   });
   // Re-fetch fresco para mostrar valores actualizados (anti-overwrite)
   _refreshRegistroFresco(r);
+  cxDecorarFicha(r);
 }
 
 // La cancelación usa los mismos campos y permisos en Resumen, Casos y Tickets.
@@ -1576,11 +1604,16 @@ async function cxSaveCancellation(){
       update[col]=value;changed.push(el);
     });
     if(!changed.length){msg.textContent='Sin cambios pendientes';return;}
+    // Solo se revalida el cierre cuando cambia el estado o el resultado: un comentario o un dato
+    // en un caso ya cerrado se guarda sin volver a confirmar el cierre.
+    var cambiaGestion=['cancel-stage','reg-stcanc-sel','cancel-motivo','reg-fecha-efectiva'].some(id=>document.getElementById(id)?.dataset.dirty==='1');
+    if(cambiaGestion){
     var pair=CXMetrics.cancelWorkflow(document.getElementById('cancel-stage').value,document.getElementById('reg-stcanc-sel').value,document.getElementById('cancel-confirm').checked);Object.assign(update,pair);CXMetrics.validateCancelDate(pair.status,pair.status_cancelacion,document.getElementById('reg-fecha-efectiva').value);
-    if(CXMetrics.closed(pair.status)&&_cxFaltaIdentidad(r)&&!/resuelt|cerrad/i.test(r._tk.estatus||''))throw new Error('Captura la zona y la sucursal antes de cerrar.');
-    if(r._source==='whatsapp'&&CXMetrics.closed(pair.status)&&!CXMetrics.hasCancelReason('categoria' in update?update.categoria:(r.categora||(r._tk&&r._tk.categoria))))throw new Error('Selecciona el motivo de cancelación antes de cerrar.');
-    if(!('categoria' in update)||r._source!=='whatsapp')delete update.categoria;
-    if(CXMetrics.closed(pair.status)){update.resolved_at=r._tk&&r._tk.resolved_at||r.fecha_de_solucion||new Date().toISOString();}else update.resolved_at=null;
+      if(CXMetrics.closed(pair.status)&&_cxFaltaIdentidad(r)&&!/resuelt|cerrad/i.test(r._tk.estatus||''))throw new Error('Captura la zona y la sucursal antes de cerrar.');
+      if(r._source==='whatsapp'&&CXMetrics.closed(pair.status)&&!CXMetrics.hasCancelReason('categoria' in update?update.categoria:(r.categora||(r._tk&&r._tk.categoria))))throw new Error('Selecciona el motivo de cancelación antes de cerrar.');
+      if(!('categoria' in update)||r._source!=='whatsapp')delete update.categoria;
+      if(CXMetrics.closed(pair.status)){update.resolved_at=r._tk&&r._tk.resolved_at||r.fecha_de_solucion||new Date().toISOString();}else update.resolved_at=null;
+    }else{delete update.status;delete update.status_cancelacion;delete update.categoria;}
     if(update.status_cancelacion==='Downgrade'||'monto_nuevo_downgrade' in update||'descripcion_downgrade' in update){
       var dg=document.getElementById('reg-dg-desc').value.trim(),amount=Number(document.getElementById('reg-dg-monto').value);
       if(!dg||!Number.isFinite(amount)||amount<=0)throw new Error('Para registrar un downgrade, describe el cambio e indica el nuevo importe mayor a cero.');
@@ -1589,13 +1622,13 @@ async function cxSaveCancellation(){
     btn.disabled=true;msg.textContent='Guardando…';
     locked=Object.keys(fields).map(id=>document.getElementById(id)).filter(Boolean).map(el=>({el,disabled:el.disabled}));locked.forEach(item=>item.el.disabled=true);
     var isWA=r._source==='whatsapp',data={...update};
-    if(isWA){data.estatus=data.status;delete data.status;}else{delete data.resolved_at;data.fecha_de_solucion=CXMetrics.closed(update.status)?CXMetrics.mty(update.resolved_at).slice(0,10):null;}
+    if(isWA){if('status' in data){data.estatus=data.status;}delete data.status;}else{delete data.resolved_at;if('status' in update)data.fecha_de_solucion=CXMetrics.closed(update.status)?CXMetrics.mty(update.resolved_at).slice(0,10):null;}
     if(!isWA&&'causa_raiz_cancelacion' in data){data.anlisis_de_causa_raz=data.causa_raiz_cancelacion;delete data.causa_raiz_cancelacion;}
     var key=isWA?(r.folio_ticket||r.folio):r.id;if(!key)throw new Error('No se pudo identificar el registro.');
     var result=await sb.from(isWA?'tickets':'base_general').update(data).eq(isWA?'folio':'id',key).select();
     if(result.error)throw new Error(result.error.message);
     if(!result.data?.length)throw new Error('No se actualizó el registro. Revisa tus permisos e intenta de nuevo.');
-    Object.assign(r,update);if(isWA&&'categoria' in data)r.categora=data.categoria;if(isWA&&r._tk){Object.assign(r._tk,data);r.tiempo_de_respuesta=CXMetrics.days(r);}if(!isWA)r.fecha_de_solucion=data.fecha_de_solucion;if(!isWA&&data.anlisis_de_causa_raz!==undefined)r.anlisis_de_causa_raz=data.anlisis_de_causa_raz;
+    Object.assign(r,update);if(isWA&&'categoria' in data)r.categora=data.categoria;if(isWA&&r._tk){Object.assign(r._tk,data);r.tiempo_de_respuesta=CXMetrics.days(r);}if(!isWA&&'fecha_de_solucion' in data)r.fecha_de_solucion=data.fecha_de_solucion;if(!isWA&&data.anlisis_de_causa_raz!==undefined)r.anlisis_de_causa_raz=data.anlisis_de_causa_raz;
     if('fecha_efectiva_cancelacion' in update){var date=update.fecha_efectiva_cancelacion||r.fecha_de_la_solicitud||'';r._anio_efectivo=date.slice(0,4);r._mes_efectivo=_moNombres[Number(date.slice(5,7))-1]||'';}
     changed.forEach(el=>el.dataset.dirty='0');msg.textContent='Gestión guardada';msg.style.color='var(--green)';
     var stillCurrent=document.getElementById('cancel-save')===btn;
@@ -2480,7 +2513,7 @@ function cancRender(){
   pg.forEach((r,i)=>{
     var idx=cancPg*CANC_LIM+i;
     h+='<tr class="tk-row" onclick="cancOpenModal('+idx+')">';
-    h+='<td>'+esc(r.folio_ticket||'—')+'</td>';
+    h+='<td>'+cxCaseAnchor(r,r.folio_ticket)+'</td>';
     h+='<td>'+esc(r.fecha_de_la_solicitud||'—')+'</td>';
     h+='<td>'+esc(trn(r.nombre_del_cliente_nuevo||'—',24))+'</td>';
     h+='<td>'+esc(trn(r.propiedad||'—',22))+'</td>';
@@ -2559,7 +2592,7 @@ function tkRender(){
   var h='',baseIdx=tkPg*TK_LIM;
   pg.forEach((r,i)=>{
     h+='<tr class="tk-row" onclick="tkOpenModal('+(baseIdx+i)+')">';
-    h+='<td>'+esc(r.folio||'—')+'<div style="color:var(--text3)">'+esc(CXMetrics.mty(r.created_at).slice(0,10))+'</div></td>';
+    h+='<td>'+cxCaseAnchor({_tk:r},r.folio)+'<div style="color:var(--text3)">'+esc(CXMetrics.mty(r.created_at).slice(0,10))+'</div></td>';
     h+='<td>'+esc(r.nombre||'Sin nombre')+'<div style="color:var(--text3)">'+esc(r.empresa||'')+'</div></td>';
     var issues=CXMetrics.qualityIssues({_tk:r,tipo_de_solicitud:r.tipo,status:r.estatus});h+='<td>'+esc(r.tipo||'Sin asunto')+'<div style="color:var(--text3)">'+esc(r.servicio||'')+'</div>'+issues.map(issue=>'<div style="color:var(--amber)">'+esc(issue)+'</div>').join('')+'</td>';
     h+='<td>'+(r.prioridad?tkPriBadge(r.prioridad):'<span class="null-v">—</span>')+'</td>';
@@ -2662,6 +2695,7 @@ function tkOpenModal(idx){
   var _ta2=document.getElementById('reg-comentarios');
   if(_ta2){_ta2.dataset.dirty='0';_ta2.addEventListener('input',function(){this.dataset.dirty='1';});}
   _refreshRegistroFresco(r);
+  cxDecorarFicha(allData.find(x=>x._tk===r)||{_tk:r});
 }
 
 async function tkDeleteRecord(){
@@ -2938,9 +2972,11 @@ function _csvEscape(v){
 function descargarCSV(filename, rows, columnas){
   if(!rows||!rows.length){alert('No hay datos para descargar.');return;}
   var cols = columnas || Object.keys(rows[0]);
-  var lines = [cols.map(_csvEscape).join(',')];
+  // Link directo a cada caso para demostrar la gestión (abre la ficha con su historial; pide sesión)
+  var conLink = rows.some(function(r){return !!cxCaseKey(r);});
+  var lines = [cols.concat(conLink?['link_caso']:[]).map(_csvEscape).join(',')];
   rows.forEach(function(r){
-    lines.push(cols.map(function(c){return _csvEscape(r[c]);}).join(','));
+    lines.push(cols.map(function(c){return _csvEscape(r[c]);}).concat(conLink?[_csvEscape(cxCaseLink(r))]:[]).join(','));
   });
   var BOM = '﻿';
   var blob = new Blob([BOM + lines.join('\r\n')], {type:'text/csv;charset=utf-8;'});
