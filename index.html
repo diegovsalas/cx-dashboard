@@ -882,7 +882,7 @@ function anApply(){
     '<div class="kpi"><div class="lbl">Casos</div><div class="val">'+base.length+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+inci.length+' incidencias · '+canc.length+' cancelaciones</div></div>'+
     '<div class="kpi c-red"><div class="lbl">Canceladas</div><div class="val">'+nCancel+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">bajas efectivas</div></div>'+
     '<div class="kpi c-green"><div class="lbl">Retenidas</div><div class="val">'+nReten+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">incl. downgrade/migración</div></div>'+
-    '<div class="kpi"><div class="lbl">Tasa de retención</div><div class="val" style="color:'+colTasa+'">'+(tasa==null?'Sin decisiones':cerrados<CXMetrics.MIN_BASE?'Base insuficiente':tasa+'%')+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+nReten+'/'+cerrados+' cerrados · '+abiertos+' abiertos'+(tasa!=null&&cerrados<CXMetrics.MIN_BASE?' · se reporta con '+CXMetrics.MIN_BASE+'+ cerrados':'')+'</div></div>';
+    '<div class="kpi"><div class="lbl">Tasa de retención</div><div class="val" style="color:'+(tasa!=null&&cerrados<CXMetrics.MIN_BASE?'var(--text2)':colTasa)+'">'+(tasa==null?'Sin decisiones':tasa+'%')+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+nReten+'/'+cerrados+' cerrados · '+abiertos+' abiertos'+(tasa!=null&&cerrados<CXMetrics.MIN_BASE?'<br><span style="color:var(--amber,#f59e0b)">Solo referencia: n='+cerrados+' (mín. '+CXMetrics.MIN_BASE+')'+(F.mes?' · <a href="#" onclick="cxAmpliarPeriodo();return false" style="color:var(--blue)">ver todo el año</a>':'')+'</span>':'')+'</div></div>';
   // Columnas: motivos por tema | incidencias por categoría
   var temas={},cats={};
   var vistaMot=(document.getElementById('an-vista-motivos')||{}).value||'detalle';
@@ -951,6 +951,16 @@ function buildFB(cid){
 
 function onF(sel){F[sel.dataset.fkey]=sel.value;document.querySelectorAll('select[data-fkey="'+sel.dataset.fkey+'"]').forEach(s=>{s.value=sel.value;});cxClearDetail();applyFilters();_cxAplicarPagina();}
 // H9: Cancelaciones, Análisis y Tickets usan el mismo año, mes, servicio y origen que el Resumen (estado F).
+function _cxN(n,uno,varios){return n+' '+(n===1?uno:varios);}
+// Tasa con base mínima: con menos de MIN_BASE decisiones se muestra como referencia, con aviso y atajo
+// para ampliar el periodo (quitar el mes) en lugar de esconder el número.
+function _cxTasaHtml(rate,n,size){
+  if(rate==null)return '<p style="font-size:'+size+'px;margin:12px 0;color:var(--text2)">Sin decisiones</p>';
+  if(n>=CXMetrics.MIN_BASE)return '<p style="font-size:'+size+'px;margin:12px 0">'+rate+'%</p>';
+  return '<p style="font-size:'+size+'px;margin:12px 0 6px;color:var(--text2)">'+rate+'% <span style="font-size:12px;font-weight:600;padding:2px 8px;border-radius:10px;background:var(--amber-bg,#3a2e0b);color:var(--amber,#f59e0b);vertical-align:middle">Solo referencia</span></p>'+
+    '<p style="font-size:12px;color:var(--amber,#f59e0b);margin:0 0 8px">Muestra chica: '+_cxN(n,'decisión','decisiones')+' (se necesitan '+CXMetrics.MIN_BASE+'). Un caso más mueve la tasa '+Math.round(100/Math.max(n,1))+' puntos.'+(F.mes?' <a href="#" onclick="cxAmpliarPeriodo();return false" style="color:var(--blue)">Ver todo '+esc(F.anio||'el periodo')+'</a>':'')+'</p>';
+}
+function cxAmpliarPeriodo(){F.mes='';document.querySelectorAll('select[data-fkey="mes"]').forEach(s=>{s.value='';});cxClearDetail();applyFilters();_cxAplicarPagina();}
 function _cxPruebasTxt(){return (cxLoad.pruebas?' · '+cxLoad.pruebas+' de prueba excluidos':'')+(cxLoad.duplicados?' · '+cxLoad.duplicados+' duplicados excluidos':'');}
 function _cxAplicarPagina(){if(curPage==='cancelaciones')cancApply();else if(curPage==='analisis')anApply();else if(curPage==='tickets')tkApply();}
 function buildPeriodo(cid,conOrigen){
@@ -2417,7 +2427,7 @@ function cancApply(){
     '<div style="grid-column:1/-1;font-size:12px;color:var(--text2);margin-top:4px">Cuadre: '+resumen.total+' solicitudes = '+resumen.cancelada+' confirmadas + '+resumen.retenida+' retenidas + '+resumen.downgrade+' downgrade + '+resumen.migracion+' migración + '+resumen.abiertas+' en gestión + '+resumen.cerrada_sin_resultado+' cerradas sin resultado. Una cancelación solo cuenta como confirmada o retenida cuando el caso está cerrado.</div>';
 
   document.getElementById('canc-metas').innerHTML=
-    '<div class="chart-card"><h3>Retención entre decisiones</h3><p style="font-size:26px;margin:12px 0">'+(ret.rate==null?'Sin decisiones':(ret.kept+ret.lost)<CXMetrics.MIN_BASE?'Base insuficiente <span style="font-size:13px;color:var(--text2)">('+ret.rate+'% con n='+(ret.kept+ret.lost)+'; mínimo '+CXMetrics.MIN_BASE+')</span>':ret.rate+'%')+'</p><p style="color:var(--text2);font-size:13px">'+ret.kept+' retenidas (incluye downgrade y migración) de '+(ret.kept+ret.lost)+' cerradas con resultado · '+resumen.abiertas+' en gestión y '+resumen.cerrada_sin_resultado+' cerradas sin resultado no entran. Usa fecha de creación, igual que la tabla.</p></div>'+
+    '<div class="chart-card"><h3>Retención entre decisiones</h3>'+_cxTasaHtml(ret.rate,ret.kept+ret.lost,26)+'<p style="color:var(--text2);font-size:13px">'+_cxN(ret.kept,'retenida','retenidas')+' (incluye downgrade y migración) de '+_cxN(ret.kept+ret.lost,'cerrada','cerradas')+' con resultado. No entran: '+_cxN(resumen.abiertas,'en gestión','en gestión')+' y '+_cxN(resumen.cerrada_sin_resultado,'cerrada sin resultado','cerradas sin resultado')+'. Usa fecha de creación, igual que la tabla.</p></div>'+
     '<div class="chart-card"><h3>Montos registrados</h3><p style="font-size:26px;margin:12px 0">$'+churnTotal.toLocaleString('es-MX')+'</p><p style="color:var(--text2);font-size:13px">Cancelaciones y reducción registrada por downgrade. '+(hayFiltroMes?'Usa fecha efectiva cuando está disponible; puede diferir de la tabla por fecha de creación.':'Todo el histórico seleccionado.')+' Sin comparación con una meta financiera no configurada.</p></div>';
 
   cancPg=0;cancRender();
