@@ -140,3 +140,14 @@ test('Motivo declarado: detalle útil, sin motivo explícito y base mínima',()=
 test('H16: CSV no exporta fórmulas ejecutables',()=>{
   same(['=HYPERLINK("x")','+52 811','-5','@SUM(A1)','Hola','52811'].map(M.csvSafe),["'=HYPERLINK(\"x\")","'+52 811","'-5","'@SUM(A1)",'Hola','52811']);
 });
+test('Reclasificar: el tipo nuevo cae en la categoría elegida y no se pierde el resultado en silencio',()=>{
+  const canc={tipo:'Solicitud de Cancelación',estatus:'Cerrado',status_cancelacion:'Cancelada',categoria:'Bajo uso'};
+  same(M.reclassifyTicket(canc,'Solicitud Operativa'),{status_cancelacion:null,tipo:'Solicitud operativa: Otra gestión'});
+  same(M.reclassifyTicket(canc,'Incidencia / Queja'),{status_cancelacion:null,tipo:'Incidencia'});
+  const inc={tipo:'Falla en el equipo: Apagado o no funciona',estatus:'Cerrado',categoria:'Falla en el equipo'};
+  assert.equal(M.category(M.reclassifyTicket(inc,'Solicitud Operativa').tipo),'Solicitud Operativa');
+  assert.equal(M.reclassifyTicket(inc,'Incidencia / Queja'),null);
+  assert.throws(()=>M.reclassifyTicket(inc,'Solicitud de Cancelación'),/En proceso/);
+  same(M.reclassifyTicket({...inc,estatus:'En proceso'},'Solicitud de Cancelación'),{tipo:'Solicitud de Cancelación',status_cancelacion:'En proceso'});
+  assert.equal(M.reclassifyTicket({tipo:'Solicitud operativa: Facturación',categoria:'Falla en el equipo'},'Incidencia / Queja').tipo,'Falla en el equipo');
+});

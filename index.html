@@ -569,6 +569,21 @@ var CXMetrics=(function(){
   function hasCancelReason(cat){return SIN_MOTIVO.indexOf(norm(cat))<0;}
   // Motivo declarado (bot: categoría elegida/clasificada; histórico: tema estimado por texto).
   function cancelReason(r,temaHistorico){if(r._source!=='whatsapp')return 'Histórico · '+(temaHistorico?temaHistorico(r):'sin clasificar');var c=String(r.categora||(r._tk&&r._tk.categoria)||'').trim();if(!hasCancelReason(c))return 'Sin motivo capturado';var d=String(r.submotvio||(r._tk&&r._tk.subtipo)||'').trim();return d&&norm(d)!==norm(c)&&!/^otr[ao]/i.test(d)?c+' · '+d:c;}
+  // Reclasificar un ticket del bot: el tipo nuevo debe caer de verdad en la categoría elegida
+  // (antes se reutilizaba el tipo anterior y solo se borraba el resultado de la cancelación).
+  function reclassifyTicket(tk,target){
+    var actual=category(tk.tipo),cerrado=closed(tk.estatus||'');
+    if(target===actual)return null;
+    if(target==='Solicitud de Cancelación'){
+      if(cerrado)throw new Error('El ticket está cerrado. Cámbialo primero a «En proceso»; al cerrarlo como cancelación se pedirán resultado, motivo y fecha.');
+      return {tipo:'Solicitud de Cancelación',status_cancelacion:tk.status_cancelacion||'En proceso'};
+    }
+    var upd={status_cancelacion:null};
+    if(target==='Solicitud Operativa')upd.tipo='Solicitud operativa: '+(/^solicitud operativa:/i.test(tk.tipo||'')?String(tk.tipo).split(':').slice(1).join(':').trim():'Otra gestión');
+    else if(target==='Consulta')upd.tipo='Consulta';
+    else upd.tipo=category(tk.categoria)==='Incidencia / Queja'?tk.categoria:'Incidencia';
+    return upd;
+  }
   // H16: celdas que Excel interpretaría como fórmula (=, +, -, @, tabulador) se exportan como texto.
   function csvSafe(v){var s=String(v==null?'':v);return /^[=+\-@\t\r]/.test(s)?"'"+s:s;}
   // H14: duplicados marcados con evidencia. Se excluyen de todo indicador; el registro no se modifica.
@@ -600,7 +615,7 @@ var CXMetrics=(function(){
     s.rate=s.contactados?s.respondieron/s.contactados:null;
     return s;
   }
-  return {norm,number,median,isCancel,state,cancelOutcome,cancelWorkflow,closed,pending,isPending,knownState,category,days,score,csat,nps,months,matches,group,retention,dedup,qualityIssues,validateCancelDate,cancelBucket,cancelSummary,setResolutionQuality,resolutionQuality,resolutionStats,resolutionByMonth,fmtDays,isTestCampaign,campaignStats,MIN_NPS_N,isTestRecord,mty,mtyHoy,canon,setDuplicates,duplicateOf,csvSafe,MIN_BASE,hasCancelReason,cancelReason,phoneKey,clientKey,clientLabel,atRisk};
+  return {norm,number,median,isCancel,state,cancelOutcome,cancelWorkflow,closed,pending,isPending,knownState,category,days,score,csat,nps,months,matches,group,retention,dedup,qualityIssues,validateCancelDate,cancelBucket,cancelSummary,setResolutionQuality,resolutionQuality,resolutionStats,resolutionByMonth,fmtDays,isTestCampaign,campaignStats,MIN_NPS_N,isTestRecord,mty,mtyHoy,canon,setDuplicates,duplicateOf,csvSafe,reclassifyTicket,MIN_BASE,hasCancelReason,cancelReason,phoneKey,clientKey,clientLabel,atRisk};
 })();
 // CX_METRICS_END
 
@@ -1229,7 +1244,7 @@ function regOpenModal(idx){
   // Reclasificar tipo de solicitud — admin only
   if(puedeEditar()){
     var curTS=r.tipo_de_solicitud||'';
-    var tsOpts=['Incidencia / Queja','Solicitud de Cancelación','Solicitud Operativa'];
+    var tsOpts=['Incidencia / Queja','Solicitud de Cancelación','Solicitud Operativa'].concat(r._source==='whatsapp'?['Consulta']:[]);
     h+='<div class="detail-item full" style="background:var(--surface2);padding:14px;border-radius:6px;margin-bottom:8px;border:1px solid var(--border)">';
     h+='<div class="detail-label">Reclasificar tipo de solicitud</div>';
     h+='<div style="display:flex;align-items:center;gap:12px;margin-top:4px">';
@@ -2208,20 +2223,8 @@ async function regChangeTipoSolicitud(){
       // En tickets se persiste cambiando el campo `tipo` para que la lógica `includes(cancelac)` siga funcionando
       var folio=r.folio_ticket||r.folio;
       if(!folio)throw new Error('Sin folio para identificar el ticket');
-      var nuevoTipo;
-      var upd={};
-      if(newTS==='Solicitud de Cancelación'){
-        nuevoTipo='Solicitud de Cancelación';
-        upd.tipo=nuevoTipo;
-        // Si no tiene status_cancelacion previo, dejarlo en 'En proceso' por default
-        if(!r.status_cancelacion)upd.status_cancelacion='En proceso';
-      } else {
-        // Restaurar a tipo de incidencia normal — usar tipo_de_incidencia si existe, sino 'Otro'
-        nuevoTipo=r.tipo_de_incidencia||'Otro';
-        upd.tipo=nuevoTipo;
-        // Limpiar campos específicos de cancelación
-        upd.status_cancelacion=null;
-      }
+      var upd=CXMetrics.reclassifyTicket(r._tk,newTS);if(!upd)return;
+      var nuevoTipo=upd.tipo;
       const{error}=await sb.from('tickets').update(upd).eq('folio',folio);
       if(error)throw error;
       // Actualizar memoria
@@ -2229,6 +2232,7 @@ async function regChangeTipoSolicitud(){
       r.tipo_de_solicitud=newTS;
       r.tipo_de_incidencia=nuevoTipo;
       if(newTS!=='Solicitud de Cancelación')r.status_cancelacion='';
+      if(r._tk)r._tk.status_cancelacion=upd.status_cancelacion;CXMetrics.canon(r);
     } else {
       // base_general: campo directo
       var id=r.id;
@@ -2576,13 +2580,12 @@ function tkOpenModal(idx){
   h+='</div>';
   // Reclasificar tipo — admin only
   if(puedeEditar()){
-    var esCancActual=(r.tipo||'').toLowerCase().includes('cancelac');
-    var tsActual=esCancActual?'Solicitud de Cancelación':'Incidencia / Queja';
+    var tsActual=CXMetrics.category(r.tipo);
     h+='<div class="detail-item full" style="background:var(--surface2);padding:14px;border-radius:6px;margin-bottom:8px;border:1px solid var(--border)">';
     h+='<div class="detail-label">Reclasificar tipo de solicitud</div>';
     h+='<div style="display:flex;align-items:center;gap:12px;margin-top:4px">';
     h+='<select class="status-select" id="tk-ts-sel" onchange="tkChangeTipoSolicitud()">';
-    ['Incidencia / Queja','Solicitud de Cancelación'].forEach(s=>{h+='<option value="'+esc(s)+'"'+(tsActual===s?' selected':'')+'>'+esc(s)+'</option>';});
+    ['Incidencia / Queja','Solicitud de Cancelación','Solicitud Operativa','Consulta'].concat(['Incidencia / Queja','Solicitud de Cancelación','Solicitud Operativa','Consulta'].includes(tsActual)?[]:[tsActual]).forEach(s=>{h+='<option value="'+esc(s)+'"'+(tsActual===s?' selected':'')+'>'+esc(s)+'</option>';});
     h+='</select>';
     h+='<span class="status-msg" id="tk-ts-msg"></span>';
     h+='</div>';
@@ -2656,23 +2659,14 @@ async function tkChangeTipoSolicitud(){
   var r=tkFiltered[_tkModalIdx];if(!r)return;
   var newTS=document.getElementById('tk-ts-sel').value;
   var msgEl=document.getElementById('tk-ts-msg');
-  var esCancActual=(r.tipo||'').toLowerCase().includes('cancelac');
-  var actualTS=esCancActual?'Solicitud de Cancelación':'Incidencia / Queja';
+  var actualTS=CXMetrics.category(r.tipo);
   if(newTS===actualTS){return;}
   if(!confirm('¿Reclasificar este ticket como "'+newTS+'"?')){
     document.getElementById('tk-ts-sel').value=actualTS;return;
   }
   msgEl.textContent='Guardando...';msgEl.style.color='var(--blue)';
   try{
-    var upd={};
-    if(newTS==='Solicitud de Cancelación'){
-      upd.tipo='Solicitud de Cancelación';
-      if(!r.status_cancelacion)upd.status_cancelacion='En proceso';
-    } else {
-      // Restaurar a tipo de incidencia normal
-      upd.tipo=r.categoria||'Otro';
-      upd.status_cancelacion=null;
-    }
+    var upd=CXMetrics.reclassifyTicket(r,newTS);if(!upd){msgEl.textContent='';return;}
     const{error}=await sb.from('tickets').update(upd).eq('folio',r.folio);
     if(error)throw error;
     r.tipo=upd.tipo;
@@ -2680,14 +2674,14 @@ async function tkChangeTipoSolicitud(){
     // Refrescar también el mapeo virtual en allData
     var mirrored=allData.find(x=>x._source==='whatsapp'&&(x.folio_ticket===r.folio||x.folio===r.folio));
     if(mirrored){
-      mirrored.tipo_de_solicitud=newTS;
+      mirrored.tipo_de_solicitud=newTS;mirrored.tipo_de_incidencia=upd.tipo;
       mirrored.status_cancelacion=upd.status_cancelacion||'';
     }
     msgEl.textContent='✓ Reclasificado';msgEl.style.color='var(--green)';
     setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
     _refreshVista();
   }catch(e){
-    msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
+    msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';document.getElementById('tk-ts-sel').value=actualTS;
   }
 }
 
