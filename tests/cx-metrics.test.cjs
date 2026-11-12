@@ -110,3 +110,10 @@ test('H11: estatus fuera de catálogo sigue pendiente; tipos no reconocidos no i
   same(['Conversación Aromatex','Conversación Aromatex Web','Otro','Pendiente de clasificación','Solicitud de visita técnica','Falla en el equipo: Equipo danado','Calidad del servicio: Otro','Incidencia urgente','Duda o consulta'].map(M.category),
     ['Conversación Aromatex','Conversación Aromatex','Sin clasificar','Sin clasificar','Solicitud Operativa','Incidencia / Queja','Incidencia / Queja','Incidencia / Queja','Consulta']);
 });
+test('H12: histórico y bot comparten catálogo de servicio, zona, responsable y tipo',()=>{
+  const h=M.canon({tipo_de_servicio:'Aroma',zona:'Pacifico / Bajio',ejecutivo_asignado:'Nalleli Quiroz'});
+  const b=M.canon({tipo_de_servicio:'Aromatex',zona:'Bajío',ejecutivo_asignado:'nallelyquiroz',tipo_de_incidencia:'Falla en el equipo: Equipo danado'});
+  same([h.tipo_de_servicio,h.zona,h.ejecutivo_asignado],[b.tipo_de_servicio,b.zona,b.ejecutivo_asignado]);
+  assert.equal(b.tipo_de_incidencia,'Falla en el equipo: Equipo dañado');
+  same([M.canon({tipo_de_servicio:'Fumigación'}).tipo_de_servicio,M.canon({tipo_de_servicio:'Intendencia'}).tipo_de_servicio,M.canon({zona:''}).zona,M.canon({ejecutivo_asignado:'nuevoagente'}).ejecutivo_asignado],['Pestex','Weldex','','nuevoagente']);
+});
