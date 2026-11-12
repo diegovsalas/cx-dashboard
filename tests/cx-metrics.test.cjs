@@ -98,3 +98,9 @@ test('H9: una sola regla de pruebas; frases de casos reales no se excluyen',()=>
   assert.equal(M.isTestRecord({anlisis_de_causa_raz:'Insatisfacción con aroma de prueba'}),false);
   assert.equal(M.isTestRecord(tk({nombre:'Pruebas Laboratorio SA'})),false);
 });
+test('H10: día y mes en hora de Monterrey; fechas sin hora no se recorren',()=>{
+  assert.equal(M.mty('2026-11-01T03:30:00+00:00'),'2026-10-31 21:30:00');   // en UTC ya es noviembre
+  assert.equal(M.mty('2026-10-15T18:00:00Z'),'2026-10-15 12:00:00');
+  assert.equal(M.mty('2026-03-01'),'2026-03-01 00:00:00');
+  assert.equal(M.mty(''),'');assert.equal(M.mty(null),'');
+});

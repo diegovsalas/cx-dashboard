@@ -535,6 +535,10 @@ var CXMetrics=(function(){
     return issues;
   }
   function validateCancelDate(stage,result,date){if(closed(stage)&&['cancelada','cancelado por morosidad'].includes(norm(result))&&!/^\d{4}-\d{2}-\d{2}$/.test(date||''))throw new Error('Indica la fecha efectiva de baja antes de cerrar.');}
+  // H10: fechas de tickets (timestamptz en UTC) a hora de Monterrey: 'AAAA-MM-DD HH:MM:SS'.
+  var _MTY=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Monterrey',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'});
+  function mty(iso){if(!iso)return '';if(/^\d{4}-\d{2}-\d{2}$/.test(String(iso)))return iso+' 00:00:00';var d=new Date(iso);if(isNaN(d))return '';var p={};_MTY.formatToParts(d).forEach(function(x){p[x.type]=x.value;});return p.year+'-'+p.month+'-'+p.day+' '+p.hour+':'+p.minute+':'+p.second;}
+  function mtyHoy(){return mty(new Date().toISOString()).slice(0,10);}
   // H9: un solo criterio de registros de prueba para todas las pantallas. Solo la marca explícita
   // que escribe el equipo («ticket de prueba») o un nombre de cliente «prueba/test»; frases como
   // «mes de prueba» o «canalizado con Rubi Montoya» son casos reales y no se excluyen.
@@ -560,7 +564,7 @@ var CXMetrics=(function(){
     s.rate=s.contactados?s.respondieron/s.contactados:null;
     return s;
   }
-  return {norm,number,median,isCancel,state,cancelOutcome,cancelWorkflow,closed,pending,isPending,category,days,score,csat,nps,months,matches,group,retention,dedup,qualityIssues,validateCancelDate,cancelBucket,cancelSummary,setResolutionQuality,resolutionQuality,resolutionStats,resolutionByMonth,fmtDays,isTestCampaign,campaignStats,MIN_NPS_N,isTestRecord};
+  return {norm,number,median,isCancel,state,cancelOutcome,cancelWorkflow,closed,pending,isPending,category,days,score,csat,nps,months,matches,group,retention,dedup,qualityIssues,validateCancelDate,cancelBucket,cancelSummary,setResolutionQuality,resolutionQuality,resolutionStats,resolutionByMonth,fmtDays,isTestCampaign,campaignStats,MIN_NPS_N,isTestRecord,mty,mtyHoy};
 })();
 // CX_METRICS_END
 
@@ -689,7 +693,7 @@ async function cxFetchData(){
     if(error)throw new Error('Tickets: '+error.message);
     if(!data.length)break;
     data.forEach(t=>{
-      var fd=t.created_at?String(t.created_at):'';
+      var fd=CXMetrics.mty(t.created_at);   // H10: día y mes en hora de Monterrey, no UTC
       // El ticket SIEMPRE pertenece a su mes de creación en la lista/filtros
       var anio=fd.slice(0,4);
       var mesNum=parseInt(fd.slice(5,7));
@@ -1466,7 +1470,7 @@ async function cxSaveCancellation(){
     btn.disabled=true;msg.textContent='Guardando…';
     locked=Object.keys(fields).map(id=>document.getElementById(id)).filter(Boolean).map(el=>({el,disabled:el.disabled}));locked.forEach(item=>item.el.disabled=true);
     var isWA=r._source==='whatsapp',data={...update};
-    if(isWA){data.estatus=data.status;delete data.status;}else{delete data.resolved_at;data.fecha_de_solucion=CXMetrics.closed(update.status)?new Date(update.resolved_at).toISOString().slice(0,10):null;}
+    if(isWA){data.estatus=data.status;delete data.status;}else{delete data.resolved_at;data.fecha_de_solucion=CXMetrics.closed(update.status)?CXMetrics.mty(update.resolved_at).slice(0,10):null;}
     if(!isWA&&'causa_raiz_cancelacion' in data){data.anlisis_de_causa_raz=data.causa_raiz_cancelacion;delete data.causa_raiz_cancelacion;}
     var key=isWA?(r.folio_ticket||r.folio):r.id;if(!key)throw new Error('No se pudo identificar el registro.');
     var result=await sb.from(isWA?'tickets':'base_general').update(data).eq(isWA?'folio':'id',key).select();
@@ -1633,9 +1637,8 @@ async function regSaveFechaEfectiva(){
     // Re-calcular el _mes_efectivo y _anio_efectivo en memoria (NO toca _anio/mes de lista)
     var meses=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
     if(newVal){
-      var d=new Date(newVal);
-      r._anio_efectivo=String(d.getFullYear());
-      r._mes_efectivo=meses[d.getMonth()];
+      r._anio_efectivo=String(newVal).slice(0,4);
+      r._mes_efectivo=meses[Number(String(newVal).slice(5,7))-1]||'';
     } else {
       // Volver a la fecha de creación
       r._anio_efectivo=r._anio;
@@ -1827,7 +1830,7 @@ async function cmpEnviarCampania(){
   var template=document.getElementById('cmp-template').value;
   var tipo=document.getElementById('cmp-tipo').value;
   var prefijo=(tipo==='ventas'?'VENTAS':'NPS');
-  var campania=prefijo+'-'+new Date().toISOString().slice(0,10);
+  var campania=prefijo+'-'+CXMetrics.mtyHoy();
   var btn=document.getElementById('cmp-btn-enviar');
   var progress=document.getElementById('cmp-progress');
   btn.disabled=true;btn.style.opacity='.5';
@@ -1900,7 +1903,7 @@ function cmpVerMensaje(idx){
       '<div style="display:flex;flex-direction:column;gap:8px">'+
         '<div style="background:#DCF8C6;padding:12px 14px;border-radius:14px 14px 14px 4px;max-width:80%;align-self:flex-start;font-size:14px;line-height:1.5;white-space:pre-wrap;box-shadow:0 1px 2px rgba(0,0,0,0.06)">'+
           '<div>'+mensajeResuelto+'</div>'+
-          '<div style="font-size:10px;color:var(--text2);margin-top:4px;text-align:right">Avantex · '+(e.enviado_at||e.created_at||'').slice(0,16).replace('T',' ')+'</div>'+
+          '<div style="font-size:10px;color:var(--text2);margin-top:4px;text-align:right">Avantex · '+CXMetrics.mty(e.enviado_at||e.created_at).slice(0,16)+'</div>'+
         '</div>'+
         respHtml+
       '</div>'+
@@ -1957,7 +1960,7 @@ async function cmpCargarHistorial(){
     };
     window._cmpHistData=data;
     tbody.innerHTML=data.map((e,idx)=>'<tr>'+
-      '<td style="font-size:11px;color:var(--text2)">'+(e.created_at||'').slice(0,16).replace('T',' ')+'</td>'+
+      '<td style="font-size:11px;color:var(--text2)">'+CXMetrics.mty(e.created_at).slice(0,16)+'</td>'+
       '<td style="font-family:monospace;font-size:11px">'+esc(e.template_name||'')+'</td>'+
       '<td style="font-family:monospace;font-size:11px">'+esc(e.telefono||'')+'</td>'+
       '<td>'+esc(e.nombre_cliente||'')+'</td>'+
@@ -2219,7 +2222,7 @@ async function regChangeStatus(){
       var id=r.id;
       if(id){
         var upd={status:newStatus};
-        if(isCierreStatus){upd.diagnostico=diag;upd.anlisis_de_causa_raz=causa;upd.fecha_de_solucion=new Date().toISOString().slice(0,10);
+        if(isCierreStatus){upd.diagnostico=diag;upd.anlisis_de_causa_raz=causa;upd.fecha_de_solucion=CXMetrics.mtyHoy();
           if(r.fecha_de_la_solicitud){var d1=new Date(r.fecha_de_la_solicitud),d2=new Date();upd.tiempo_de_respuesta=(d2-d1)/86400000;}
         }
         const{error}=await sb.from('base_general').update(upd).eq('id',id);
@@ -2428,7 +2431,7 @@ function tkRender(){
   var h='',baseIdx=tkPg*TK_LIM;
   pg.forEach((r,i)=>{
     h+='<tr class="tk-row" onclick="tkOpenModal('+(baseIdx+i)+')">';
-    h+='<td>'+esc(r.folio||'—')+'<div style="color:var(--text3)">'+esc((r.created_at||'').slice(0,10))+'</div></td>';
+    h+='<td>'+esc(r.folio||'—')+'<div style="color:var(--text3)">'+esc(CXMetrics.mty(r.created_at).slice(0,10))+'</div></td>';
     h+='<td>'+esc(r.nombre||'Sin nombre')+'<div style="color:var(--text3)">'+esc(r.empresa||'')+'</div></td>';
     var issues=CXMetrics.qualityIssues({_tk:r,tipo_de_solicitud:r.tipo,status:r.estatus});h+='<td>'+esc(r.tipo||'Sin asunto')+'<div style="color:var(--text3)">'+esc(r.servicio||'')+'</div>'+issues.map(issue=>'<div style="color:var(--amber)">'+esc(issue)+'</div>').join('')+'</td>';
     h+='<td>'+(r.prioridad?tkPriBadge(r.prioridad):'<span class="null-v">—</span>')+'</td>';
@@ -2456,7 +2459,7 @@ function tkOpenModal(idx){
   if(typeof event!=='undefined'&&event&&event.currentTarget)_marcarFilaActiva(event.currentTarget);
   document.getElementById('tk-modal-title').innerHTML='Ticket <span style="color:var(--blue)">'+esc(r.folio||'—')+'</span>';
   var fields=[
-    {l:'Folio',v:r.folio},{l:'Fecha',v:r.created_at?r.created_at.replace('T',' ').slice(0,19):null},
+    {l:'Folio',v:r.folio},{l:'Fecha',v:r.created_at?CXMetrics.mty(r.created_at)+' (Monterrey)':null},
     {l:'Telefono',v:r.telefono},{l:'Nombre',v:r.nombre},
     {l:'Empresa',v:r.empresa},{l:'Correo',v:r.correo},
     {l:'Servicio',v:r.servicio},{l:'Tipo',v:r.tipo},
@@ -2801,7 +2804,7 @@ function descargarCSV(filename, rows, columnas){
   var blob = new Blob([BOM + lines.join('\r\n')], {type:'text/csv;charset=utf-8;'});
   var url = URL.createObjectURL(blob);
   var a = document.createElement('a');
-  var fecha = new Date().toISOString().slice(0,10);
+  var fecha = CXMetrics.mtyHoy();
   a.href = url; a.download = filename.replace('{fecha}', fecha);
   document.body.appendChild(a); a.click(); document.body.removeChild(a);
   setTimeout(function(){URL.revokeObjectURL(url);}, 100);
