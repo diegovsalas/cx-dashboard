@@ -151,3 +151,31 @@ test('Reclasificar: el tipo nuevo cae en la categoría elegida y no se pierde el
   same(M.reclassifyTicket({...inc,estatus:'En proceso'},'Solicitud de Cancelación'),{tipo:'Solicitud de Cancelación',status_cancelacion:'En proceso'});
   assert.equal(M.reclassifyTicket({tipo:'Solicitud operativa: Facturación',categoria:'Falla en el equipo'},'Incidencia / Queja').tipo,'Falla en el equipo');
 });
+test('SLA: horas hábiles de Monterrey y vencimiento en días hábiles',()=>{
+  // lunes 10-nov-2026 17:00 MTY (23:00Z) → martes 8:30 MTY (14:30Z) = 1 h (lun) + 1 h (mar)
+  assert.equal(M.businessHours('2026-11-10T23:00:00Z','2026-11-11T14:30:00Z'),2);
+  // viernes 13-nov 17:00 → lunes 16-nov 8:00: 1 (vie) + 3 (sáb) + 0.5 (lun) = 4.5
+  assert.equal(M.businessHours('2026-11-13T23:00:00Z','2026-11-16T14:00:00Z'),4.5);
+  // domingo no cuenta
+  assert.equal(M.businessHours('2026-11-15T15:00:00Z','2026-11-15T22:00:00Z'),0);
+  // creado lunes 10-nov: 2 días hábiles → miércoles 12-nov 18:00 MTY; 5 días → lunes 16-nov 18:00 (sábado cuenta)
+  assert.equal(M.addBusinessDays('2026-11-10T16:00:00Z',2),'2026-11-13T00:00:00.000Z');
+  assert.equal(M.addBusinessDays('2026-11-10T16:00:00Z',5),'2026-11-17T00:00:00.000Z');
+});
+test('SLA por ticket: cumple, tarde, vencido, por vencer y cancelaciones sin resolución',()=>{
+  const tk=(t,extra={})=>({_source:'whatsapp',_canal:'cx',status:t.estatus,tipo_de_solicitud:'Incidencia / Queja',...extra,_tk:{created_at:'2026-11-10T16:00:00Z',atencion_id:'a1',...t}});
+  const ahora='2026-11-12T20:00:00Z';
+  let o=M.slaOf(tk({prioridad:'Alta',estatus:'Cerrado',_primera_respuesta_at:'2026-11-10T17:00:00Z',resolved_at:'2026-11-12T15:00:00Z'}),ahora);
+  same([o.fr,o.res],['cumple','cumple']);
+  o=M.slaOf(tk({prioridad:'Alta',estatus:'En proceso',_primera_respuesta_at:null}),'2026-11-13T15:00:00Z');
+  same([o.fr,o.res],['vencido','vencido']);
+  o=M.slaOf(tk({prioridad:'Alta',estatus:'En proceso',_primera_respuesta_at:'2026-11-10T16:30:00Z'}),'2026-11-12T22:00:00Z');
+  assert.equal(o.res,'por_vencer');
+  o=M.slaOf(tk({prioridad:'Alta',estatus:'En proceso',tipo:'Solicitud de Cancelación'},{tipo_de_solicitud:'Solicitud de Cancelación'}),ahora);
+  assert.equal(o.res,undefined);
+  assert.equal(M.slaOf({_source:'whatsapp',_canal:'aromatex',_tk:{created_at:'x'}}),null);
+});
+test('SLA: un ticket vencido en respuesta y resolución cuenta una vez, igual que su lista',()=>{
+  const r={_source:'whatsapp',_canal:'cx',status:'En proceso',tipo_de_solicitud:'Incidencia / Queja',_tk:{created_at:'2026-11-10T16:00:00Z',atencion_id:'a',prioridad:'Alta',estatus:'En proceso'}};
+  const s=M.slaSummary([r],'2026-11-20T16:00:00Z');assert.equal(s.vencidos,1);
+});

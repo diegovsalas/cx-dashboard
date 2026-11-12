@@ -528,7 +528,7 @@ var CXMetrics=(function(){
   function nps(rows){var a=rows.filter(r=>/nps/.test(norm(r.template_name))&&!/ventas|satisfaccion_nuevos/.test(norm(r.template_name))).map(r=>score(r.respuesta_score,0,10)).filter(n=>n!=null);var promoters=a.filter(n=>n>=9).length,detractors=a.filter(n=>n<=6).length;return {total:a.length,promoters,detractors,value:a.length?Math.round(100*(promoters-detractors)/a.length):null};}
   function months(rows){var c={};rows.forEach(r=>{var d=r.fecha_de_la_solicitud||r._tk&&r._tk.created_at||'';var k=String(d).slice(0,7);if(/^\d{4}-\d{2}$/.test(k))c[k]=(c[k]||0)+1;});return Object.entries(c).sort((a,b)=>a[0].localeCompare(b[0]));}
   function matches(r,f){return (!f.anio||String(r._anio)===f.anio)&&(!f.mes||r.mes===f.mes)&&(!f.origen||r._source===f.origen)&&(!f.tipo_solicitud||r.tipo_de_solicitud===f.tipo_solicitud)&&(!f.tipo_servicio||r.tipo_de_servicio===f.tipo_servicio)&&(!f.zona||r.zona===f.zona)&&(!f.status||r.status===f.status||r.status_cancelacion===f.status)&&(!f.tipo_incidencia||r.tipo_de_incidencia===f.tipo_incidencia)&&(!f.ejecutivo||r.ejecutivo_asignado===f.ejecutivo);}
-  function group(rows,kind){if(kind==='all')return rows;if(kind==='pending')return rows.filter(isPending);if(kind==='escalated')return rows.filter(r=>norm(r.status).includes('escalad'));if(kind==='cancel')return rows.filter(r=>isCancel(r)&&isPending(r));if(kind==='closed')return rows.filter(r=>closed(state(r)));if(kind==='unassigned')return rows.filter(r=>isPending(r)&&!norm(r.ejecutivo_asignado));if(kind==='urgent')return rows.filter(r=>isPending(r)&&/alta|urgent/.test(norm(r._prioridad)));if(kind==='res_ok')return group(rows,'closed').filter(r=>days(r)!=null);if(kind==='res_missing')return group(rows,'closed').filter(r=>days(r)==null);return [];}
+  function group(rows,kind){if(kind==='all')return rows;if(kind==='pending')return rows.filter(isPending);if(kind==='escalated')return rows.filter(r=>norm(r.status).includes('escalad'));if(kind==='cancel')return rows.filter(r=>isCancel(r)&&isPending(r));if(kind==='closed')return rows.filter(r=>closed(state(r)));if(kind==='unassigned')return rows.filter(r=>isPending(r)&&!norm(r.ejecutivo_asignado));if(kind==='urgent')return rows.filter(r=>isPending(r)&&/alta|urgent/.test(norm(r._prioridad)));if(kind==='sla_vencidos')return rows.filter(r=>{var o=slaOf(r);return o&&(o.fr==='vencido'||o.res==='vencido');});if(kind==='sla_por_vencer')return rows.filter(r=>{var o=slaOf(r);return o&&o.res==='por_vencer';});if(kind==='sla_fr_tarde')return rows.filter(r=>{var o=slaOf(r);return o&&o.fr==='tarde';});if(kind==='sla_res_tarde')return rows.filter(r=>{var o=slaOf(r);return o&&o.res==='tarde';});if(kind==='res_ok')return group(rows,'closed').filter(r=>days(r)!=null);if(kind==='res_missing')return group(rows,'closed').filter(r=>days(r)==null);return [];}
   // H4: cada solicitud de cancelación cae en un solo grupo, por estado de gestión y resultado.
   function cancelBucket(r){if(!isCancel(r))return null;var o=cancelOutcome(r);if(!closed(state(r)))return o?'abierta_con_resultado':'en_gestion';return {Cancelada:'cancelada',Retenida:'retenida',Migracion:'migracion',Downgrade:'downgrade'}[o]||'cerrada_sin_resultado';}
   function cancelSummary(rows){var s={total:0,cancelada:0,retenida:0,migracion:0,downgrade:0,en_gestion:0,abierta_con_resultado:0,cerrada_sin_resultado:0};rows.forEach(function(r){var b=cancelBucket(r);if(!b)return;s.total++;s[b]++;});s.retenidas_total=s.retenida+s.migracion+s.downgrade;s.abiertas=s.en_gestion+s.abierta_con_resultado;s.por_revisar=s.abierta_con_resultado+s.cerrada_sin_resultado;return s;}
@@ -584,6 +584,32 @@ var CXMetrics=(function(){
     else upd.tipo=category(tk.categoria)==='Incidencia / Queja'?tk.categoria:'Incidencia';
     return upd;
   }
+  // SLA (decidido 12-nov-2026). Horas hábiles en Monterrey (UTC−6 fijo): L–V 7:30–18:00, sáb 9:00–12:00.
+  // Alta: primera respuesta 2 h, resolución 2 días hábiles. Normal y Baja: 4 h y 5 días hábiles.
+  // Días hábiles = lunes a sábado; vence al cierre de la jornada del N-ésimo día hábil después del día de creación.
+  // Solo tickets de CX. Las cancelaciones miden primera respuesta, no resolución (su baja sigue un plazo contractual).
+  var SLA={Alta:{fr:2,res:2},Normal:{fr:4,res:5},Baja:{fr:4,res:5}};
+  var OFF=6*3600000,JORNADA={1:[7.5,18],2:[7.5,18],3:[7.5,18],4:[7.5,18],5:[7.5,18],6:[9,12]};
+  function _loc(ms){return new Date(ms-OFF);}                       // reloj de Monterrey en campos UTC
+  function _dia(d){return Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate());}
+  function businessHours(a,b){var A=Date.parse(a),B=Date.parse(b);if(!(B>A))return 0;var h=0;
+    for(var d=_dia(_loc(A));d<=_dia(_loc(B));d+=86400000){var j=JORNADA[new Date(d).getUTCDay()];if(!j)continue;
+      var ini=Math.max(d+j[0]*3600000,A-OFF),fin=Math.min(d+j[1]*3600000,B-OFF);if(fin>ini)h+=(fin-ini)/3600000;}return h;}
+  function addBusinessDays(a,n){var d=_dia(_loc(Date.parse(a))),k=0;while(k<n){d+=86400000;if(JORNADA[new Date(d).getUTCDay()])k++;}return new Date(d+JORNADA[new Date(d).getUTCDay()][1]*3600000+OFF).toISOString();}
+  function slaOf(r,now){
+    var t=r&&r._tk;if(!t||(r._canal||'cx')!=='cx'||!t.created_at)return null;
+    var obj=SLA[t.prioridad]||SLA.Normal,now_=now||new Date().toISOString(),canc=isCancel(r),o={prioridad:t.prioridad||'Normal',objetivo:obj};
+    // Primera respuesta: solo con atención ligada (desde 12-oct-2026)
+    if(t.atencion_id){var fr=t._primera_respuesta_at;o.fr_horas=fr?businessHours(t.created_at,fr):null;
+      o.fr=fr?(o.fr_horas<=obj.fr?'cumple':'tarde'):(closed(state(r))?'sin_respuesta':(businessHours(t.created_at,now_)>obj.fr?'vencido':'en_plazo'));}
+    if(!canc){var lim=addBusinessDays(t.created_at,obj.res);o.limite=lim;
+      if(closed(state(r))){var d=days(r);o.res=d==null?'sin_fecha':(Date.parse(t.resolved_at)<=Date.parse(lim)?'cumple':'tarde');}
+      else o.res=Date.parse(now_)>Date.parse(lim)?'vencido':(businessHours(now_,lim)<=4?'por_vencer':'en_plazo');}
+    return o;}
+  function slaSummary(rows,now){var s={fr:{cumple:0,tarde:0,sin_respuesta:0,vencido:0,en_plazo:0},res:{cumple:0,tarde:0,sin_fecha:0,vencido:0,por_vencer:0,en_plazo:0},cx:0};
+    s.vencidos=0;rows.forEach(function(r){var o=slaOf(r,now);if(!o)return;s.cx++;if(o.fr)s.fr[o.fr]++;if(o.res)s.res[o.res]++;if(o.fr==='vencido'||o.res==='vencido')s.vencidos++;});
+    var f=s.fr.cumple+s.fr.tarde,q=s.res.cumple+s.res.tarde;s.fr_n=f;s.fr_pct=f?Math.round(100*s.fr.cumple/f):null;s.res_n=q;s.res_pct=q?Math.round(100*s.res.cumple/q):null;
+    return s;}
   // H16: celdas que Excel interpretaría como fórmula (=, +, -, @, tabulador) se exportan como texto.
   function csvSafe(v){var s=String(v==null?'':v);return /^[=+\-@\t\r]/.test(s)?"'"+s:s;}
   // H14: duplicados marcados con evidencia. Se excluyen de todo indicador; el registro no se modifica.
@@ -615,7 +641,7 @@ var CXMetrics=(function(){
     s.rate=s.contactados?s.respondieron/s.contactados:null;
     return s;
   }
-  return {norm,number,median,isCancel,state,cancelOutcome,cancelWorkflow,closed,pending,isPending,knownState,category,days,score,csat,nps,months,matches,group,retention,dedup,qualityIssues,validateCancelDate,cancelBucket,cancelSummary,setResolutionQuality,resolutionQuality,resolutionStats,resolutionByMonth,fmtDays,isTestCampaign,campaignStats,MIN_NPS_N,isTestRecord,mty,mtyHoy,canon,setDuplicates,duplicateOf,csvSafe,reclassifyTicket,MIN_BASE,hasCancelReason,cancelReason,phoneKey,clientKey,clientLabel,atRisk};
+  return {norm,number,median,isCancel,state,cancelOutcome,cancelWorkflow,closed,pending,isPending,knownState,category,days,score,csat,nps,months,matches,group,retention,dedup,qualityIssues,validateCancelDate,cancelBucket,cancelSummary,setResolutionQuality,resolutionQuality,resolutionStats,resolutionByMonth,fmtDays,isTestCampaign,campaignStats,MIN_NPS_N,isTestRecord,mty,mtyHoy,canon,setDuplicates,duplicateOf,csvSafe,reclassifyTicket,SLA,businessHours,addBusinessDays,slaOf,slaSummary,MIN_BASE,hasCancelReason,cancelReason,phoneKey,clientKey,clientLabel,atRisk};
 })();
 // CX_METRICS_END
 
@@ -799,6 +825,8 @@ async function cxFetchData(){
     });
     tOff+=data.length;
   }
+  // SLA: hora del primer mensaje de una agente por folio (vista legacy.cx_primera_respuesta, sin texto de mensajes)
+  try{const{data,error}=await sb.from('cx_primera_respuesta').select('folio,primera_respuesta_at').limit(5000);if(error)throw error;var fr={};data.forEach(x=>{fr[x.folio]=x.primera_respuesta_at;});nextData.forEach(r=>{if(r._tk)r._tk._primera_respuesta_at=fr[r._tk.folio]||null;});cxLoad.slaFr=true;}catch(e){cxLoad.slaFr=false;}
   nextData.forEach(CXMetrics.canon);   // H12: un solo catálogo para histórico y bot
   return CXMetrics.dedup(nextData);
 }
@@ -1029,9 +1057,19 @@ function cxKpiCierre(){
   var kind=rs.measurable?'res_ok':'res_missing',title=rs.measurable?'Finalizados con fecha de cierre confiable':'Finalizados sin fecha de cierre confiable';
   return '<button type="button" class="kpi cx-kpi" title="Mediana de días entre apertura y cierre. Solo se calcula si al menos '+Math.round(rs.minCoverage*100)+'% de los finalizados tiene fecha de cierre confiable." onclick="cxShowCases(\''+kind+'\',\''+title+'\')"><span class="lbl">Tiempo de cierre (mediana)</span><span class="val"'+(rs.measurable?'':' style="color:var(--text3)"')+'>'+val+'</span><span class="cx-kpi-hint">'+hint+'</span></button>';
 }
+function cxKpiSLA(){
+  if(cxLoad.error&&!cxLoad.updated)return '';
+  var s=CXMetrics.slaSummary(filtered);if(!s.cx)return '';
+  var card=function(kind,title,lbl,val,hint,gris){return '<button type="button" class="kpi cx-kpi" onclick="cxShowCases(\''+kind+'\',\''+title+'\')"><span class="lbl">'+lbl+'</span><span class="val"'+(gris?' style="color:var(--text3)"':'')+'>'+val+'</span><span class="cx-kpi-hint">'+hint+'</span></button>';};
+  var pct=function(p,n){return p==null?'Sin datos':p+'%';},ref=function(n){return n<CXMetrics.MIN_BASE?' · solo referencia':'';};
+  var frHint=cxLoad.slaFr===false?'Sin acceso a la primera respuesta':s.fr_n?s.fr.cumple+' de '+s.fr_n+' a tiempo'+ref(s.fr_n)+' · desde 12-oct':'Sin tickets con atención ligada';
+  return card('sla_fr_tarde','Primera respuesta fuera de SLA','Primera respuesta en SLA',cxLoad.slaFr===false?'—':pct(s.fr_pct),frHint,s.fr_n<CXMetrics.MIN_BASE)+
+    card('sla_res_tarde','Resueltos fuera de SLA','Resolución en SLA',pct(s.res_pct),s.res_n?s.res.cumple+' de '+s.res_n+' con fecha confiable'+ref(s.res_n)+' · sin cancelaciones':'Sin cierres con fecha confiable',s.res_n<CXMetrics.MIN_BASE)+
+    card('sla_vencidos','Tickets vencidos (abiertos fuera de SLA)','Vencidos ahora',s.vencidos.toLocaleString(),s.res.por_vencer+' por vencer en 4 h hábiles · Ver casos →',false);
+}
 function renderKPIs(){
   var items=[['all','Casos del período','Todos los casos'],['pending','Pendientes','Pendientes'],['escalated','Escalados','Escalados'],['cancel','Cancelaciones en proceso','Cancelaciones en proceso'],['closed','Finalizados','Finalizados']];
-  document.getElementById('kpis').innerHTML='<div class="kpi-row cx-kpis">'+items.map(([k,l,title])=>'<button type="button" class="kpi cx-kpi" onclick="cxShowCases(\''+k+'\',\''+title+'\')"><span class="lbl">'+l+'</span><span class="val">'+(cxLoad.error&&!cxLoad.updated?'—':CXMetrics.group(filtered,k).length.toLocaleString())+'</span><span class="cx-kpi-hint">Ver casos →</span></button>').join('')+cxKpiCierre()+'</div>';
+  document.getElementById('kpis').innerHTML='<div class="kpi-row cx-kpis">'+items.map(([k,l,title])=>'<button type="button" class="kpi cx-kpi" onclick="cxShowCases(\''+k+'\',\''+title+'\')"><span class="lbl">'+l+'</span><span class="val">'+(cxLoad.error&&!cxLoad.updated?'—':CXMetrics.group(filtered,k).length.toLocaleString())+'</span><span class="cx-kpi-hint">Ver casos →</span></button>').join('')+cxKpiCierre()+cxKpiSLA()+'</div>';
 }
 
 
