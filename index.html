@@ -1123,7 +1123,7 @@ function regOpenModal(idx){
     fields=[
       {l:'Folio',v:r.folio_ticket},{l:'Fecha',v:r.fecha_de_la_solicitud},
       {l:'Teléfono',v:r.telefono},{l:'Nombre',v:r.nombre_del_cliente_nuevo,ed:'nombre',sa:true,wa:true},
-      {l:'Empresa',v:r.propiedad,ed:'empresa',sa:true,wa:true},{l:'Correo',v:r.correo},
+      {l:'Sucursal',v:r.propiedad,ed:'empresa',wa:true},{l:'Correo',v:r.correo},
       {l:'Servicio',v:r.tipo_de_servicio},{l:'Tipo',v:r.tipo_de_incidencia},
       {l:'Categoría',v:r.categora},{l:'Subtipo',v:r.submotvio},
       {l:'Prioridad',v:r._prioridad,badge:'pri'},
@@ -2513,14 +2513,16 @@ function tkOpenModal(idx){
   // Zona editable
   var curZona=r.zona||'';
   h+='<div class="detail-item full" style="background:var(--surface2);padding:14px;border-radius:6px;margin-bottom:8px;border:1px solid var(--border)">';
-  h+='<div class="detail-label">Zona</div>';
+  h+='<div class="detail-label">Zona y sucursal <span style="font-weight:400;color:var(--text3)">· obligatorias para cerrar</span></div>';
   h+='<div style="display:flex;align-items:center;gap:12px;margin-top:4px">';
   h+='<select class="status-select" id="tk-zona-sel" onchange="tkChangeZona()">';
   h+='<option value="">Sin asignar</option>';
   ['Matriz','Centro','Sur','Bajío','Noreste','Noroeste','Pacífico'].forEach(z=>{h+='<option value="'+z+'"'+(curZona===z?' selected':'')+'>'+z+'</option>';});
   h+='</select>';
   h+='<span class="status-msg" id="tk-zona-msg"></span>';
-  h+='</div></div>';
+  h+='</div>';
+  h+='<div style="display:flex;align-items:center;gap:12px;margin-top:8px"><input class="finput" id="tk-suc-in" placeholder="Sucursal" value="'+esc(r.empresa||'')+'" onchange="tkChangeSucursal()" style="margin:0;max-width:280px"'+(puedeEditar()?'':' disabled')+'><span class="status-msg" id="tk-suc-msg"></span></div>';
+  h+='</div>';
   // Reclasificar tipo — admin only
   if(puedeEditar()){
     var esCancActual=(r.tipo||'').toLowerCase().includes('cancelac');
@@ -2648,12 +2650,23 @@ async function tkChangeZona(){
     if(error)throw error;
     r.zona=newZona;
     var match=allData.find(d=>d._source==='whatsapp'&&d._tk===r);
-    if(match)match.zona=newZona;
+    if(match){match.zona=newZona;CXMetrics.canon(match);}
     msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';_refreshVista();
     setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
   }catch(e){
     msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';
   }
+}
+async function tkChangeSucursal(){
+  var r=tkFiltered[_tkModalIdx];if(!r)return;
+  var val=document.getElementById('tk-suc-in').value.trim(),msgEl=document.getElementById('tk-suc-msg');
+  msgEl.textContent='Guardando...';msgEl.style.color='var(--blue)';
+  try{
+    const{error}=await sb.from('tickets').update({empresa:val||null}).eq('folio',r.folio);
+    if(error)throw error;
+    r.empresa=val;var match=allData.find(d=>d._source==='whatsapp'&&d._tk===r);if(match)match.propiedad=val;
+    tkOpenModal(_tkModalIdx);msgEl=document.getElementById('tk-suc-msg');msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
+  }catch(e){msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';}
 }
 function tkCloseModal(){document.getElementById('tk-modal').classList.remove('on');document.body.classList.remove('detail-open');document.body.style.overflow='';_regModalIdx=null;_marcarFilaActiva(null);}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')tkCloseModal();});
