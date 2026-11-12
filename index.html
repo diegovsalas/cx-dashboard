@@ -316,9 +316,7 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
 <div class="filter-bar" id="filters-canc">
 <span class="flabel" style="margin:0">Filtros:</span>
 <select id="canc-f-stcanc" onchange="cancApply()"><option value="">Status Cancelación: Todos</option></select>
-<select id="canc-f-servicio" onchange="cancApply()"><option value="">Servicio: Todos</option></select>
-<select id="canc-f-anio" onchange="cancApply()"><option value="">Año: Todos</option></select>
-<select id="canc-f-mes" onchange="cancApply()"><option value="">Mes: Todos</option></select>
+<span class="cx-periodo" id="canc-periodo"></span>
 <input class="tbl-search" id="canc-search" placeholder="Buscar..." oninput="cancApply()" style="min-width:200px">
 <button class="btn-clear" onclick="cancClear()">Limpiar</button>
 <span class="active-filters" id="af-canc"></span>
@@ -336,9 +334,7 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
 <div style="margin-bottom:16px;"><h2 style="font-size:22px;font-weight:800;"><i class="fa-solid fa-chart-pie" style="color:#6366f1"></i> Análisis CX</h2><p style="font-size:13px;color:var(--text2);margin-top:4px;">Mapa de motivos de cancelación e incidencias recurrentes</p></div>
 <div class="filter-bar" id="filters-an">
 <span class="flabel" style="margin:0">Filtros:</span>
-<select id="an-f-anio" onchange="anApply()"><option value="">Año: Todos</option></select>
-<select id="an-f-mes" onchange="anApply()"><option value="">Mes: Todos</option></select>
-<select id="an-f-servicio" onchange="anApply()"><option value="">Servicio: Todos</option></select>
+<span class="cx-periodo" id="an-periodo"></span>
 <button class="btn-clear" onclick="anClear()">Limpiar</button>
 <span class="active-filters" id="af-an"></span>
 </div>
@@ -351,8 +347,8 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
 <div style="margin-bottom:16px;"><h2 style="font-size:22px;font-weight:800;"><i class="fa-brands fa-whatsapp" style="color:#25d366"></i> Tickets WhatsApp</h2><p style="font-size:13px;color:var(--text2);margin-top:4px;">Tickets generados desde el bot de WhatsApp</p></div>
 <div class="filter-bar" id="filters-tickets">
 <span class="flabel" style="margin:0">Filtros:</span>
+<span class="cx-periodo" id="tk-periodo"></span>
 <select id="tk-f-estatus" onchange="tkApply()"><option value="">Estatus: Todos</option></select>
-<select id="tk-f-servicio" onchange="tkApply()"><option value="">Servicio: Todos</option></select>
 <select id="tk-f-calidad" onchange="tkApply()"><option value="">Calidad: Todos</option><option value="incompletos">Cancelaciones con datos incompletos</option></select>
 <button class="btn-clear" onclick="tkClear()">Limpiar</button>
 <span class="active-filters" id="af-tickets"></span>
@@ -492,7 +488,7 @@ const PAL=['#2563eb','#059669','#d97706','#dc2626','#7c3aed','#ec4899','#0891b2'
 var _moNombres=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 var _cxToday=new Intl.DateTimeFormat('en-CA',{timeZone:'America/Monterrey',year:'numeric',month:'2-digit'}).formatToParts(new Date());
 let F={tipo_solicitud:'',anio:_cxToday.find(p=>p.type==='year').value,mes:_moNombres[Number(_cxToday.find(p=>p.type==='month').value)-1],tipo_servicio:'',origen:'whatsapp',zona:'',status:'',tipo_incidencia:'',ejecutivo:''};
-let cxLoad={busy:false,error:'',updated:null},cxDetail={kind:'pending',label:'Pendientes',rows:[],page:0};
+let cxLoad={busy:false,error:'',updated:null,pruebas:0},cxDetail={kind:'pending',label:'Pendientes',rows:[],page:0};
 
 // CX_METRICS_START: funciones de cálculo sin acceso a red ni DOM.
 var CXMetrics=(function(){
@@ -539,6 +535,11 @@ var CXMetrics=(function(){
     return issues;
   }
   function validateCancelDate(stage,result,date){if(closed(stage)&&['cancelada','cancelado por morosidad'].includes(norm(result))&&!/^\d{4}-\d{2}-\d{2}$/.test(date||''))throw new Error('Indica la fecha efectiva de baja antes de cerrar.');}
+  // H9: un solo criterio de registros de prueba para todas las pantallas. Solo la marca explícita
+  // que escribe el equipo («ticket de prueba») o un nombre de cliente «prueba/test»; frases como
+  // «mes de prueba» o «canalizado con Rubi Montoya» son casos reales y no se excluyen.
+  var TEST_TEXT=/\b(ticket|registro|caso)s?\s+(de\s+)?prueba\b/i,TEST_NAME=/(^|[^a-z])(prueba|test)([^a-z]|$)/i;
+  function isTestRecord(r){var t=r&&r._tk;var txt=t?[t.diagnostico,t.causa_raiz,t.causa_raiz_cancelacion,t.comentarios_de_seguimiento]:[r.anlisis_de_causa_raz,r.comentarios_de_seguimiento,r.causa_raiz_cancelacion];var names=t?[t.nombre]:[r.nombre_del_cliente_nuevo,r.titular_del_servicio];return txt.some(function(v){return TEST_TEXT.test(String(v||''));})||names.some(function(v){return TEST_NAME.test(String(v||''));});}
   // H7: campañas por cliente (no por envío), sin filas de prueba y con base mínima para publicar el NPS.
   var MIN_NPS_N=30;
   function isTestCampaign(r){return /test|prueba/i.test(String(r.campania||''));}
@@ -559,7 +560,7 @@ var CXMetrics=(function(){
     s.rate=s.contactados?s.respondieron/s.contactados:null;
     return s;
   }
-  return {norm,number,median,isCancel,state,cancelOutcome,cancelWorkflow,closed,pending,isPending,category,days,score,csat,nps,months,matches,group,retention,dedup,qualityIssues,validateCancelDate,cancelBucket,cancelSummary,setResolutionQuality,resolutionQuality,resolutionStats,resolutionByMonth,fmtDays,isTestCampaign,campaignStats,MIN_NPS_N};
+  return {norm,number,median,isCancel,state,cancelOutcome,cancelWorkflow,closed,pending,isPending,category,days,score,csat,nps,months,matches,group,retention,dedup,qualityIssues,validateCancelDate,cancelBucket,cancelSummary,setResolutionQuality,resolutionQuality,resolutionStats,resolutionByMonth,fmtDays,isTestCampaign,campaignStats,MIN_NPS_N,isTestRecord};
 })();
 // CX_METRICS_END
 
@@ -637,7 +638,7 @@ function _normMes(m){if(!m)return'';var k=m.trim().toLowerCase();return _mesMap[
 async function loadData(){
   if(cxLoad.busy)return false;
   cxLoad.busy=true;cxStatus();
-  try{var data=await cxFetchData();allData=data;cxLoad.error='';cxLoad.updated=new Date();return true;}
+  try{var data=await cxFetchData();cxLoad.pruebas=data.filter(CXMetrics.isTestRecord).length;allData=data.filter(function(r){return !CXMetrics.isTestRecord(r);});cxLoad.error='';cxLoad.updated=new Date();return true;}
   catch(e){cxLoad.error=e.message||'Error de conexión';return false;}
   finally{cxLoad.busy=false;cxStatus();}
 }
@@ -760,22 +761,8 @@ function goPage(p){
 
 // ===================== ANÁLISIS CX =====================
 let anReady=false;
-function loadAnalisis(){
-  {
-    ['an-f-anio','an-f-mes','an-f-servicio'].forEach(id=>{var el=document.getElementById(id);el.dataset.previous=el.value;el.innerHTML='<option value="">Todos</option>';});
-    var mo=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-    var anios=[...new Set(allData.map(r=>r._anio).filter(Boolean))].sort((a,b)=>String(b).localeCompare(String(a)));
-    var meses=[...new Set(allData.map(r=>r.mes).filter(Boolean))].sort((a,b)=>mo.indexOf(a)-mo.indexOf(b));
-    var servs=[...new Set([...CX_SERVICE_CATALOG,...allData.map(r=>r.tipo_de_servicio).filter(Boolean)])].sort();
-    var sa=document.getElementById('an-f-anio');anios.forEach(a=>sa.insertAdjacentHTML('beforeend','<option value="'+esc(a)+'">'+esc(a)+'</option>'));
-    var sm=document.getElementById('an-f-mes');meses.forEach(m=>sm.insertAdjacentHTML('beforeend','<option value="'+esc(m)+'">'+esc(m)+'</option>'));
-    var ss=document.getElementById('an-f-servicio');servs.forEach(s=>ss.insertAdjacentHTML('beforeend','<option value="'+esc(s)+'">'+esc(s)+'</option>'));
-    anReady=true;
-    ['an-f-anio','an-f-mes','an-f-servicio'].forEach(id=>{var el=document.getElementById(id);el.value=el.dataset.previous||'';});
-  }
-  anApply();
-}
-function anClear(){['an-f-anio','an-f-mes','an-f-servicio'].forEach(id=>document.getElementById(id).value='');anApply();}
+function loadAnalisis(){buildPeriodo('an-periodo',true);anReady=true;anApply();}
+function anClear(){clearF();buildPeriodo('an-periodo',true);anApply();}
 function _anEsCanc(r){return (r.tipo_de_solicitud||'')==='Solicitud de Cancelación'||/cancelac/i.test(r.tipo_de_incidencia||'');}
 function _anTema(r){
   // En WhatsApp la clasificación documentada prevalece sobre palabras de otros campos.
@@ -825,17 +812,10 @@ function _anBars(title,counter,total,color){
   return h+'</div>';
 }
 function anApply(){
-  var fa=document.getElementById('an-f-anio').value,fm=document.getElementById('an-f-mes').value,fs=document.getElementById('an-f-servicio').value;
-  var esPrueba=function(r){var b=((r.causa_raiz_cancelacion||'')+(r.causa_raiz||'')+(r.nombre_del_cliente_nuevo||'')+(r.propiedad||'')).toLowerCase();return b.indexOf('prueba')>=0||b.indexOf('rubi montoya')>=0;};
-  var base=allData.filter(function(r){
-    if(fa&&r._anio!==fa)return false;
-    if(fm&&r.mes!==fm)return false;
-    if(fs&&r.tipo_de_servicio!==fs)return false;
-    if(esPrueba(r))return false;
-    return true;
-  });
-  var nf=(fa?1:0)+(fm?1:0)+(fs?1:0);
-  document.getElementById('af-an').textContent=nf?(nf+' filtro'+(nf>1?'s':'')+' · '+base.length+' registros'):base.length+' registros';
+  var fa=F.mes?(F.mes+' '+(F.anio||'')).trim():F.anio;
+  var base=allData.filter(function(r){return _cxPeriodo(r,true);});
+  var nf=_cxNumPeriodo(true);
+  document.getElementById('af-an').textContent=(nf?nf+' filtro'+(nf>1?'s':'')+' · ':'')+base.length+' registros'+_cxPruebasTxt();
   var canc=base.filter(CXMetrics.isCancel),inci=base.filter(r=>r.tipo_de_solicitud==='Incidencia / Queja'),other=base.length-canc.length-inci.length;
   var outcomes=CXMetrics.retention(canc);
   var nCancel=outcomes.lost,nReten=outcomes.kept,cerrados=nCancel+nReten,abiertos=outcomes.open,tasa=outcomes.rate;
@@ -908,13 +888,30 @@ function buildFB(cid){
 }
 
 
-function onF(sel){F[sel.dataset.fkey]=sel.value;document.querySelectorAll('select[data-fkey="'+sel.dataset.fkey+'"]').forEach(s=>{s.value=sel.value;});cxClearDetail();applyFilters();}
+function onF(sel){F[sel.dataset.fkey]=sel.value;document.querySelectorAll('select[data-fkey="'+sel.dataset.fkey+'"]').forEach(s=>{s.value=sel.value;});cxClearDetail();applyFilters();_cxAplicarPagina();}
+// H9: Cancelaciones, Análisis y Tickets usan el mismo año, mes, servicio y origen que el Resumen (estado F).
+function _cxPruebasTxt(){return cxLoad.pruebas?' · '+cxLoad.pruebas+' de prueba excluidos':'';}
+function _cxAplicarPagina(){if(curPage==='cancelaciones')cancApply();else if(curPage==='analisis')anApply();else if(curPage==='tickets')tkApply();}
+function buildPeriodo(cid,conOrigen){
+  var el=document.getElementById(cid);if(!el)return;
+  var defs=[{key:'anio',label:'Año',col:'_anio'},{key:'mes',label:'Mes de creación',col:'mes'},{key:'tipo_servicio',label:'Servicio',col:'tipo_de_servicio'}];
+  if(conOrigen)defs.push({key:'origen',label:'Origen',col:'_source'});
+  el.innerHTML=defs.map(function(d){
+    var vals=[...new Set(allData.map(r=>r[d.col]).filter(v=>v!=null&&String(v).trim()!==''))];
+    if(d.key==='tipo_servicio')vals=[...new Set([...CX_SERVICE_CATALOG,...vals])];
+    if(F[d.key]&&!vals.includes(F[d.key]))vals.push(F[d.key]);
+    if(d.key==='anio')vals.sort((a,b)=>String(b).localeCompare(String(a)));else if(d.key==='mes')vals.sort((a,b)=>_moNombres.indexOf(a)-_moNombres.indexOf(b));else vals.sort();
+    return '<label style="font-size:13px">'+d.label+' <select aria-label="'+d.label+'" data-fkey="'+d.key+'" onchange="onF(this)"><option value="">Todos</option>'+vals.map(v=>'<option value="'+esc(String(v))+'"'+(F[d.key]===v?' selected':'')+'>'+esc(String(d.key==='origen'?(v==='whatsapp'?'Tickets del bot':'Histórico'):v))+'</option>').join('')+'</select></label>';
+  }).join('');
+}
+function _cxPeriodo(r,conOrigen){return (!F.anio||String(r._anio)===F.anio)&&(!F.mes||r.mes===F.mes)&&(!F.tipo_servicio||r.tipo_de_servicio===F.tipo_servicio)&&(!conOrigen||!F.origen||r._source===F.origen);}
+function _cxNumPeriodo(conOrigen){return (F.anio?1:0)+(F.mes?1:0)+(F.tipo_servicio?1:0)+(conOrigen&&F.origen?1:0);}
 
 function clearF(){Object.keys(F).forEach(k=>F[k]='');buildFilters();cxClearDetail();applyFilters();}
 function applyFilters(){
   filtered=allData.filter(r=>CXMetrics.matches(r,F));
   var n=Object.values(F).filter(Boolean).length;
-  ['filters-dash','filters-reg'].forEach(id=>{var el=document.getElementById('af-'+id);if(el)el.textContent=filtered.length+' de '+allData.length+' casos · '+n+' filtros';});
+  ['filters-dash','filters-reg'].forEach(id=>{var el=document.getElementById('af-'+id);if(el)el.textContent=filtered.length+' de '+allData.length+' casos · '+n+' filtros'+_cxPruebasTxt();});
   updateDashboardTitle();renderTipoSolicitudTabs();renderKPIs();renderCharts();cxRenderSummary();tblPg=0;
   if(curPage==='registros')renderRegistros();
 }
@@ -2257,40 +2254,26 @@ function loadCancelaciones(){
   cancBuildFilters();cancApply();
 }
 
-var _cancMesInicial=true;
 function cancBuildFilters(){
-  var ids=['canc-f-stcanc','canc-f-servicio','canc-f-anio','canc-f-mes'];var previous=ids.map(id=>document.getElementById(id).value),initial=_cancMesInicial;
+  var prev=document.getElementById('canc-f-stcanc').value;
   var stCanc=[...new Set(cancAll.map(r=>r.status_cancelacion).filter(v=>v!=null&&String(v).trim()!==''))].sort();
-  var servicios=[...new Set([...CX_SERVICE_CATALOG,...cancAll.map(r=>r.tipo_de_servicio).filter(v=>v!=null&&String(v).trim()!=='')])].sort();
-  var moOrd=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
-  var anios=[...new Set(cancAll.map(r=>r._anio).filter(v=>v!=null&&String(v).trim()!==''))].sort((a,b)=>String(b).localeCompare(String(a)));
   document.getElementById('canc-f-stcanc').innerHTML='<option value="">Status Cancelación: Todos</option>'+stCanc.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
-  document.getElementById('canc-f-servicio').innerHTML='<option value="">Servicio: Todos</option>'+servicios.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
-  var anioActual=String(new Date().getFullYear());
-  document.getElementById('canc-f-anio').innerHTML='<option value="">Año: Todos</option>'+anios.map(v=>'<option value="'+esc(v)+'"'+((_cancMesInicial&&v===anioActual)?' selected':'')+'>'+esc(v)+'</option>').join('');
-  // Mes actual preseleccionado la primera vez
-  var mesActual=moOrd[new Date().getMonth()];
-  document.getElementById('canc-f-mes').innerHTML='<option value="">Mes: Todos</option>'+moOrd.map(v=>'<option value="'+v+'"'+((_cancMesInicial&&v===mesActual)?' selected':'')+'>'+v+'</option>').join('');
-  if(_cancMesInicial){document.getElementById('canc-f-mes').value=mesActual;document.getElementById('canc-f-anio').value=anioActual;_cancMesInicial=false;}
-  if(!initial)ids.forEach((id,i)=>document.getElementById(id).value=previous[i]);
+  document.getElementById('canc-f-stcanc').value=prev;
+  buildPeriodo('canc-periodo',true);
 }
 
 function cancApply(){
   var fsc=document.getElementById('canc-f-stcanc').value;
-  var fv=document.getElementById('canc-f-servicio').value;
-  var fa=document.getElementById('canc-f-anio').value;
-  var fm=document.getElementById('canc-f-mes').value;
+  var fv=F.tipo_servicio,fa=F.anio,fm=F.mes,fo=F.origen;
   var q=(document.getElementById('canc-search').value||'').toLowerCase().trim();
   cancFiltered=cancAll.filter(r=>{
     if(fsc&&r.status_cancelacion!==fsc)return false;
-    if(fv&&r.tipo_de_servicio!==fv)return false;
-    if(fa&&r._anio!==fa)return false;
-    if(fm&&r.mes!==fm)return false;
+    if(!_cxPeriodo(r,true))return false;
     if(q&&!inc(r.folio_ticket,q)&&!inc(r.folio,q)&&!inc(r.nombre_del_cliente_nuevo,q)&&!inc(r.propiedad,q)&&!inc(r.motivo_de_cancelacin,q)&&!inc(r.ejecutivo_asignado,q)&&!inc(r.telefono,q))return false;
     return true;
   });
-  var nf=(fsc?1:0)+(fv?1:0)+(fa?1:0)+(fm?1:0);
-  document.getElementById('af-canc').textContent=nf?nf+' filtro'+(nf>1?'s':'')+' · '+cancFiltered.length+' de '+cancAll.length:'';
+  var nf=(fsc?1:0)+_cxNumPeriodo(true);
+  document.getElementById('af-canc').textContent=(nf?nf+' filtro'+(nf>1?'s':'')+' · ':'')+cancFiltered.length+' de '+cancAll.length+_cxPruebasTxt();
   // KPIs con desglose por status_cancelacion (lista respeta fecha de creación)
   var total=cancFiltered.length;
   // Un solo criterio para conteos, montos y retención (CXMetrics.cancelBucket).
@@ -2305,6 +2288,7 @@ function cancApply(){
     var basePool=cancAll.filter(r=>{
       if(fsc&&r.status_cancelacion!==fsc)return false;
       if(fv&&r.tipo_de_servicio!==fv)return false;
+      if(fo&&r._source!==fo)return false;
       if(q&&!inc(r.folio_ticket,q)&&!inc(r.folio,q)&&!inc(r.nombre_del_cliente_nuevo,q)&&!inc(r.propiedad,q)&&!inc(r.motivo_de_cancelacin,q)&&!inc(r.ejecutivo_asignado,q)&&!inc(r.telefono,q))return false;
       if(fa&&String(r._anio_efectivo)!==fa)return false;
       if(fm&&r._mes_efectivo!==fm)return false;
@@ -2359,7 +2343,7 @@ function cancApply(){
   cancPg=0;cancRender();
 }
 
-function cancClear(){document.getElementById('canc-f-stcanc').value='';document.getElementById('canc-f-servicio').value='';document.getElementById('canc-f-anio').value='';document.getElementById('canc-f-mes').value='';document.getElementById('canc-search').value='';cancApply();}
+function cancClear(){document.getElementById('canc-f-stcanc').value='';document.getElementById('canc-search').value='';clearF();buildPeriodo('canc-periodo',true);cancApply();}
 
 function cancRender(){
   var tp=Math.ceil(cancFiltered.length/CANC_LIM),pg=cancFiltered.slice(cancPg*CANC_LIM,(cancPg+1)*CANC_LIM);
@@ -2407,37 +2391,36 @@ function cancPgNext(){var tp=Math.ceil(cancFiltered.length/CANC_LIM);if(cancPg<t
 let tkAll=[],tkFiltered=[],tkPg=0;
 const TK_LIM=50;
 
+var _tkFila=new Map();
 function loadTickets(){
-  tkAll=allData.filter(r=>r._source==='whatsapp').map(r=>r._tk);
+  _tkFila=new Map();tkAll=allData.filter(r=>r._source==='whatsapp').map(r=>{_tkFila.set(r._tk,r);return r._tk;});
   tkBuildFilters();tkApply();
 }
 
 function tkBuildFilters(){
-  var previousStatus=document.getElementById('tk-f-estatus').value,previousService=document.getElementById('tk-f-servicio').value;
+  var previousStatus=document.getElementById('tk-f-estatus').value;buildPeriodo('tk-periodo',false);
   var estatus=[...new Set(tkAll.map(r=>r.estatus).filter(v=>v!=null&&String(v).trim()!==''))].sort();
-  var servicios=[...new Set([...CX_SERVICE_CATALOG,...tkAll.map(r=>r.servicio).filter(v=>v!=null&&String(v).trim()!=='')])].sort();
-  var se=document.getElementById('tk-f-estatus'),ss=document.getElementById('tk-f-servicio');
+  var se=document.getElementById('tk-f-estatus');
   se.innerHTML='<option value="">Estatus: Todos</option>'+estatus.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
-  ss.innerHTML='<option value="">Servicio: Todos</option>'+servicios.map(v=>'<option value="'+esc(v)+'">'+esc(v)+'</option>').join('');
-  se.value=previousStatus;ss.value=previousService;
+  se.value=previousStatus;
 }
 
 function tkApply(){
-  var fe=document.getElementById('tk-f-estatus').value,fs=document.getElementById('tk-f-servicio').value;
+  var fe=document.getElementById('tk-f-estatus').value;
   var q=(document.getElementById('tk-search').value||'').toLowerCase().trim();
   tkFiltered=tkAll.filter(r=>{
     if(document.getElementById('tk-f-calidad').value==='incompletos'&&!CXMetrics.qualityIssues({_tk:r,tipo_de_solicitud:r.tipo,status:r.estatus}).length)return false;
     if(fe&&r.estatus!==fe)return false;
-    if(fs&&r.servicio!==fs)return false;
+    var fila=_tkFila.get(r);if(fila&&!_cxPeriodo(fila,false))return false;
     if(q&&!inc(r.folio,q)&&!inc(r.telefono,q)&&!inc(r.nombre,q)&&!inc(r.empresa,q)&&!inc(r.servicio,q)&&!inc(r.tipo,q)&&!inc(r.categoria,q)&&!inc(r.mensaje,q)&&!inc(r.agente,q))return false;
     return true;
   });
-  var nf=(fe?1:0)+(fs?1:0)+(document.getElementById('tk-f-calidad').value?1:0);
-  document.getElementById('af-tickets').textContent=nf?nf+' filtro'+(nf>1?'s':'')+' · '+tkFiltered.length+' de '+tkAll.length+' tickets':'';
+  var nf=(fe?1:0)+_cxNumPeriodo(false)+(document.getElementById('tk-f-calidad').value?1:0);
+  document.getElementById('af-tickets').textContent=(nf?nf+' filtro'+(nf>1?'s':'')+' · ':'')+tkFiltered.length+' de '+tkAll.length+' tickets'+_cxPruebasTxt();
   tkPg=0;tkRender();
 }
 
-function tkClear(){document.getElementById('tk-f-estatus').value='';document.getElementById('tk-f-servicio').value='';document.getElementById('tk-f-calidad').value='';document.getElementById('tk-search').value='';tkApply();}
+function tkClear(){document.getElementById('tk-f-estatus').value='';clearF();buildPeriodo('tk-periodo',false);document.getElementById('tk-f-calidad').value='';document.getElementById('tk-search').value='';tkApply();}
 
 function tkRender(){
   var tp=Math.ceil(tkFiltered.length/TK_LIM),pg=tkFiltered.slice(tkPg*TK_LIM,(tkPg+1)*TK_LIM);

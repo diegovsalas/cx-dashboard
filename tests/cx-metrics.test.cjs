@@ -88,3 +88,13 @@ test('H7: NPS publicable solo con la base mínima de clientes',()=>{
   const rows=Array.from({length:M.MIN_NPS_N},(_,i)=>({template_name:'nps_avantex',telefono:'52811000'+String(1000+i),estado:'respondido',respuesta_score:i<20?10:0}));
   const s=M.campaignStats(rows,'nps_avantex');assert.equal(s.measurable,true);assert.equal(s.value,Math.round(100*(20-10)/30));
 });
+test('H9: una sola regla de pruebas; frases de casos reales no se excluyen',()=>{
+  const tk=t=>({_source:'whatsapp',_tk:t});
+  assert.equal(M.isTestRecord(tk({diagnostico:'TICKET DE PRUEBA RUBI MONTOYA'})),true);
+  assert.equal(M.isTestRecord(tk({causa_raiz_cancelacion:'TICKET DE PRUEBA 28 OCTUBRE 2026'})),true);
+  assert.equal(M.isTestRecord(tk({nombre:'Diego Velázquez prueba'})),true);
+  assert.equal(M.isTestRecord(tk({causa_raiz:'Conversación Aromatex RUBI MONTOYA'})),false);
+  assert.equal(M.isTestRecord(tk({oferta_retencion:'1 mes sin costo, de prueba',diagnostico:'cliente lo tomara de prueba'})),false);
+  assert.equal(M.isTestRecord({anlisis_de_causa_raz:'Insatisfacción con aroma de prueba'}),false);
+  assert.equal(M.isTestRecord(tk({nombre:'Pruebas Laboratorio SA'})),false);
+});
