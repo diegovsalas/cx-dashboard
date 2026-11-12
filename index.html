@@ -335,6 +335,7 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
 <div class="filter-bar" id="filters-an">
 <span class="flabel" style="margin:0">Filtros:</span>
 <span class="cx-periodo" id="an-periodo"></span>
+<label style="font-size:13px">Motivos <select id="an-vista-motivos" onchange="anApply()"><option value="detalle">Motivo declarado y detalle</option><option value="grupos">Grupos unificados</option></select></label>
 <button class="btn-clear" onclick="anClear()">Limpiar</button>
 <span class="active-filters" id="af-an"></span>
 </div>
@@ -483,6 +484,7 @@ const EDITOR_EMAILS=['itzelramirez@grupoavantex.com','johanamartinez@grupoavante
 function puedeEditar(){return user&&(isAdmin()||EDITOR_EMAILS.includes(user.email.toLowerCase()));}
 function puedeEscalar(){return user&&(isAdmin()||ESCALATE_EMAILS.includes(user.email.toLowerCase()));}
 const LIM=50;
+const CX_MOTIVOS_CANC=['Fallo de servicio','Calidad del aroma','Económico','Bajo uso','Fin de contrato','Cierre de operación','Reubicación','Cambio de proveedor','Insatisfacción general','Temporal','Otro'];
 const CX_SERVICE_CATALOG=['Aromatex','Pestex','Weldex','Café Origen Selecto'];
 const PAL=['#2563eb','#059669','#d97706','#dc2626','#7c3aed','#ec4899','#0891b2','#65a30d','#ea580c','#6366f1','#14b8a6','#e11d48'];
 var _moNombres=['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
@@ -560,6 +562,12 @@ var CXMetrics=(function(){
   function clientKey(r){var t=r._tk;var k=t?phoneKey(t.telefono):'';if(k)return 'tel:'+k;var n=norm(r.propiedad||r.nombre_del_cliente_nuevo||'').replace(/[^a-z0-9 ]/g,' ').replace(/\s+/g,' ').trim();return n?'txt:'+n:'';}
   function clientLabel(r){return r.propiedad||r.nombre_del_cliente_nuevo||(r._tk&&r._tk.telefono?'Tel. …'+phoneKey(r._tk.telefono).slice(-4):'(sin identificar)');}
   function atRisk(rows,min){var g={};rows.forEach(function(r){var k=clientKey(r);if(!k)return;(g[k]=g[k]||{key:k,n:0,label:'',fecha:''}).n++;var f=String(r.fecha_de_la_solicitud||'');if(f>=g[k].fecha){g[k].fecha=f;g[k].label=clientLabel(r);}});return Object.values(g).filter(function(x){return x.n>=(min||2);}).sort(function(a,b){return b.n-a.n;});}
+  // Base mínima para reportar porcentajes de motivos y tasas de retención.
+  var MIN_BASE=30;
+  var SIN_MOTIVO=['','cancelacion de servicio','solicitud operativa','pendiente de clasificacion'];
+  function hasCancelReason(cat){return SIN_MOTIVO.indexOf(norm(cat))<0;}
+  // Motivo declarado (bot: categoría elegida/clasificada; histórico: tema estimado por texto).
+  function cancelReason(r,temaHistorico){if(r._source!=='whatsapp')return 'Histórico · '+(temaHistorico?temaHistorico(r):'sin clasificar');var c=String(r.categora||(r._tk&&r._tk.categoria)||'').trim();if(!hasCancelReason(c))return 'Sin motivo capturado';var d=String(r.submotvio||(r._tk&&r._tk.subtipo)||'').trim();return d&&norm(d)!==norm(c)&&!/^otr[ao]/i.test(d)?c+' · '+d:c;}
   // H14: duplicados marcados con evidencia. Se excluyen de todo indicador; el registro no se modifica.
   var _dups={};
   function setDuplicates(rows){_dups={};(rows||[]).forEach(function(d){_dups[d.fuente+':'+String(d.registro).toUpperCase()]=d;});}
@@ -589,7 +597,7 @@ var CXMetrics=(function(){
     s.rate=s.contactados?s.respondieron/s.contactados:null;
     return s;
   }
-  return {norm,number,median,isCancel,state,cancelOutcome,cancelWorkflow,closed,pending,isPending,knownState,category,days,score,csat,nps,months,matches,group,retention,dedup,qualityIssues,validateCancelDate,cancelBucket,cancelSummary,setResolutionQuality,resolutionQuality,resolutionStats,resolutionByMonth,fmtDays,isTestCampaign,campaignStats,MIN_NPS_N,isTestRecord,mty,mtyHoy,canon,setDuplicates,duplicateOf,phoneKey,clientKey,clientLabel,atRisk};
+  return {norm,number,median,isCancel,state,cancelOutcome,cancelWorkflow,closed,pending,isPending,knownState,category,days,score,csat,nps,months,matches,group,retention,dedup,qualityIssues,validateCancelDate,cancelBucket,cancelSummary,setResolutionQuality,resolutionQuality,resolutionStats,resolutionByMonth,fmtDays,isTestCampaign,campaignStats,MIN_NPS_N,isTestRecord,mty,mtyHoy,canon,setDuplicates,duplicateOf,MIN_BASE,hasCancelReason,cancelReason,phoneKey,clientKey,clientLabel,atRisk};
 })();
 // CX_METRICS_END
 
@@ -856,13 +864,16 @@ function anApply(){
     '<div class="kpi"><div class="lbl">Casos</div><div class="val">'+base.length+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+inci.length+' incidencias · '+canc.length+' cancelaciones</div></div>'+
     '<div class="kpi c-red"><div class="lbl">Canceladas</div><div class="val">'+nCancel+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">bajas efectivas</div></div>'+
     '<div class="kpi c-green"><div class="lbl">Retenidas</div><div class="val">'+nReten+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">incl. downgrade/migración</div></div>'+
-    '<div class="kpi"><div class="lbl">Tasa de retención</div><div class="val" style="color:'+colTasa+'">'+(tasa==null?'Sin decisiones':tasa+'%')+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+nReten+'/'+cerrados+' cerrados · '+abiertos+' abiertos</div></div>';
+    '<div class="kpi"><div class="lbl">Tasa de retención</div><div class="val" style="color:'+colTasa+'">'+(tasa==null?'Sin decisiones':cerrados<CXMetrics.MIN_BASE?'Base insuficiente':tasa+'%')+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+nReten+'/'+cerrados+' cerrados · '+abiertos+' abiertos'+(tasa!=null&&cerrados<CXMetrics.MIN_BASE?' · se reporta con '+CXMetrics.MIN_BASE+'+ cerrados':'')+'</div></div>';
   // Columnas: motivos por tema | incidencias por categoría
   var temas={},cats={};
-  canc.forEach(r=>{var k=_anGrupo(r);temas[k]=(temas[k]||0)+1;});
+  var vistaMot=(document.getElementById('an-vista-motivos')||{}).value||'detalle';
+  canc.forEach(r=>{var k=vistaMot==='grupos'?_anGrupo(r):CXMetrics.cancelReason(r,_anTema);temas[k]=(temas[k]||0)+1;});
+  var avisoBase=function(n,que){return n<CXMetrics.MIN_BASE?'<div style="grid-column:1/-1;font-size:12px;padding:8px 12px;border-radius:6px;background:var(--amber-bg,#3a2e0b);color:var(--amber,#f59e0b)">Base insuficiente para porcentajes de '+que+': n='+n+' (mínimo '+CXMetrics.MIN_BASE+'). Amplía el periodo (por ejemplo, todo el año) antes de sacar conclusiones.</div>':'';};
   inci.forEach(r=>{var k=(r.categora||r.tipo_de_incidencia||'(sin categoría)').trim()||'(sin categoría)';cats[k]=(cats[k]||0)+1;});
   document.getElementById('an-cols').innerHTML=
-    _anBars('Motivos de cancelación · grupos unificados (n='+canc.length+')',temas,canc.length,'#ef4444')+
+    avisoBase(canc.length,'motivos de cancelación')+
+    _anBars('Motivos de cancelación · '+(vistaMot==='grupos'?'grupos unificados':'motivo declarado y detalle')+' (n='+canc.length+')',temas,canc.length,'#ef4444')+
     _anBars('Incidencias recurrentes · por categoría (n='+inci.length+')',cats,inci.length,'#6366f1');
   var nBot=canc.filter(r=>r._source==='whatsapp').length;
   var years=[...new Set(canc.map(r=>r._anio).filter(Boolean))].sort().join(', ');
@@ -1440,6 +1451,8 @@ function cxSimplifyCancellation(r){
     var resultValue=CXMetrics.cancelOutcome(r);if(resultValue==='Migracion')status.add(new Option('Migración (resultado existente)','Migracion'));status.value=resultValue;
     var dgFields=document.getElementById('reg-dg-fields')||outcome.querySelector('#reg-dg-fields');if(dgFields)dgFields.style.display=resultValue==='Downgrade'?'block':'none';
   }
+  if(r._source==='whatsapp'){var motAct=String(r.categora||(r._tk&&r._tk.categoria)||'').trim();var motOk=CXMetrics.hasCancelReason(motAct);
+    manage.insertAdjacentHTML('beforeend','<div class="detail-item"><div class="detail-label">Motivo de cancelación <span style="font-weight:400;color:var(--text3)">· obligatorio para cerrar</span></div><select class="status-select" id="cancel-motivo"'+(puedeEditar()?'':' disabled')+'><option value="">'+(motOk?'':'Sin motivo capturado — elige uno')+'</option>'+CX_MOTIVOS_CANC.concat(motOk&&CX_MOTIVOS_CANC.indexOf(motAct)<0?[motAct]:[]).map(m=>'<option value="'+esc(m)+'"'+(motAct===m?' selected':'')+'>'+esc(m)+'</option>').join('')+'</select></div>');}
   if(puedeEditar())manage.insertAdjacentHTML('beforeend','<label id="cancel-close-confirm" style="display:'+(stageValue==='Cerrado'?'block':'none')+';font-size:13px;margin:12px 0"><input type="checkbox" id="cancel-confirm"> Confirmo que completé las acciones aplicables de baja, conciliación o recolección y no quedan pendientes de esta gestión.</label>');
   manage.insertAdjacentHTML('beforeend','<p class="cancel-help">En negociación se registra como En proceso. Cierra únicamente cuando termine la gestión; el resultado indica si el cliente continúa, cambia su servicio o cancela.</p>');
   if(!puedeEditar())manage.querySelector('.cancel-help').textContent='Consulta del caso. Tu usuario no tiene permiso para modificar la gestión.';
@@ -1470,7 +1483,7 @@ function cxSimplifyCancellation(r){
   money.querySelector('[onclick="regSaveMonto()"]')?.remove();
   var amountInput=document.getElementById('reg-monto-input');if(amountInput&&r.facturacin_sin_iva!=null)amountInput.value=r.facturacin_sin_iva;
 
-  var controls=['cancel-stage','reg-stcanc-sel','reg-comentarios','reg-diag-previo','reg-oferta','reg-causa-raiz-canc','reg-fecha-efectiva','reg-monto-input','reg-dg-desc','reg-dg-monto'];
+  var controls=['cancel-motivo','cancel-stage','reg-stcanc-sel','reg-comentarios','reg-diag-previo','reg-oferta','reg-causa-raiz-canc','reg-fecha-efectiva','reg-monto-input','reg-dg-desc','reg-dg-monto'];
   controls.forEach(id=>{var el=document.getElementById(id);if(!el)return;el.dataset.dirty='0';el.addEventListener('input',()=>{el.dataset.dirty='1';var msg=document.getElementById('cancel-save-msg');if(msg)msg.textContent='Cambios sin guardar';});});
   if(stage)stage.addEventListener('change',()=>{document.getElementById('cancel-close-confirm').style.display=stage.value==='Cerrado'?'block':'none';document.getElementById('cancel-confirm').checked=false;});
   if(status)status.addEventListener('change',()=>{status.dataset.dirty='1';document.getElementById('reg-dg-fields').style.display=status.value==='Downgrade'?'block':'none';});
@@ -1479,7 +1492,7 @@ function cxSimplifyCancellation(r){
 async function cxSaveCancellation(){
   var r=regDisplayed[_regModalIdx];if(!r||!puedeEditar())return;
   var btn=document.getElementById('cancel-save'),msg=document.getElementById('cancel-save-msg');
-  var fields={'cancel-stage':'status','reg-stcanc-sel':'status_cancelacion','reg-comentarios':'comentarios_de_seguimiento','reg-diag-previo':'diagnostico_previo_cancelacion','reg-oferta':'oferta_retencion','reg-causa-raiz-canc':'causa_raiz_cancelacion','reg-fecha-efectiva':'fecha_efectiva_cancelacion','reg-monto-input':'facturacin_sin_iva','reg-dg-desc':'descripcion_downgrade','reg-dg-monto':'monto_nuevo_downgrade'};
+  var fields={'cancel-motivo':'categoria','cancel-stage':'status','reg-stcanc-sel':'status_cancelacion','reg-comentarios':'comentarios_de_seguimiento','reg-diag-previo':'diagnostico_previo_cancelacion','reg-oferta':'oferta_retencion','reg-causa-raiz-canc':'causa_raiz_cancelacion','reg-fecha-efectiva':'fecha_efectiva_cancelacion','reg-monto-input':'facturacin_sin_iva','reg-dg-desc':'descripcion_downgrade','reg-dg-monto':'monto_nuevo_downgrade'};
   var update={},changed=[],locked=[];
   try{
     Object.entries(fields).forEach(([id,col])=>{var el=document.getElementById(id);if(!el||el.dataset.dirty!=='1')return;var value=el.value;
@@ -1489,6 +1502,8 @@ async function cxSaveCancellation(){
     });
     if(!changed.length){msg.textContent='Sin cambios pendientes';return;}
     var pair=CXMetrics.cancelWorkflow(document.getElementById('cancel-stage').value,document.getElementById('reg-stcanc-sel').value,document.getElementById('cancel-confirm').checked);Object.assign(update,pair);CXMetrics.validateCancelDate(pair.status,pair.status_cancelacion,document.getElementById('reg-fecha-efectiva').value);
+    if(r._source==='whatsapp'&&CXMetrics.closed(pair.status)&&!CXMetrics.hasCancelReason('categoria' in update?update.categoria:(r.categora||(r._tk&&r._tk.categoria))))throw new Error('Selecciona el motivo de cancelación antes de cerrar.');
+    if(!('categoria' in update)||r._source!=='whatsapp')delete update.categoria;
     if(CXMetrics.closed(pair.status)){update.resolved_at=r._tk&&r._tk.resolved_at||r.fecha_de_solucion||new Date().toISOString();}else update.resolved_at=null;
     if(update.status_cancelacion==='Downgrade'||'monto_nuevo_downgrade' in update||'descripcion_downgrade' in update){
       var dg=document.getElementById('reg-dg-desc').value.trim(),amount=Number(document.getElementById('reg-dg-monto').value);
@@ -1504,7 +1519,7 @@ async function cxSaveCancellation(){
     var result=await sb.from(isWA?'tickets':'base_general').update(data).eq(isWA?'folio':'id',key).select();
     if(result.error)throw new Error(result.error.message);
     if(!result.data?.length)throw new Error('No se actualizó el registro. Revisa tus permisos e intenta de nuevo.');
-    Object.assign(r,update);if(isWA&&r._tk){Object.assign(r._tk,data);r.tiempo_de_respuesta=CXMetrics.days(r);}if(!isWA)r.fecha_de_solucion=data.fecha_de_solucion;if(!isWA&&data.anlisis_de_causa_raz!==undefined)r.anlisis_de_causa_raz=data.anlisis_de_causa_raz;
+    Object.assign(r,update);if(isWA&&'categoria' in data)r.categora=data.categoria;if(isWA&&r._tk){Object.assign(r._tk,data);r.tiempo_de_respuesta=CXMetrics.days(r);}if(!isWA)r.fecha_de_solucion=data.fecha_de_solucion;if(!isWA&&data.anlisis_de_causa_raz!==undefined)r.anlisis_de_causa_raz=data.anlisis_de_causa_raz;
     if('fecha_efectiva_cancelacion' in update){var date=update.fecha_efectiva_cancelacion||r.fecha_de_la_solicitud||'';r._anio_efectivo=date.slice(0,4);r._mes_efectivo=_moNombres[Number(date.slice(5,7))-1]||'';}
     changed.forEach(el=>el.dataset.dirty='0');msg.textContent='Gestión guardada';msg.style.color='var(--green)';
     var stillCurrent=document.getElementById('cancel-save')===btn;
@@ -2368,7 +2383,7 @@ function cancApply(){
     '<div style="grid-column:1/-1;font-size:12px;color:var(--text2);margin-top:4px">Cuadre: '+resumen.total+' solicitudes = '+resumen.cancelada+' confirmadas + '+resumen.retenida+' retenidas + '+resumen.downgrade+' downgrade + '+resumen.migracion+' migración + '+resumen.abiertas+' en gestión + '+resumen.cerrada_sin_resultado+' cerradas sin resultado. Una cancelación solo cuenta como confirmada o retenida cuando el caso está cerrado.</div>';
 
   document.getElementById('canc-metas').innerHTML=
-    '<div class="chart-card"><h3>Retención entre decisiones</h3><p style="font-size:26px;margin:12px 0">'+(ret.rate==null?'Sin decisiones':ret.rate+'%')+'</p><p style="color:var(--text2);font-size:13px">'+ret.kept+' retenidas (incluye downgrade y migración) de '+(ret.kept+ret.lost)+' cerradas con resultado · '+resumen.abiertas+' en gestión y '+resumen.cerrada_sin_resultado+' cerradas sin resultado no entran. Usa fecha de creación, igual que la tabla.</p></div>'+
+    '<div class="chart-card"><h3>Retención entre decisiones</h3><p style="font-size:26px;margin:12px 0">'+(ret.rate==null?'Sin decisiones':(ret.kept+ret.lost)<CXMetrics.MIN_BASE?'Base insuficiente <span style="font-size:13px;color:var(--text2)">('+ret.rate+'% con n='+(ret.kept+ret.lost)+'; mínimo '+CXMetrics.MIN_BASE+')</span>':ret.rate+'%')+'</p><p style="color:var(--text2);font-size:13px">'+ret.kept+' retenidas (incluye downgrade y migración) de '+(ret.kept+ret.lost)+' cerradas con resultado · '+resumen.abiertas+' en gestión y '+resumen.cerrada_sin_resultado+' cerradas sin resultado no entran. Usa fecha de creación, igual que la tabla.</p></div>'+
     '<div class="chart-card"><h3>Montos registrados</h3><p style="font-size:26px;margin:12px 0">$'+churnTotal.toLocaleString('es-MX')+'</p><p style="color:var(--text2);font-size:13px">Cancelaciones y reducción registrada por downgrade. '+(hayFiltroMes?'Usa fecha efectiva cuando está disponible; puede diferir de la tabla por fecha de creación.':'Todo el histórico seleccionado.')+' Sin comparación con una meta financiera no configurada.</p></div>';
 
   cancPg=0;cancRender();

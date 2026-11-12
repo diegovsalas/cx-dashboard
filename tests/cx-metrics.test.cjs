@@ -131,3 +131,9 @@ test('H14: duplicados marcados se identifican por fuente y registro',()=>{
   assert.equal(M.duplicateOf({_tk:{folio:'A0368'}}),null);assert.equal(M.duplicateOf({id:62}),null);
   M.setDuplicates([]);
 });
+test('Motivo declarado: detalle útil, sin motivo explícito y base mínima',()=>{
+  const b=(c,d)=>({_source:'whatsapp',categora:c,submotvio:d});
+  same([b('Bajo uso','Cambio de proveedor'),b('Cancelación de servicio',''),b('Solicitud operativa','Otra gestión'),b('Económico','Otro'),b('Económico','Económico')].map(r=>M.cancelReason(r)),
+    ['Bajo uso · Cambio de proveedor','Sin motivo capturado','Sin motivo capturado','Económico','Económico']);
+  assert.equal(M.MIN_BASE,30);assert.equal(M.hasCancelReason('Fin de contrato'),true);assert.equal(M.hasCancelReason('Cancelación de servicio'),false);
+});
