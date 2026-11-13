@@ -179,3 +179,11 @@ test('SLA: un ticket vencido en respuesta y resolución cuenta una vez, igual qu
   const r={_source:'whatsapp',_canal:'cx',status:'En proceso',tipo_de_solicitud:'Incidencia / Queja',_tk:{created_at:'2026-11-10T16:00:00Z',atencion_id:'a',prioridad:'Alta',estatus:'En proceso'}};
   const s=M.slaSummary([r],'2026-11-20T16:00:00Z');assert.equal(s.vencidos,1);
 });
+test('El JavaScript de la página completa compila (evita publicar una página rota)',()=>{
+  const scripts=[...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map(m=>m[1]).join('\n');
+  assert.doesNotThrow(()=>new vm.Script(scripts));
+});
+test('Fecha efectiva con año imposible se rechaza',()=>{
+  assert.equal(M.validEffectiveDate('0226-12-12'),false);assert.equal(M.validEffectiveDate('2026-12-12'),true);
+  assert.throws(()=>M.validateCancelDate('Cerrado','Cancelada','0226-12-12'),/no es válida/);
+});
