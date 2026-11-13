@@ -999,11 +999,14 @@ async function cxDecorarFicha(r){
   try{
     const{data,error}=await sb.from('cx_bitacora_cambios').select('campo,valor_anterior,valor_nuevo,cambiado_por,cambiado_at').eq('fuente',fuente).eq('registro',reg).order('cambiado_at',{ascending:false}).order('id',{ascending:false}).limit(200);
     if(error)throw error;if(!el||!document.body.contains(el))return;
+    // Datos recuperados con evidencia del chat o de las notas (legacy.cx_recuperacion_chat)
+    var rec=[];try{const rr=await sb.from('cx_recuperacion_chat').select('campo,valor_anterior,valor_nuevo,evidencia,aplicado_at').eq('fuente',fuente).eq('registro',reg);if(!rr.error)rec=rr.data||[];}catch(e){}
+    var recH=rec.length?'<p style="font-size:12px;font-weight:600;margin:10px 0 4px">Recuperado con evidencia</p><div class="tbl-scroll"><table class="dt"><thead><tr><th>Dato</th><th>Valor</th><th>Evidencia</th></tr></thead><tbody>'+rec.map(x=>'<tr><td>'+esc(x.campo==='fecha_cierre'?'Fecha de cierre':(_HIST_CAMPOS[x.campo]||x.campo))+'</td><td>'+esc(x.campo==='fecha_cierre'?CXMetrics.mty(x.valor_nuevo).slice(0,10):x.valor_nuevo)+'</td><td style="font-size:12px">'+esc(x.evidencia)+'</td></tr>').join('')+'</tbody></table></div>':'';
     var creado=r._tk?CXMetrics.mty(r._tk.created_at).slice(0,16):String(r.fecha_de_la_solicitud||'');
     var h='<p style="font-size:12px;color:var(--text2);margin:4px 0 8px">Registrado: '+esc(creado||'sin fecha')+(r._tk&&r._tk.agente?' · asignado a '+esc(r._tk.agente):'')+'. La bitácora registra los cambios desde el 10-nov-2026; lo anterior queda en «Comentarios de seguimiento».</p>';
     if(!data.length)h+='<p style="font-size:13px;color:var(--text3)">Sin cambios registrados en la bitácora.</p>';
     else h+='<div class="tbl-scroll"><table class="dt"><thead><tr><th>Fecha (Monterrey)</th><th>Quién</th><th>Qué cambió</th><th>Antes</th><th>Después</th></tr></thead><tbody>'+data.map(d=>'<tr><td style="white-space:nowrap">'+esc(CXMetrics.mty(d.cambiado_at).slice(0,16))+'</td><td>'+esc(String(d.cambiado_por||'').replace('@grupoavantex.com',''))+'</td><td>'+esc(_HIST_CAMPOS[d.campo]||d.campo)+'</td><td>'+(d.campo==='comentarios_de_seguimiento'&&d.valor_anterior&&String(d.valor_nuevo||'').startsWith(d.valor_anterior)?'<span style="color:var(--text3)">(se agregó)</span>':_histValor(d.campo,d.valor_anterior))+'</td><td>'+_histValor(d.campo,d.valor_nuevo,d.valor_anterior)+'</td></tr>').join('')+'</tbody></table></div>';
-    el.innerHTML='<h3>Historial de gestión</h3>'+h;
+    el.innerHTML='<h3>Historial de gestión</h3>'+h+recH;
   }catch(e){if(el)el.innerHTML='<h3>Historial de gestión</h3><p style="font-size:13px;color:var(--red)">No se pudo cargar el historial: '+esc(e.message)+'</p>';}
 }
 function _cxN(n,uno,varios){return n+' '+(n===1?uno:varios);}
