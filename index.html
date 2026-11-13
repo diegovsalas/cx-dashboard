@@ -323,6 +323,7 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
 <div class="kpi-row" id="canc-kpis"></div>
 <div id="canc-cuadre" style="font-size:12px;color:var(--text3);margin:-16px 0 18px"></div>
 <div id="canc-metas" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px"></div>
+<div id="canc-charts" style="margin-bottom:20px"></div>
 <div id="canc-facturacion" style="margin-bottom:20px"></div>
 
 <div class="tbl-card">
@@ -2513,11 +2514,59 @@ function cancApply(){
       var m=rs.reduce((a,r)=>a+(Number(r.facturacin_sin_iva)||0),0),antes=rs.filter(r=>String(r.fecha_de_la_solicitud||'').slice(0,7)<k).length;
       return '<div class="chart-card"><h3>Dejan de facturar en '+esc(nom)+'</h3><p style="font-size:26px;margin:12px 0">$'+m.toLocaleString('es-MX',{minimumFractionDigits:0,maximumFractionDigits:2})+'</p><p style="color:var(--text2);font-size:13px">'+_cxN(rs.length,'baja','bajas')+' con fecha efectiva en '+esc(nom)+(rs.length?' · '+antes+' pedidas en meses anteriores':'')+'. Por fecha efectiva de baja, no por fecha de solicitud. '+(rs.length?'<a href="#" onclick="cancFacturacionVer(\''+k+'\');return false" style="color:var(--blue)">Ver clientes</a>':'')+(montoDowngradePerdido>0?'<br>Además, '+'$'+montoDowngradePerdido.toLocaleString('es-MX')+' menos por downgrades de estas solicitudes.':'')+'</p></div>';})();
 
-  cancPg=0;cancRender();cancFacturacion();
+  cancPg=0;cancRender();cancFacturacion();cancCharts();
 }
 
 function cancClear(){document.getElementById('canc-f-stcanc').value='';document.getElementById('canc-search').value='';clearF();buildPeriodo('canc-periodo',true);cancApply();}
 
+// Gráficas de Cancelaciones. Colores de estado (con leyenda y separación entre segmentos, nunca
+// solo el color): se fue = crítico, se quedó = bueno, en gestión = advertencia, sin resultado = gris.
+var CANC_COL={fue:'#d03b3b',quedo:'#0ca30c',gestion:'#fab219',sin:'#71717a'},SURF='#18181b';
+function _cancBaseSinPeriodo(){var fsc=document.getElementById('canc-f-stcanc').value,q=(document.getElementById('canc-search').value||'').toLowerCase().trim();
+  return cancAll.filter(r=>(!F.tipo_servicio||r.tipo_de_servicio===F.tipo_servicio)&&(!F.origen||r._source===F.origen)&&(!fsc||r.status_cancelacion===fsc)&&(!q||inc(r.folio_ticket,q)||inc(r.nombre_del_cliente_nuevo,q)||inc(r.propiedad,q)));}
+function _mesesVentana(extraFuturo){var hoy=CXMetrics.mtyHoy().slice(0,7),y=+hoy.slice(0,4),m=+hoy.slice(5,7),out=[];
+  var fin=F.anio&&+F.anio<y?(F.anio+'-12'):hoy;var fy=+fin.slice(0,4),fm=+fin.slice(5,7);
+  for(var i=11;i>=-(extraFuturo||0);i--){var d=new Date(Date.UTC(fy,fm-1-i,1));out.push(d.getUTCFullYear()+'-'+String(d.getUTCMonth()+1).padStart(2,'0'));}return out;}
+function _mesCorto(k){return ['ene','feb','mar','abr','may','jun','jul','ago','sep','oct','nov','dic'][+k.slice(5,7)-1]+' '+k.slice(2,4);}
+function _fmtM(n){return '$'+Math.round(n).toLocaleString('es-MX');}
+function cancCharts(){
+  var el=document.getElementById('canc-charts');if(!el||typeof Chart==='undefined')return;
+  ['canc1','canc2','canc3','canc4','canc5'].forEach(k=>{if(chartInstances[k]){chartInstances[k].destroy();delete chartInstances[k];}});
+  var base=_cancBaseSinPeriodo(),meses=_mesesVentana(0),sel=(F.anio&&F.mes)?F.anio+'-'+String(_moNombres.indexOf(F.mes)+1).padStart(2,'0'):'';
+  var grupo=r=>{var b=CXMetrics.cancelBucket(r);return b==='cancelada'?'fue':['retenida','downgrade','migracion'].includes(b)?'quedo':b==='cerrada_sin_resultado'?'sin':'gestion';};
+  var porMes={};meses.forEach(k=>porMes[k]={fue:0,quedo:0,gestion:0,sin:0});
+  base.forEach(r=>{var k=String(r.fecha_de_la_solicitud||'').slice(0,7);if(porMes[k])porMes[k][grupo(r)]++;});
+  // Sin meses vacíos al inicio (antes de que hubiera datos para estos filtros)
+  var i0=meses.findIndex(k=>porMes[k].fue+porMes[k].quedo+porMes[k].gestion+porMes[k].sin>0);if(i0>0)meses=meses.slice(i0);
+  el.innerHTML='<div class="chart-card" style="margin-bottom:14px"><h3>Solicitudes de cancelación por mes y resultado</h3><div class="csub">Por mes de solicitud · últimos 12 meses'+(sel?' · resaltado: '+esc(_mesCorto(sel)):'')+' · pasa el mouse para ver el detalle</div><div style="height:240px"><canvas id="canc-c1"></canvas></div></div>'+
+    '<div class="chart-row"><div class="chart-card"><h3>Tasa de retención por mes</h3><div class="csub">Se quedaron ÷ (se quedaron + se fueron) · puntos huecos = menos de '+CXMetrics.MIN_BASE+' decisiones (solo referencia)</div><div style="height:220px"><canvas id="canc-c2"></canvas></div></div>'+
+    '<div class="chart-card"><h3>Monto que deja de facturar por mes</h3><div class="csub">Bajas confirmadas por fecha efectiva · monto mensual capturado (sin IVA) · incluye los próximos 2 meses</div><div style="height:220px"><canvas id="canc-c3"></canvas></div></div></div>'+
+    '<div class="chart-row"><div class="chart-card"><h3>Motivos de cancelación</h3><div class="csub">Solicitudes del periodo filtrado · motivo declarado</div><div style="height:260px"><canvas id="canc-c4"></canvas></div></div>'+
+    '<div class="chart-card"><h3>Monto perdido por motivo</h3><div class="csub">Bajas confirmadas del periodo filtrado · monto mensual (sin IVA)</div><div style="height:260px"><canvas id="canc-c5"></canvas></div></div></div>';
+  var ax=_commonAxes(),alpha=k=>!sel||k===sel?1:.45;
+  var serie=(g,label)=>({label:label,data:meses.map(k=>porMes[k][g]),backgroundColor:meses.map(k=>CANC_COL[g]+(alpha(k)===1?'':'73')),borderColor:SURF,borderWidth:{top:2},borderSkipped:false,maxBarThickness:34});
+  chartInstances.canc1=new Chart(document.getElementById('canc-c1'),{type:'bar',data:{labels:meses.map(_mesCorto),datasets:[serie('fue','Se fueron'),serie('quedo','Se quedaron'),serie('gestion','En gestión'),serie('sin','Sin resultado')]},
+    options:{responsive:true,maintainAspectRatio:false,interaction:{mode:'index',intersect:false},plugins:{legend:{position:'top',align:'start',labels:{color:DARK_AX.text,boxWidth:10,font:{size:11}}},tooltip:{callbacks:{footer:it=>'Total: '+it.reduce((a,x)=>a+x.parsed.y,0)+' solicitudes'}}},scales:{x:{...ax.x,stacked:true},y:{...ax.y,stacked:true,ticks:{...ax.y.ticks,precision:0}}},
+      onClick:(e,els)=>{if(!els.length)return;var k=meses[els[0].index];F.anio=k.slice(0,4);F.mes=_moNombres[+k.slice(5,7)-1];document.querySelectorAll('select[data-fkey="anio"]').forEach(x=>x.value=F.anio);document.querySelectorAll('select[data-fkey="mes"]').forEach(x=>x.value=F.mes);applyFilters();cancApply();}}});
+  var tasas=meses.map(k=>{var x=porMes[k],n=x.fue+x.quedo;return {k:k,n:n,v:n?Math.round(100*x.quedo/n):null};});
+  chartInstances.canc2=new Chart(document.getElementById('canc-c2'),{type:'line',data:{labels:meses.map(_mesCorto),datasets:[{label:'Retención',data:tasas.map(t=>t.v),borderColor:DARK_AX.bar,borderWidth:2,tension:.25,spanGaps:true,pointRadius:5,pointHoverRadius:7,
+      pointBackgroundColor:tasas.map(t=>t.n>=CXMetrics.MIN_BASE?DARK_AX.bar:SURF),pointBorderColor:DARK_AX.bar,pointBorderWidth:2}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{var t=tasas[c.dataIndex];return t.v==null?'Sin decisiones':t.v+'% · '+t.n+' decisiones'+(t.n<CXMetrics.MIN_BASE?' (solo referencia)':'');}}}},scales:{x:ax.x,y:{...ax.y,min:0,max:100,ticks:{...ax.y.ticks,callback:v=>v+'%'}}}}});
+  var mf=_mesesVentana(2),hoy=CXMetrics.mtyHoy().slice(0,7),fact={};mf.forEach(k=>fact[k]={m:0,n:0});
+  base.forEach(r=>{if(CXMetrics.cancelBucket(r)!=='cancelada'||!CXMetrics.validEffectiveDate(r.fecha_efectiva_cancelacion))return;var k=String(r.fecha_efectiva_cancelacion).slice(0,7);if(fact[k]){fact[k].m+=Number(r.facturacin_sin_iva)||0;fact[k].n++;}});
+  var j0=mf.findIndex(k=>fact[k].n>0||k>=hoy);if(j0>0)mf=mf.slice(j0);
+  chartInstances.canc3=new Chart(document.getElementById('canc-c3'),{type:'bar',data:{labels:mf.map(k=>_mesCorto(k)+(k>hoy?' ›':'')),datasets:[{label:'Deja de facturar',data:mf.map(k=>fact[k].m),
+      backgroundColor:mf.map(k=>k===hoy?CANC_COL.fue:k>hoy?CANC_COL.fue+'59':CANC_COL.fue+'a6'),borderRadius:{topLeft:4,topRight:4},borderSkipped:'bottom',maxBarThickness:34}]},
+    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>{var k=mf[c.dataIndex];return _fmtM(fact[k].m)+' · '+fact[k].n+' bajas'+(k>hoy?' (próximo)':k===hoy?' (mes actual)':'');}}}},scales:{x:ax.x,y:{...ax.y,ticks:{...ax.y.ticks,callback:v=>'$'+(v>=1000?Math.round(v/1000)+'k':v)}}},
+      onClick:(e,els)=>{if(els.length)cancFacturacionVer(mf[els[0].index]);}}});
+  var mot={},perd={};cancFiltered.forEach(r=>{var k=CXMetrics.cancelReason(r,_anTema).split(' · ')[0];mot[k]=(mot[k]||0)+1;if(CXMetrics.cancelBucket(r)==='cancelada')perd[k]=(perd[k]||0)+(Number(r.facturacin_sin_iva)||0);});
+  var top=(o,n)=>{var e=Object.entries(o).sort((a,b)=>b[1]-a[1]);if(e.length>n){var resto=e.slice(n-1).reduce((a,x)=>a+x[1],0);e=e.slice(0,n-1).concat([['Otros',resto]]);}return e;};
+  var hbar=(id,key,entries,fmt)=>{chartInstances[key]=new Chart(document.getElementById(id),{type:'bar',data:{labels:entries.map(e=>e[0].length>34?e[0].slice(0,33)+'…':e[0]),datasets:[{data:entries.map(e=>e[1]),backgroundColor:entries.map(e=>e[0]==='Sin motivo capturado'?CANC_COL.sin:DARK_AX.bar),borderRadius:{topRight:4,bottomRight:4},borderSkipped:'left',maxBarThickness:22}]},
+    options:{indexAxis:'y',responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmt(c.parsed.x)}}},scales:{x:{...ax.y,ticks:{...ax.y.ticks,callback:v=>key==='canc5'?'$'+(v>=1000?Math.round(v/1000)+'k':v):v,precision:0}},y:{...ax.x,ticks:{...ax.x.ticks,font:{size:11}}}}}});};
+  var tot=cancFiltered.length;
+  hbar('canc-c4','canc4',top(mot,8),v=>v+' solicitudes'+(tot?' · '+Math.round(100*v/tot)+'%':'')+(tot<CXMetrics.MIN_BASE?' (muestra chica)':''));
+  hbar('canc-c5','canc5',top(perd,8),v=>_fmtM(v)+' al mes');
+}
 // Para Administración: bajas confirmadas agrupadas por el mes en que el cliente deja de facturar
 // (fecha efectiva de baja). Respeta servicio, origen, resultado y búsqueda; no el mes de solicitud.
 var _cancFactMes=null;
