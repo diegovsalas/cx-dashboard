@@ -54,7 +54,7 @@ body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--t
 .btn-clear:hover{color:var(--text);}
 .active-filters{font-size:11px;color:var(--text3);font-weight:400;}
 .kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:1px;margin-bottom:24px;background:var(--border);border:1px solid var(--border);border-radius:8px;overflow:hidden;}
-#canc-kpis.kpi-row{grid-template-columns:repeat(5,1fr);}
+#canc-kpis.kpi-row{grid-template-columns:repeat(6,1fr);}#canc-kpis .kpi .val{font-size:22px}@media(max-width:1200px){#canc-kpis.kpi-row{grid-template-columns:repeat(3,1fr);}}#canc-facturacion .dt td,#canc-facturacion .dt th{padding:8px 12px}#canc-fact-tabla{max-width:820px}
 .kpi{background:var(--surface);padding:14px 16px;position:relative;}
 .kpi .bar{display:none;}
 .kpi .lbl{font-size:11px;font-weight:500;color:var(--text3);}.kpi .sublbl{display:none;}
@@ -311,9 +311,6 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
 
 <div class="page-content" id="page-cancelaciones" style="display:none">
 <div style="margin-bottom:16px;"><h2 style="font-size:22px;font-weight:800;"><i class="fa-solid fa-file-circle-xmark" style="color:var(--red)"></i> Solicitudes de Cancelación</h2><p style="font-size:13px;color:var(--text2);margin-top:4px;">Solicitudes de cancelación de servicio</p></div>
-<div class="kpi-row" id="canc-kpis"></div>
-<div id="canc-metas" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px"></div>
-<div id="canc-facturacion" style="margin-bottom:20px"></div>
 <div class="filter-bar" id="filters-canc">
 <span class="flabel" style="margin:0">Filtros:</span>
 <select id="canc-f-stcanc" onchange="cancApply()"><option value="">Status Cancelación: Todos</option></select>
@@ -322,6 +319,12 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
 <button class="btn-clear" onclick="cancClear()">Limpiar</button>
 <span class="active-filters" id="af-canc"></span>
 </div>
+<div id="canc-kpis-head" style="font-size:12px;font-weight:600;color:var(--text2);margin:4px 0 6px"></div>
+<div class="kpi-row" id="canc-kpis"></div>
+<div id="canc-cuadre" style="font-size:12px;color:var(--text3);margin:-16px 0 18px"></div>
+<div id="canc-metas" style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px"></div>
+<div id="canc-facturacion" style="margin-bottom:20px"></div>
+
 <div class="tbl-card">
 <div class="tbl-header"><h3 id="canc-count">0 solicitudes</h3><button class="btn-clear" onclick="descargarCancelaciones()" style="background:transparent;color:var(--text2);border-color:var(--border)"><i class="fa-solid fa-download"></i> Descargar CSV</button></div>
 <div class="tbl-scroll"><table class="dt"><thead><tr>
@@ -2494,20 +2497,21 @@ function cancApply(){
   var sufMonto = '';
   sufMonto+=(missingMoney?' · '+missingMoney+' downgrade(s) sin monto nuevo; retención y pérdida incompletas':'');
   document.getElementById('canc-kpis').innerHTML=
-    '<div style="grid-column:1/-1;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:2px">Solicitudes '+(hayFiltroMes?'recibidas en '+esc([fm,fa].filter(Boolean).join(' ')):'del periodo')+' · por fecha de solicitud · monto mensual capturado en la solicitud (sin IVA)</div>'+
-    '<div class="kpi"><div class="lbl">Monto en riesgo</div><div class="val">$'+montoTotal.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+_cxN(total,'solicitud','solicitudes')+' de cancelación'+sufMonto+'</div></div>'+
+'<div class="kpi"><div class="lbl">Monto en riesgo</div><div class="val">$'+montoTotal.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+_cxN(total,'solicitud','solicitudes')+' de cancelación'+sufMonto+'</div></div>'+
     '<div class="kpi c-red"><div class="lbl">Cancelaciones confirmadas</div><div class="val">$'+montoCancelado.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+_cxN(canceladosMonto.length,'cliente se fue','clientes se fueron')+'</div></div>'+
     '<div class="kpi c-green"><div class="lbl">Retenidas</div><div class="val">$'+montoRetenido.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+_cxN(retenidosFull.length,'cliente se quedó','clientes se quedaron')+((migracionesMonto.length||downgradesMonto.length)?' ('+retenidosMonto.length+' ret'+(migracionesMonto.length?' · '+migracionesMonto.length+' migr':'')+(downgradesMonto.length?' · '+downgradesMonto.length+' down':'')+')':'')+'</div></div>'+
     '<div class="kpi"><div class="lbl">Downgrades</div><div class="val">$'+montoDowngradeNuevo.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+downgradesMonto.length+' · sigue facturando'+(montoDowngradePerdido>0?' · perdido $'+montoDowngradePerdido.toLocaleString('es-MX',{minimumFractionDigits:0}):'')+'</div></div>'+
     '<div class="kpi c-amber"><div class="lbl">En gestión</div><div class="val">$'+montoNego.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+_cxN(negoMonto.length,'abierta','abiertas')+(resumen.abierta_con_resultado?' · '+resumen.abierta_con_resultado+' ya traen resultado (por revisar)':'')+'</div></div>'+
-    '<div class="kpi"><div class="lbl">Cerradas sin resultado</div><div class="val">$'+montoSinResultado.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+sinResultadoMonto.length+' por revisar: no indican si el cliente se quedó o se fue</div></div>'+
-    (bajasMes?'<div style="grid-column:1/-1;font-size:12px;font-weight:600;color:var(--text2);margin:10px 0 2px">Impacto en la facturación de '+esc([fm,fa].filter(Boolean).join(' '))+' · por fecha efectiva de baja</div>'+
-      '<div class="kpi c-red"><div class="lbl">Bajas que dejan de facturar</div><div class="val">$'+bajasMes.reduce((a,r)=>a+(Number(r.facturacin_sin_iva)||0),0).toLocaleString('es-MX',{minimumFractionDigits:0})+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+_cxN(bajasMes.length,'baja','bajas')+' con fecha efectiva en el mes · '+bajasMes.filter(r=>!(String(r._anio)===fa&&r.mes===fm)).length+' pedidas en meses anteriores</div></div>':'')+
-    '<div style="grid-column:1/-1;font-size:12px;color:var(--text2);margin-top:4px">Cuadre: '+resumen.total+' solicitudes = '+resumen.cancelada+' confirmadas + '+resumen.retenida+' retenidas + '+resumen.downgrade+' downgrade + '+resumen.migracion+' migración + '+resumen.abiertas+' en gestión + '+resumen.cerrada_sin_resultado+' cerradas sin resultado. Una cancelación solo cuenta como confirmada o retenida cuando el caso está cerrado.</div>';
+    '<div class="kpi"><div class="lbl">Cerradas sin resultado</div><div class="val">$'+montoSinResultado.toLocaleString('es-MX',{minimumFractionDigits:0})+'</div><div style="font-size:10px;color:var(--text3);margin-top:4px">'+sinResultadoMonto.length+' por revisar: no indican si el cliente se quedó o se fue</div></div>';
+  document.getElementById('canc-cuadre').innerHTML='Cuadre: '+resumen.total+' solicitudes = '+resumen.cancelada+' confirmadas + '+resumen.retenida+' retenidas + '+resumen.downgrade+' downgrade + '+resumen.migracion+' migración + '+resumen.abiertas+' en gestión + '+resumen.cerrada_sin_resultado+' cerradas sin resultado. Una cancelación solo cuenta como confirmada o retenida cuando el caso está cerrado.</div>';
+  document.getElementById('canc-kpis-head').innerHTML='<div style="grid-column:1/-1;font-size:12px;font-weight:600;color:var(--text2);margin-bottom:2px">Solicitudes '+(hayFiltroMes?'recibidas en '+esc([fm,fa].filter(Boolean).join(' ')):'del periodo')+' · por fecha de solicitud · monto mensual capturado en la solicitud (sin IVA)</div>';
 
   document.getElementById('canc-metas').innerHTML=
     '<div class="chart-card"><h3>Retención entre decisiones</h3>'+_cxTasaHtml(ret.rate,ret.kept+ret.lost,26)+'<p style="color:var(--text2);font-size:13px">'+_cxN(ret.kept,'retenida','retenidas')+' (incluye downgrade y migración) de '+_cxN(ret.kept+ret.lost,'cerrada','cerradas')+' con resultado. No entran: '+_cxN(resumen.abiertas,'en gestión','en gestión')+' y '+_cxN(resumen.cerrada_sin_resultado,'cerrada sin resultado','cerradas sin resultado')+'. Usa fecha de creación, igual que la tabla.</p></div>'+
-    '<div class="chart-card"><h3>Monto perdido de estas solicitudes</h3><p style="font-size:26px;margin:12px 0">$'+churnTotal.toLocaleString('es-MX')+'</p><p style="color:var(--text2);font-size:13px">Cancelaciones y reducción registrada por downgrade. '+'Solicitudes del periodo, por fecha de solicitud (igual que la tabla).'+' Sin comparación con una meta financiera no configurada.</p></div>';
+    (function(){var mi=fm?_moNombres.indexOf(fm)+1:0,k=(fa&&mi)?fa+'-'+String(mi).padStart(2,'0'):CXMetrics.mtyHoy().slice(0,7),nom=_moNombres[Number(k.slice(5,7))-1]+' '+k.slice(0,4);
+      var rs=cancAll.filter(r=>CXMetrics.cancelBucket(r)==='cancelada'&&CXMetrics.validEffectiveDate(r.fecha_efectiva_cancelacion)&&String(r.fecha_efectiva_cancelacion).slice(0,7)===k&&(!fv||r.tipo_de_servicio===fv)&&(!fo||r._source===fo)&&(!fsc||r.status_cancelacion===fsc));
+      var m=rs.reduce((a,r)=>a+(Number(r.facturacin_sin_iva)||0),0),antes=rs.filter(r=>String(r.fecha_de_la_solicitud||'').slice(0,7)<k).length;
+      return '<div class="chart-card"><h3>Dejan de facturar en '+esc(nom)+'</h3><p style="font-size:26px;margin:12px 0">$'+m.toLocaleString('es-MX',{minimumFractionDigits:0,maximumFractionDigits:2})+'</p><p style="color:var(--text2);font-size:13px">'+_cxN(rs.length,'baja','bajas')+' con fecha efectiva en '+esc(nom)+(rs.length?' · '+antes+' pedidas en meses anteriores':'')+'. Por fecha efectiva de baja, no por fecha de solicitud. '+(rs.length?'<a href="#" onclick="cancFacturacionVer(\''+k+'\');return false" style="color:var(--blue)">Ver clientes</a>':'')+(montoDowngradePerdido>0?'<br>Además, '+'$'+montoDowngradePerdido.toLocaleString('es-MX')+' menos por downgrades de estas solicitudes.':'')+'</p></div>';})();
 
   cancPg=0;cancRender();cancFacturacion();
 }
@@ -2526,9 +2530,9 @@ function cancFacturacion(){
   var hoy=CXMetrics.mtyHoy().slice(0,7),meses=Object.keys(porMes).sort().reverse().filter((k,i)=>k>=hoy||i<12);
   var monto=rs=>rs.reduce((a,r)=>a+(Number(r.facturacin_sin_iva)||0),0),fmt=n=>'$'+n.toLocaleString('es-MX',{minimumFractionDigits:0,maximumFractionDigits:2});
   var nom=k=>_moNombres[Number(k.slice(5,7))-1]+' '+k.slice(0,4);
-  var h='<div class="tbl-card"><div class="tbl-header"><h3>Bajas por mes en que el cliente deja de facturar</h3><span style="font-size:12px;color:var(--text3)">Para Administración · por fecha efectiva de baja · monto capturado en la solicitud (sin IVA)</span></div><div class="tbl-scroll"><table class="dt"><thead><tr><th>Mes en que deja de facturar</th><th>Bajas</th><th>Monto mensual</th><th>Pedidas en otro mes</th><th></th></tr></thead><tbody>';
+  var h='<div class="tbl-card"><div class="tbl-header"><h3>Bajas por mes en que el cliente deja de facturar</h3><span style="font-size:12px;color:var(--text3)">Para Administración · por fecha efectiva de baja · monto capturado en la solicitud (sin IVA)</span></div><div class="tbl-scroll"><table class="dt" id="canc-fact-tabla"><thead><tr><th>Mes en que deja de facturar</th><th>Bajas</th><th>Monto mensual</th><th>Pedidas en otro mes</th><th></th></tr></thead><tbody>';
   meses.forEach(k=>{var rs=porMes[k],otros=rs.filter(r=>String(r.fecha_de_la_solicitud||'').slice(0,7)!==k).length;
-    h+='<tr'+(k===hoy?' style="font-weight:600"':'')+'><td>'+esc(nom(k))+(k>hoy?' <span style="font-size:11px;color:var(--blue)">próximo</span>':k===hoy?' <span style="font-size:11px;color:var(--blue)">actual</span>':'')+'</td><td>'+rs.length+'</td><td>'+fmt(monto(rs))+'</td><td>'+otros+'</td><td><button class="btn-clear" style="padding:2px 8px;font-size:11px" onclick="cancFacturacionVer(\''+k+'\')">Ver clientes</button> <button class="btn-clear" style="padding:2px 8px;font-size:11px" onclick="cancFacturacionCSV(\''+k+'\')">CSV</button></td></tr>';});
+    h+='<tr'+(k===hoy?' style="font-weight:600"':'')+'><td>'+esc(nom(k))+(k>hoy?' <span style="font-size:11px;color:var(--blue)">próximo</span>':k===hoy?' <span style="font-size:11px;color:var(--blue)">actual</span>':'')+'</td><td>'+rs.length+'</td><td>'+fmt(monto(rs))+'</td><td>'+otros+'</td><td style="white-space:nowrap"><button class="btn-clear" style="padding:2px 8px;font-size:11px" onclick="cancFacturacionVer(\''+k+'\')">Ver clientes</button> <button class="btn-clear" style="padding:2px 8px;font-size:11px" onclick="cancFacturacionCSV(\''+k+'\')">CSV</button></td></tr>';});
   if(!meses.length)h+='<tr><td colspan="5" style="padding:16px;color:var(--text3)">Sin bajas confirmadas con fecha efectiva para estos filtros.</td></tr>';
   h+='</tbody></table></div>';
   if(sinFecha.length)h+='<p style="font-size:12px;color:var(--amber);margin:8px 12px">'+_cxN(sinFecha.length,'baja confirmada no tiene','bajas confirmadas no tienen')+' fecha efectiva, así que no se sabe en qué mes deja de facturar ('+fmt(monto(sinFecha))+'). <a href="#" onclick="cancFacturacionVer(\'sin\');return false" style="color:var(--blue)">Ver cuáles</a></p>';
