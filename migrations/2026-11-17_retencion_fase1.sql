@@ -481,15 +481,24 @@ declare cfg legacy.cx_retencion_config; antes jsonb; yo text := legacy.cx_ret_em
 begin
   if not legacy.cx_ret_permiso('editar') then
     raise exception 'Solo Diego Velázquez y Alejandro Gil editan estos campos.' using errcode = '42501'; end if;
-  if p_campo not in ('bundlePestex','bundleOrigen','valorPestex','cashback','horario','visita48') then
+  if p_campo not in ('bundlePestex','bundleOrigen','valorPestex','cashback','horario','visita48',
+                     'descPct','descMeses','topeMeses','valorRoomSpray') then
     raise exception 'Ese campo no se edita desde aquí.' using errcode = 'check_violation'; end if;
-  if p_campo = 'valorPestex' and (jsonb_typeof(p_valor) <> 'number' or (p_valor #>> '{}')::numeric < 0) then
+  if p_campo in ('valorPestex','valorRoomSpray','descPct','descMeses','topeMeses')
+     and (jsonb_typeof(p_valor) <> 'number' or (p_valor #>> '{}')::numeric < 0) then
     raise exception 'El valor debe ser un número mayor o igual a 0.' using errcode = 'check_violation'; end if;
+  if p_campo = 'descPct' and (p_valor #>> '{}')::numeric > 100 then
+    raise exception 'El descuento va de 0 a 100 %%.' using errcode = 'check_violation'; end if;
+  if p_campo = 'descMeses' and ((p_valor #>> '{}')::numeric <> trunc((p_valor #>> '{}')::numeric)
+                                or (p_valor #>> '{}')::numeric not between 1 and 24) then
+    raise exception 'Los meses de tarifa de apoyo van de 1 a 24 (entero).' using errcode = 'check_violation'; end if;
+  if p_campo = 'topeMeses' and ((p_valor #>> '{}')::numeric <= 0 or (p_valor #>> '{}')::numeric > 12) then
+    raise exception 'El tope va de más de 0 hasta 12 mensualidades.' using errcode = 'check_violation'; end if;
   if p_campo = 'visita48' and (p_valor #>> '{}') not in ('', 'hábiles', 'naturales') then
     raise exception 'Elige horas hábiles o naturales.' using errcode = 'check_violation'; end if;
   select * into cfg from legacy.cx_retencion_config where marca = p_marca for update;
   if cfg.marca is null or cfg.arbol is null then raise exception 'La marca % no tiene árbol.', p_marca; end if;
-  if p_campo in ('bundlePestex','bundleOrigen','valorPestex') then
+  if p_campo in ('bundlePestex','bundleOrigen','valorPestex','descPct','descMeses','topeMeses','valorRoomSpray') then
     antes := cfg.arbol -> 'reglas' -> 'parametros' -> p_campo -> 'valor';
     update legacy.cx_retencion_config
        set arbol = jsonb_set(arbol, array['reglas','parametros',p_campo,'valor'], p_valor),
