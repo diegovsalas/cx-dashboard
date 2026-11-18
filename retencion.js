@@ -36,7 +36,7 @@ function corta(d){return d?d.toLocaleDateString('es-MX',{day:'2-digit',month:'sh
 function money(n){return '$'+Number(n||0).toLocaleString('es-MX',{minimumFractionDigits:2,maximumFractionDigits:2});}
 function money0(n){return '$'+Math.round(n||0).toLocaleString('es-MX');}
 function num(x){var n=parseFloat(x);return isFinite(n)&&n>0?n:0;}
-function F(d){var p=P(d),f=diaLocal(d.fecha_solicitud)||hoy();return{ini:f,llam:addBiz(f,p.diasLlamada||1),cierre:addBiz(f,p.diasCierre||5)};}
+function F(d){var p=P(d),f=diaLocal(d.inicio_plazo||d.fecha_solicitud)||hoy();return{ini:f,llam:addBiz(f,p.diasLlamada||1),cierre:addBiz(f,p.diasCierre||5)};}
 /* ---------- reglas del árbol ---------- */
 function vars(d){var m=num(d.mensualidad),p=P(d),f=F(d);return{contacto:primerNombre(d.contacto),empresa:d.empresa,yo:primerNombre(nombreDe(d.atiende)),
   servicio:d.marca,aroma:d.aroma,monto:m?money(m):'',tarifaApoyo:m?money(m*(1-p.descPct/100)):'',descPct:p.descPct,descMeses:p.descMeses,
@@ -189,12 +189,12 @@ function tabs(){var ab=Object.values(RT.casos).filter(function(d){return d.estad
   return '<div class="rt-tabs">'+[['bandeja','Solicitudes nuevas',nb,nb?'hot':''],['casos','Casos',ab,''],['alertas','Alertas',al,al?'hot':''],['arbol','Árbol',0,''],['reglas','Reglas y topes',0,'']]
    .map(function(t){var on=RT.v.sub===t[0]||(RT.v.sub==='caso'&&t[0]==='casos');return '<button class="rt-tab'+(on?' on':'')+'" data-rt="sub" data-id="'+t[0]+'">'+t[1]+(t[2]?' <span class="rt-badge '+t[3]+'">'+t[2]+'</span>':'')+'</button>';}).join('')+'</div>';}
 RT.tabs=tabs;
-function espera(r){var n=f.bizBetween(f.diaLocal(r.created_at),f.hoy()),h=Math.floor((Date.now()-new Date(r.created_at))/36e5);
+function espera(r){var ini=r.inicio_plazo||r.created_at,n=f.bizBetween(f.diaLocal(ini),f.hoy()),h=Math.floor((Date.now()-new Date(ini))/36e5);
   if(n===0)return h<2?{t:'Llegó hace '+(h?h+' h':'menos de 1 h'),c:'warn'}:{t:'Sin tomar desde hace '+h+' h',c:'bad'};
   return{t:'Sin tomar desde hace '+n+' día'+(n>1?'s':'')+' hábil'+(n>1?'es':''),c:'bad'};}
 RT.vBandeja=function(){var marcas=['Aromatex','Pestex','Origen Selecto'];Object.keys(RT.cfg).forEach(function(m){if(marcas.indexOf(m)<0)marcas.push(m)});
   var L=RT.bandeja.filter(function(r){return r.marca===RT.v.marca}),cfg=RT.cfg[RT.v.marca],conArbol=!!(cfg&&cfg.activo&&cfg.arbol);
-  var h='<div class="rt-head"><div><h2>Solicitudes nuevas</h2><p>Solicitudes de cancelación sin caso. Al tomarla, la ficha se llena con los datos del ticket. El plazo cuenta desde que llegó.</p></div>'+
+  var h='<div class="rt-head"><div><h2>Solicitudes nuevas</h2><p>Todas las cancelaciones abiertas que aún no se gestionan en Retención. Al tomarla, la ficha se llena con los datos del ticket. El plazo cuenta desde que llegó; si es anterior al proceso, desde el día en que arrancó.</p></div>'+
     (RT.puedeTomar?'<button class="rt-btn line" data-rt="registrarForm">+ Registrar solicitud de otro canal</button>':'')+'</div>';
   if(!RT.puedeTomar)h+='<div class="rt-note">Tu usuario puede ver la bandeja, pero no tomar solicitudes.</div>';
   h+='<div class="rt-card"><div class="rt-card-t"><span class="rt-toggle">'+marcas.map(function(m){var n=RT.bandeja.filter(function(r){return r.marca===m}).length;return '<button class="'+(RT.v.marca===m?'on':'')+'" data-rt="marca" data-id="'+e(m)+'">'+e(m)+' · '+n+'</button>'}).join('')+'</span></div>';
@@ -202,9 +202,9 @@ RT.vBandeja=function(){var marcas=['Aromatex','Pestex','Origen Selecto'];Object.
   if(!L.length)h+='<p class="rt-small">No hay solicitudes pendientes de '+e(RT.v.marca)+'.</p>';
   else h+='<div class="rt-tbl"><table><thead><tr><th>Folio</th><th>Cliente</th><th>Lo que escribió</th><th>Motivo sugerido</th><th>Espera</th><th></th></tr></thead><tbody>'+L.map(function(r){
     var es=espera(r),mot=r.motivo_sugerido&&cfg&&cfg.arbol?cfg.arbol.motivos.filter(function(m){return m.id===r.motivo_sugerido})[0]:null;
-    return '<tr><td><div class="rt-mono">'+e(r.folio)+'</div><div class="rt-sub">'+f.corta(f.diaLocal(r.created_at))+'</div></td><td><div class="rt-name">'+e(r.empresa||'Sin empresa')+'</div><div class="rt-sub">'+(r.sin_contacto?pill('Sin contacto','warn'):e(r.nombre))+'</div></td>'+
+    return '<tr><td><div class="rt-mono">'+e(r.folio)+'</div><div class="rt-sub">'+f.corta(f.diaLocal(r.created_at))+'</div>'+(r.anterior_al_proceso?pill('Anterior al proceso'):'')+'</td><td><div class="rt-name">'+e(r.empresa||'Sin empresa')+'</div><div class="rt-sub">'+(r.sin_contacto?pill('Sin contacto','warn'):e(r.nombre))+'</div></td>'+
       '<td class="rt-small">«'+e(String(r.mensaje||'').slice(0,140))+'»</td><td class="rt-small">'+(r.categoria?'Gemini: '+e(r.categoria)+'<br>':'')+(conArbol?(mot?pill('→ '+e(mot.nombre),'info'):pill('Elegir a mano','warn')):'')+'</td>'+
-      '<td>'+pill(es.t,es.c)+'</td><td>'+(RT.puedeTomar?'<button class="rt-btn" data-rt="tomar" data-id="'+e(r.folio)+'">Tomar</button>':'')+'</td></tr>';}).join('')+'</tbody></table></div>';
+      '<td>'+pill(es.t,es.c)+(r.agente_previo?'<div class="rt-sub">Asignada antes a '+e(f.nombreDe(r.agente_previo+'@'))+'</div>':'')+(r.estatus&&r.estatus!=='Nuevo'?'<div class="rt-sub">Estatus: '+e(r.estatus)+'</div>':'')+'</td><td>'+(RT.puedeTomar?'<button class="rt-btn" data-rt="tomar" data-id="'+e(r.folio)+'">Tomar</button>':'')+'</td></tr>';}).join('')+'</tbody></table></div>';
   return h+'</div>';};
 RT.vRegistrar=function(){return '<div class="rt-head"><div><h2>Registrar solicitud de otro canal</h2><p>Crea el ticket y el caso, asignados a ti.</p></div></div><div class="rt-card"><div class="rt-form">'+
   '<div><label>Servicio</label><select id="rt-r-serv">'+['Aromatex','Pestex','Origen Selecto'].map(function(s){return '<option>'+s+'</option>'}).join('')+'</select></div>'+
@@ -451,4 +451,36 @@ document.addEventListener('change',async function(ev){var c=cont();if(!c||!c.con
   var v=el.value.trim(),x={};if(el.type==='number')x[k]=v===''?null:Number(v);else x[k]=v===''?null:v;
   if(k==='fecha_seguimiento')x.seguimiento_hecho=false;if(k==='fecha_reactivacion')x.reactivacion_hecha=false;await guardar(x);});
 document.addEventListener('input',function(ev){if(ev.target.id!=='rt-q')return;RT.v.q=ev.target.value;var p=ev.target.selectionStart;RT.render();var n=document.getElementById('rt-q');if(n){n.focus();n.setSelectionRange(p,p);}});
+})();
+/* Retención · panel lateral de Casos y Cancelaciones: una sola forma de gestionar */
+(function(){
+'use strict';
+var RT=window.RT,f=RT.f,e=f.e;
+RT.panelCancelacion=async function(r){
+  var folio=r.folio_ticket||r.folio,abierto=!/cerrad|resuelt|cancelad/i.test(String(r.status||r.estatus||''));
+  if(!folio||r._source!=='whatsapp')return;
+  if(!RT.cargado)await RT.cargar();
+  var marca=String(r.tipo_de_servicio||r.servicio||'');marca=/aromatex/i.test(marca)?'Aromatex':/pestex/i.test(marca)?'Pestex':/origen|caf/i.test(marca)?'Origen Selecto':marca;
+  var cfg=RT.cfg[marca],d=RT.casos[folio];
+  if(!cfg||!cfg.activo||!cfg.arbol)return;            // marca sin árbol: se gestiona como hoy
+  if(!d&&!abierto)return;                              // histórico cerrado sin caso: se consulta como antes
+  var body=document.getElementById('tk-modal-body');if(!body||body.dataset.rtFolio===folio&&body.querySelector('.rt-panel'))return;
+  body.dataset.rtFolio=folio;
+  ['cancel-stage','reg-zona-sel','reg-stcanc-sel','cancel-motivo'].forEach(function(id){var el=document.getElementById(id);var it=el&&el.closest('.detail-item');if(it)it.style.display='none';else if(el)el.style.display='none';});
+  var cc=document.getElementById('cancel-close-confirm');if(cc)cc.remove();
+  var help=body.querySelector('.cancel-help');if(help)help.textContent='La gestión de esta cancelación vive en Retención. Aquí solo quedan los comentarios de seguimiento y el escalamiento.';
+  body.querySelectorAll('details.cancel-section').forEach(function(x){var t=(x.querySelector('summary')||{}).textContent||'';if(/Retención · diagnóstico|Facturación y primer mes/.test(t))x.style.display='none';});
+  var h='<section class="cancel-section rt-panel"><h3>Retención</h3>';
+  if(d){var p=f.plazo(d),pa=f.pasoActual(d);
+    h+='<p style="margin:6px 0"><span class="rt-tag '+p.c+'">'+e(p.t)+'</span> <span class="rt-tag">'+(d.estado==='cerrado'?'Cerrado · '+e(f.RESN(d,d.resultado)):'Paso '+pa+' de 6')+'</span> <span class="rt-tag">Atiende: '+e(f.nombreDe(d.atiende))+'</span></p>'+
+      '<button class="btn-save-comment" data-rt-panel="abrir">Abrir en Retención</button>';}
+  else h+='<p class="cancel-help" style="margin:6px 0">Nadie ha tomado esta cancelación. Se gestiona con el árbol de retención.</p>'+
+      (RT.puedeTomar?'<button class="btn-save-comment" data-rt-panel="tomar">Tomar y abrir en Retención</button>':'<p class="cancel-help">Tu usuario no puede tomar solicitudes.</p>');
+  h+='</section>';
+  var sum=body.querySelector('.cancel-section');if(sum)sum.insertAdjacentHTML('afterend',h);else body.insertAdjacentHTML('afterbegin',h);
+  body.querySelector('[data-rt-panel]')&&body.querySelector('[data-rt-panel]').addEventListener('click',async function(ev){
+    var b=ev.currentTarget;b.disabled=true;
+    if(b.dataset.rtPanel==='tomar'){var c=await (await sb.rpc('cx_retencion_tomar',{p_folio:folio}));if(c.error){RT.toast(c.error.message,true);b.disabled=false;return;}await RT.cargar();}
+    tkCloseModal();goPage('retencion');RT.abrir(folio);});
+};
 })();

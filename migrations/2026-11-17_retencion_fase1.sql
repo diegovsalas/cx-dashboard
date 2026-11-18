@@ -71,7 +71,8 @@ create table if not exists legacy.cx_retencion_casos (
   version_arbol         int,
   atiende               text not null,           -- correo de quien tomó el ticket
   tomado_at             timestamptz not null default now(),
-  fecha_solicitud       timestamptz not null,    -- llegada del ticket: aquí arranca el reloj
+  fecha_solicitud       timestamptz not null,    -- llegada del ticket
+  inicio_plazo          timestamptz,             -- desde aquí corre el reloj: la llegada, o el arranque del proceso si el ticket es anterior
   canal                 text not null default 'WhatsApp',
   contacto              text,
   empresa               text,
@@ -109,6 +110,7 @@ create table if not exists legacy.cx_retencion_casos (
   recontacto_hecho      boolean not null default false,
   updated_at            timestamptz not null default now()
 );
+alter table legacy.cx_retencion_casos add column if not exists inicio_plazo timestamptz;
 create index if not exists cx_retencion_casos_estado on legacy.cx_retencion_casos (estado, marca);
 
 create table if not exists legacy.cx_retencion_acciones (
@@ -145,10 +147,10 @@ begin
        is distinct from (to_jsonb(old) - array['seguimiento_hecho','reactivacion_hecha','recontacto_hecho','updated_at']) then
       raise exception 'El caso está cerrado. Reábrelo para cambiarlo.' using errcode = '42501';
     end if;
-  elsif (new.folio, new.marca, new.con_arbol, new.version_arbol, new.atiende, new.tomado_at, new.fecha_solicitud,
+  elsif (new.folio, new.marca, new.con_arbol, new.version_arbol, new.atiende, new.tomado_at, new.fecha_solicitud, new.inicio_plazo,
          new.autorizo, new.autorizo_email, new.autorizo_at, new.estado, new.cerrado_at, new.primer_contacto_wamid)
      is distinct from
-        (old.folio, old.marca, old.con_arbol, old.version_arbol, old.atiende, old.tomado_at, old.fecha_solicitud,
+        (old.folio, old.marca, old.con_arbol, old.version_arbol, old.atiende, old.tomado_at, old.fecha_solicitud, old.inicio_plazo,
          old.autorizo, old.autorizo_email, old.autorizo_at, old.estado, old.cerrado_at, old.primer_contacto_wamid) then
     raise exception 'Ese dato solo se cambia desde su botón (tomar, autorizar o cerrar).' using errcode = '42501';
   end if;
@@ -261,17 +263,20 @@ as $$ select case btrim(coalesce(categoria, ''))
   when 'Reubicación' then 'cierre'
   else null end $$;   -- «Insatisfacción general» y «Otro» se eligen a mano
 
+drop view if exists legacy.cx_retencion_bandeja;
 create or replace view legacy.cx_retencion_bandeja with (security_invoker = true) as
   select t.folio, t.created_at, t.nombre, t.empresa, t.servicio, t.categoria, t.mensaje,
          t.canal_origen, t.estatus, legacy.cx_ret_marca(t.servicio) as marca,
          coalesce(cfg.activo and cfg.arbol is not null, false) as con_arbol,
          legacy.cx_ret_motivo_sugerido(t.categoria) as motivo_sugerido,
-         (coalesce(btrim(t.nombre), '') = '') as sin_contacto
+         (coalesce(btrim(t.nombre), '') = '') as sin_contacto,
+         t.agente as agente_previo,
+         (cfg.inicio is not null and t.created_at < (cfg.inicio::timestamp at time zone 'America/Monterrey')) as anterior_al_proceso,
+         greatest(t.created_at, coalesce((cfg.inicio::timestamp at time zone 'America/Monterrey'), t.created_at)) as inicio_plazo
   from legacy.tickets t
   left join legacy.cx_retencion_config cfg on cfg.marca = legacy.cx_ret_marca(t.servicio)
   where t.tipo ilike '%cancelac%'
     and lower(coalesce(t.estatus, '')) not in ('cerrado','resuelto','resuelta','cancelado')
-    and t.created_at >= coalesce(cfg.inicio, (select min(c.inicio) from legacy.cx_retencion_config c))
     and not exists (select 1 from legacy.cx_retencion_casos c where c.folio = t.folio);
 revoke all on legacy.cx_retencion_bandeja from anon, authenticated;
 grant select on legacy.cx_retencion_bandeja to authenticated, service_role;
@@ -294,10 +299,10 @@ begin
     raise exception 'Otra persona ya tomó el ticket %.', p_folio using errcode = 'unique_violation';
   end if;
   select * into cfg from legacy.cx_retencion_config where marca = legacy.cx_ret_marca(t.servicio);
-  insert into legacy.cx_retencion_casos (folio, marca, con_arbol, version_arbol, atiende, fecha_solicitud, canal,
+  insert into legacy.cx_retencion_casos (folio, marca, con_arbol, version_arbol, atiende, fecha_solicitud, inicio_plazo, canal,
                                          contacto, empresa, zona, mensualidad, motivo_inicial, motivo_sugerido)
   values (t.folio, legacy.cx_ret_marca(t.servicio), coalesce(cfg.activo and cfg.arbol is not null, false),
-          cfg.version, yo, t.created_at,
+          cfg.version, yo, t.created_at, greatest(t.created_at, coalesce((cfg.inicio::timestamp at time zone 'America/Monterrey'), t.created_at)),
           case when t.canal_origen ilike '%web%' then 'Chat web' else 'WhatsApp' end,
           nullif(btrim(t.nombre), ''), nullif(btrim(t.empresa), ''),
           case when t.zona in ('Matriz','Centro','Sur','Bajío','Noreste','Noroeste','Pacífico') then t.zona end,

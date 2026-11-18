@@ -1666,6 +1666,7 @@ function cxSimplifyCancellation(r){
   if(stage)stage.addEventListener('change',()=>{document.getElementById('cancel-close-confirm').style.display=stage.value==='Cerrado'?'block':'none';document.getElementById('cancel-confirm').checked=false;});
   if(status)status.addEventListener('change',()=>{status.dataset.dirty='1';document.getElementById('reg-dg-fields').style.display=status.value==='Downgrade'?'block':'none';});
   document.getElementById('tk-modal-title').innerHTML='Cancelación <span style="color:var(--red)">'+esc(r.folio_ticket||r.folio||'—')+'</span>';
+  if(window.RT&&RT.panelCancelacion)RT.panelCancelacion(r);
 }
 async function cxSaveCancellation(){
   var r=regDisplayed[_regModalIdx];if(!r||!puedeEditar())return;
