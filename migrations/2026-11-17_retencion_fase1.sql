@@ -88,6 +88,7 @@ create table if not exists legacy.cx_retencion_casos (
   primer_contacto_at    timestamptz,
   primer_contacto_via   text check (primer_contacto_via in ('texto','plantilla','manual')),
   primer_contacto_wamid text,
+  primer_contacto_error text,                    -- falla de entrega que reporta Meta (lo llena el bot)
   llamada_at            timestamptz,
   intentos              int not null default 0 check (intentos between 0 and 3),
   notas_llamada         text,
@@ -111,6 +112,7 @@ create table if not exists legacy.cx_retencion_casos (
   updated_at            timestamptz not null default now()
 );
 alter table legacy.cx_retencion_casos add column if not exists inicio_plazo timestamptz;
+alter table legacy.cx_retencion_casos add column if not exists primer_contacto_error text;
 create index if not exists cx_retencion_casos_estado on legacy.cx_retencion_casos (estado, marca);
 
 create table if not exists legacy.cx_retencion_acciones (
