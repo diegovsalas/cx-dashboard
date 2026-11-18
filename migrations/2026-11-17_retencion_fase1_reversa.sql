@@ -2,6 +2,7 @@
 -- ATENCIÓN: borra los casos de retención registrados. Respaldar antes si ya hay datos reales:
 --   create table legacy.cx_retencion_casos_respaldo as select * from legacy.cx_retencion_casos;
 -- Los tickets que ya se cerraron con status «Pausa» se quedan como están.
+-- El responsable (agente) de los tickets asignados a Johana al arrancar no se revierte.
 begin;
 drop trigger if exists cx_retencion_una_puerta on legacy.tickets;
 drop function if exists legacy.cx_retencion_bloquear_cierre_externo();
@@ -17,6 +18,7 @@ drop table if exists legacy.cx_retencion_acciones;
 drop table if exists legacy.cx_retencion_casos;
 drop table if exists legacy.cx_retencion_config_log;
 drop table if exists legacy.cx_retencion_config;
+drop table if exists legacy.cx_retencion_permisos;
 drop function if exists legacy.cx_retencion_acciones_guardia();
 drop function if exists legacy.cx_retencion_casos_guardia();
 drop function if exists legacy.cx_ret_motivo_sugerido(text);
@@ -24,7 +26,6 @@ drop function if exists legacy.cx_ret_marca(text);
 drop function if exists legacy.cx_ret_puede_tomar();
 drop function if exists legacy.cx_ret_permiso(text);
 drop function if exists legacy.cx_ret_email();
-drop table if exists legacy.cx_retencion_permisos;
 -- Regla de cierre sin «pausa» (versión 2026-11-11_h8_regla_cierre_cancelacion.sql)
 create or replace function legacy.cx_validar_cierre_cancelacion() returns trigger
   language plpgsql set search_path = ''

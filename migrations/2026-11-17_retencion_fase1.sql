@@ -4,26 +4,40 @@
 -- Reversa: 2026-11-17_retencion_fase1_reversa.sql
 -- Decisiones (Diego Velázquez, 17-nov-2026):
 --   * El caso se crea al TOMAR el ticket desde la bandeja; el bot solo crea el ticket.
---   * Pueden tomar: roles superadmin/admin/editor del dashboard, excepto quien tenga no_toma.
+--   * Solo Johana Martínez toma y atiende casos (puede_tomar). Las cancelaciones se le asignan por defecto.
 --   * Autoriza todo lo que no decide la ejecutiva: solo Diego Velázquez.
 --   * Editan los campos por definir: diegovelazquez@ y alejandrogil@ (con historial).
 --   * Multimarca: el proceso es común; el árbol (contenido) es por marca.
 begin;
+
+-- Revisión previa: si falta algo, se detiene sin cambiar nada.
+do $$
+declare falta text := '';
+begin
+  if to_regprocedure('legacy.cx_rol()') is null then falta := falta || ' legacy.cx_rol() (migración H1);'; end if;
+  if to_regprocedure('public.generar_folio(text)') is null then falta := falta || ' public.generar_folio(text);'; end if;
+  if to_regprocedure('legacy.cx_validar_cierre_cancelacion()') is null then falta := falta || ' legacy.cx_validar_cierre_cancelacion() (H8);'; end if;
+  if (select count(*) from information_schema.columns where table_schema = 'legacy' and table_name = 'tickets'
+      and column_name in ('folio','zona','canal_origen','facturacin_sin_iva','status_cancelacion','fecha_efectiva_cancelacion',
+                          'monto_nuevo_downgrade','causa_raiz_cancelacion','oferta_retencion','agente')) < 10 then
+    falta := falta || ' columnas de legacy.tickets;'; end if;
+  if falta <> '' then raise exception 'Retención fase 1: falta%', falta; end if;
+end $$;
 
 -- ---------------------------------------------------------------- permisos
 create table if not exists legacy.cx_retencion_permisos (
   email                text primary key check (email = lower(email)),
   puede_editar_reglas  boolean not null default false,
   puede_autorizar      boolean not null default false,
-  no_toma              boolean not null default false,
+  puede_tomar          boolean not null default false,
   nota                 text
 );
-insert into legacy.cx_retencion_permisos (email, puede_editar_reglas, puede_autorizar, no_toma, nota) values
+insert into legacy.cx_retencion_permisos (email, puede_editar_reglas, puede_autorizar, puede_tomar, nota) values
   ('diegovelazquez@grupoavantex.com', true,  true,  false, 'Gerente de CX: autoriza y edita reglas'),
-  ('alejandrogil@grupoavantex.com',   true,  false, false, 'Edita campos por definir; no autoriza casos'),
-  ('johanamartinez@grupoavantex.com', false, false, true,  'Decisión 17-nov-2026: no toma solicitudes de la bandeja')
+  ('alejandrogil@grupoavantex.com',   true,  false, false, 'Edita montos y campos por definir; no autoriza casos'),
+  ('johanamartinez@grupoavantex.com', false, false, true,  'Ejecutiva de retención: única que toma y atiende casos (17-nov-2026)')
 on conflict (email) do update set puede_editar_reglas = excluded.puede_editar_reglas,
-  puede_autorizar = excluded.puede_autorizar, no_toma = excluded.no_toma, nota = excluded.nota;
+  puede_autorizar = excluded.puede_autorizar, puede_tomar = excluded.puede_tomar, nota = excluded.nota;
 
 create or replace function legacy.cx_ret_email() returns text
   language sql stable set search_path = ''
@@ -34,13 +48,13 @@ create or replace function legacy.cx_ret_permiso(p text) returns boolean
 as $$
   select coalesce((select case p when 'editar' then r.puede_editar_reglas
                                  when 'autorizar' then r.puede_autorizar
-                                 when 'no_toma' then r.no_toma end
+                                 when 'tomar' then r.puede_tomar end
                    from legacy.cx_retencion_permisos r where r.email = legacy.cx_ret_email()), false)
 $$;
 
 create or replace function legacy.cx_ret_puede_tomar() returns boolean
   language sql stable security definer set search_path = ''
-as $$ select legacy.cx_rol() in ('superadmin','admin','editor') and not legacy.cx_ret_permiso('no_toma') $$;
+as $$ select legacy.cx_ret_permiso('tomar') $$;
 
 -- ------------------------------------------------------------ configuración
 create table if not exists legacy.cx_retencion_config (

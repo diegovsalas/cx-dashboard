@@ -11,5 +11,34 @@ insert into legacy.cx_retencion_config (marca, activo, inicio, arbol, updated_by
   ('Pestex', false, (now() at time zone 'America/Monterrey')::date, null, 'carga inicial'),
   ('Origen Selecto', false, (now() at time zone 'America/Monterrey')::date, null, 'carga inicial')
 on conflict (marca) do nothing;
-select marca, activo, inicio, version, arbol is not null as con_arbol from legacy.cx_retencion_config order by marca;
+-- Arranque: las cancelaciones abiertas de Aromatex sin caso se asignan a Johana Martínez (decisión 17-nov-2026).
+-- Su plazo corre desde el arranque. Volver a correrlo no duplica (solo toma las que no tienen caso).
+with abiertas as (
+  select b.* from legacy.cx_retencion_bandeja b where b.marca = 'Aromatex' and b.con_arbol
+), nuevos as (
+  insert into legacy.cx_retencion_casos (folio, marca, con_arbol, version_arbol, atiende, fecha_solicitud, inicio_plazo,
+                                         canal, contacto, empresa, zona, mensualidad, motivo_inicial, motivo_sugerido)
+  select a.folio, 'Aromatex', true, cfg.version, 'johanamartinez@grupoavantex.com', a.created_at, a.inicio_plazo,
+         case when a.canal_origen ilike '%web%' then 'Chat web' else 'WhatsApp' end,
+         nullif(btrim(t.nombre), ''), nullif(btrim(t.empresa), ''),
+         case when t.zona in ('Matriz','Centro','Sur','Bajío','Noreste','Noroeste','Pacífico') then t.zona end,
+         t.facturacin_sin_iva, a.motivo_sugerido, a.motivo_sugerido
+  from abiertas a
+  join legacy.tickets t on t.folio = a.folio
+  join legacy.cx_retencion_config cfg on cfg.marca = 'Aromatex'
+  on conflict (folio) do nothing
+  returning folio
+), eventos as (
+  insert into legacy.cx_retencion_eventos (folio, tipo, detalle, por)
+  select folio, 'tomado', '{"origen":"arranque"}'::jsonb, 'johanamartinez@grupoavantex.com' from nuevos
+  returning folio
+)
+update legacy.tickets t set agente = 'johanamartinez'
+ where t.folio in (select folio from eventos);
+
+-- Verificación (copia este resultado)
+select marca, activo, inicio, version, arbol is not null as con_arbol,
+       (select count(*) from legacy.cx_retencion_casos c where c.marca = cfg.marca) as casos,
+       (select count(*) from legacy.cx_retencion_bandeja b where b.marca = cfg.marca) as en_bandeja
+from legacy.cx_retencion_config cfg order by marca;
 commit;
