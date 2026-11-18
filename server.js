@@ -24,6 +24,9 @@ app.get('/favicon.png', (req, res) => {
 app.get('/guia.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'guia.html'));
 });
+app.get('/retencion.js', (req, res) => {
+  res.type('application/javascript').sendFile(path.join(__dirname, 'retencion.js'));
+});
 
 // Configuración pública por ambiente (solo URL y anon key, nunca service key).
 // APP_ENV=staging exige un proyecto Supabase distinto al de producción.

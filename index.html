@@ -190,6 +190,7 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
 <a class="nav-link" data-page="dashboard" onclick="goPage('dashboard')">Resumen CX</a>
 <a class="nav-link" data-page="registros" onclick="goPage('registros')">Casos</a>
 <a class="nav-link" data-page="cancelaciones" onclick="goPage('cancelaciones')">Cancelaciones</a>
+<a class="nav-link" id="link-retencion" data-page="retencion" onclick="goPage('retencion')">Retención</a>
 <a class="nav-link" data-page="analisis" onclick="goPage('analisis')">Motivos</a>
 <a class="nav-link" data-page="tickets" onclick="goPage('tickets')">Tickets</a>
 <a class="nav-link" id="link-campanias" data-page="campanias" onclick="goPage('campanias')">Campañas</a>
@@ -367,6 +368,8 @@ table.dt tbody tr.tk-row.row-active:hover{background:var(--surface2);}
 <div class="pag"><span id="tk-pag-info"></span><div class="pag-btns"><button class="pbtn" id="tk-prev" onclick="tkPgPrev()">← Anterior</button><span id="tk-pag-num" style="padding:0 6px"></span><button class="pbtn" id="tk-next" onclick="tkPgNext()">Siguiente →</button></div></div>
 </div>
 </div>
+
+<div class="page-content" id="page-retencion" style="display:none"></div>
 
 <div class="page-content" id="page-campanias" style="display:none">
 <div style="margin-bottom:16px;"><h2 style="font-size:22px;font-weight:800;"><i class="fa-solid fa-paper-plane" style="color:#2563eb"></i> Campañas WhatsApp</h2><p style="font-size:13px;color:var(--text2);margin-top:4px;">Envíos masivos de plantillas a clientes (NPS, recordatorios, seguimientos)</p></div>
@@ -711,7 +714,7 @@ async function enterApp(){
   if(cmpLink)cmpLink.style.display=isAdmin()?'':'none';
   // Rubi (Aromatex) solo ve Dashboard + Tickets — ocultar histórico, cancelaciones, registros
   if(isAromatex()){
-    ['cancelaciones','registros','analisis'].forEach(p=>{var el=document.querySelector('.nav-link[data-page="'+p+'"]');if(el)el.style.display='none';});
+    ['cancelaciones','registros','analisis','retencion'].forEach(p=>{var el=document.querySelector('.nav-link[data-page="'+p+'"]');if(el)el.style.display='none';});
   }
   await loadData();buildFilters();applyFilters();
   // Rubi entra directo en Tickets (sin home)
@@ -844,12 +847,13 @@ function goPage(p){
   if(p==='permisos'){p='home';} // módulo retirado el 11-11-2026; configuración exportada a Excel
   curPage=p;
   document.querySelectorAll('.nav-link').forEach(el=>{el.classList.toggle('on',el.dataset.page===p);});
-  ['home','dashboard','registros','cancelaciones','analisis','tickets','campanias'].forEach(pg=>{document.getElementById('page-'+pg).style.display=pg===p?'':'none';});
+  ['home','dashboard','registros','cancelaciones','analisis','tickets','campanias','retencion'].forEach(pg=>{document.getElementById('page-'+pg).style.display=pg===p?'':'none';});
   if(p==='registros'){tblPg=0;renderRegistros();}
   if(p==='cancelaciones')loadCancelaciones();
   if(p==='analisis')loadAnalisis();
   if(p==='tickets')loadTickets();
   if(p==='campanias'){cmpCargarHistorial();_cmpRenderPreview();}
+  if(p==='retencion'&&window.RT)RT.mostrar();
 }
 
 // ===================== ANÁLISIS CX =====================
@@ -3127,5 +3131,6 @@ function descargarRegistros(){
 
 checkSession();
 </script>
+<script src="retencion.js"></script>
 </body>
 </html>
