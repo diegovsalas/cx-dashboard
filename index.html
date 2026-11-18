@@ -2316,6 +2316,7 @@ async function regInlineSaveInput(eid,col,tp){
       const{error}=await sb.from('tickets').update(upd).eq('folio',folio);
       if(error)throw error;
       if(r._tk)r._tk[col]=val;
+      _cxSincronizarFila(r,col,val);
     } else {
       // Si es fecha_de_solucion, calcular tiempo_de_respuesta automáticamente
       if(col==='fecha_de_solucion'&&val&&r.fecha_de_la_solicitud){
@@ -2407,6 +2408,18 @@ async function regChangeTipoSolicitud(){
   }
 }
 
+// Un dato del ticket guardado desde el panel se refleja en las columnas que usan las tablas
+// (cliente, sucursal, responsable…). Las listas se redibujan al cerrar el panel.
+var _cxListasSucias=false;
+var _CX_COL_FILA={nombre:'nombre_del_cliente_nuevo',empresa:'propiedad',zona:'zona',agente:'ejecutivo_asignado',servicio:'tipo_de_servicio',
+  estatus:'status',categoria:'categora',subtipo:'submotvio',prioridad:'_prioridad',telefono:'telefono',correo:'correo',mensaje:'mensaje',
+  diagnostico:'diagnostico',causa_raiz:'causa_raiz',facturacin_sin_iva:'facturacin_sin_iva',status_cancelacion:'status_cancelacion'};
+function _cxSincronizarFila(r,col,val){
+  var k=_CX_COL_FILA[col];if(k)r[k]=val==null?'':val;
+  if(col==='tipo'){r.tipo_de_incidencia=val;r.tipo_de_solicitud=CXMetrics.category(val);}
+  try{CXMetrics.canon(r);}catch(e){}
+  _cxListasSucias=true;
+}
 async function regSaveIdentidad(el,folio){
   // El folio va amarrado al campo: un «change» tardío (al cambiar de caso sin salir del campo)
   // no puede escribir en otro registro.
@@ -2417,7 +2430,7 @@ async function regSaveIdentidad(el,folio){
   try{
     const{error}=await sb.from('tickets').update({zona:zona||null,empresa:suc||null}).eq('folio',r._tk.folio);
     if(error)throw error;
-    r._tk.zona=zona;r._tk.empresa=suc;r.zona=zona;r.propiedad=suc;CXMetrics.canon(r);
+    r._tk.zona=zona;r._tk.empresa=suc;r.zona=zona;r.propiedad=suc;CXMetrics.canon(r);_cxListasSucias=true;
     msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
   }catch(e){msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';}
 }
@@ -2955,7 +2968,7 @@ async function tkChangeSucursal(el,folio){
     if(tkFiltered[_tkModalIdx]===r){tkOpenModal(_tkModalIdx);msgEl=document.getElementById('tk-suc-msg');}msgEl.textContent='✓ Guardado';msgEl.style.color='var(--green)';setTimeout(()=>{if(msgEl)msgEl.textContent='';},2000);
   }catch(e){msgEl.textContent='Error: '+e.message;msgEl.style.color='var(--red)';}
 }
-function tkCloseModal(){document.getElementById('tk-modal').classList.remove('on');document.body.classList.remove('detail-open');document.body.style.overflow='';_regModalIdx=null;_marcarFilaActiva(null);}
+function tkCloseModal(){var abierto=document.getElementById('tk-modal').classList.contains('on');document.getElementById('tk-modal').classList.remove('on');document.body.classList.remove('detail-open');document.body.style.overflow='';_regModalIdx=null;_marcarFilaActiva(null);if(abierto&&_cxListasSucias){_cxListasSucias=false;try{_refreshVista();}catch(e){}}}
 document.addEventListener('keydown',e=>{if(e.key==='Escape')tkCloseModal();});
 
 function descargarGuia(){
