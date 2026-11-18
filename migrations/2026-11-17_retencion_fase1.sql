@@ -4,7 +4,7 @@
 -- Reversa: 2026-11-17_retencion_fase1_reversa.sql
 -- Decisiones (Diego Velázquez, 17-nov-2026):
 --   * El caso se crea al TOMAR el ticket desde la bandeja; el bot solo crea el ticket.
---   * Solo Johana Martínez toma y atiende casos (puede_tomar). Las cancelaciones se le asignan por defecto.
+--   * Toman casos: Johana Martínez (ejecutiva de retención, asignada por defecto), Diego Velázquez y Alejandro Gil.
 --   * Autoriza todo lo que no decide la ejecutiva: solo Diego Velázquez.
 --   * Editan los campos por definir: diegovelazquez@ y alejandrogil@ (con historial).
 --   * Multimarca: el proceso es común; el árbol (contenido) es por marca.
@@ -33,11 +33,17 @@ create table if not exists legacy.cx_retencion_permisos (
   nota                 text
 );
 insert into legacy.cx_retencion_permisos (email, puede_editar_reglas, puede_autorizar, puede_tomar, nota) values
-  ('diegovelazquez@grupoavantex.com', true,  true,  false, 'Gerente de CX: autoriza y edita reglas'),
-  ('alejandrogil@grupoavantex.com',   true,  false, false, 'Edita montos y campos por definir; no autoriza casos'),
+  ('diegovelazquez@grupoavantex.com', true,  true,  true,  'Gerente de CX: autoriza, edita reglas y puede tomar casos'),
+  ('alejandrogil@grupoavantex.com',   true,  false, true,  'Edita montos y campos por definir y puede tomar casos; no autoriza'),
   ('johanamartinez@grupoavantex.com', false, false, true,  'Ejecutiva de retención: única que toma y atiende casos (17-nov-2026)')
 on conflict (email) do update set puede_editar_reglas = excluded.puede_editar_reglas,
   puede_autorizar = excluded.puede_autorizar, puede_tomar = excluded.puede_tomar, nota = excluded.nota;
+
+-- Alejandro Gil necesita rol de editor para que tomar y cerrar casos pueda actualizar el ticket
+-- (cx_tickets_columnas solo deja a usuarios sin rol cambiar la zona). No baja el rol de nadie.
+insert into legacy.cx_dashboard_roles (email, rol, nota)
+values ('alejandrogil@grupoavantex.com', 'editor', 'Retención: toma casos y edita reglas (17-nov-2026)')
+on conflict (email) do nothing;
 
 create or replace function legacy.cx_ret_email() returns text
   language sql stable set search_path = ''
@@ -291,7 +297,7 @@ create or replace view legacy.cx_retencion_bandeja with (security_invoker = true
          greatest(t.created_at, coalesce((cfg.inicio::timestamp at time zone 'America/Monterrey'), t.created_at)) as inicio_plazo
   from legacy.tickets t
   left join legacy.cx_retencion_config cfg on cfg.marca = legacy.cx_ret_marca(t.servicio)
-  where t.tipo ilike '%cancelac%'
+  where (t.tipo ilike '%cancelac%' or t.tipo = 'Señal de riesgo')
     and lower(coalesce(t.estatus, '')) not in ('cerrado','resuelto','resuelta','cancelado')
     and not exists (select 1 from legacy.cx_retencion_casos c where c.folio = t.folio);
 revoke all on legacy.cx_retencion_bandeja from anon, authenticated;
@@ -308,7 +314,7 @@ begin
   end if;
   select * into t from legacy.tickets where folio = p_folio for update;
   if t.folio is null then raise exception 'No existe el ticket %.', p_folio; end if;
-  if coalesce(t.tipo, '') not ilike '%cancelac%' then
+  if coalesce(t.tipo, '') not ilike '%cancelac%' and t.tipo is distinct from 'Señal de riesgo' then
     raise exception 'El ticket % no es una solicitud de cancelación.', p_folio using errcode = 'check_violation';
   end if;
   if exists (select 1 from legacy.cx_retencion_casos x where x.folio = p_folio) then
@@ -351,7 +357,9 @@ begin
   f := public.generar_folio(ini);
   insert into legacy.tickets (folio, telefono, nombre, empresa, servicio, tipo, categoria, mensaje, prioridad, estatus, canal_origen)
   values (f, nullif(regexp_replace(coalesce(p_telefono, ''), '[^0-9]', '', 'g'), ''), btrim(p_nombre), btrim(p_empresa),
-          legacy.cx_ret_marca(p_servicio), 'Solicitud de Cancelación', 'Cancelación de servicio',
+          legacy.cx_ret_marca(p_servicio),
+          case when p_canal = 'Señal de riesgo' then 'Señal de riesgo' else 'Solicitud de Cancelación' end,
+          case when p_canal = 'Señal de riesgo' then 'Retención preventiva' else 'Cancelación de servicio' end,
           left(coalesce(p_mensaje, ''), 500), 'Alta', 'Nuevo', 'dashboard');
   perform legacy.cx_retencion_tomar(f);
   perform set_config('cx.retencion_rpc', '1', true);
@@ -484,7 +492,9 @@ begin
   if c.folio is null or c.estado <> 'cerrado' then raise exception 'El caso % no está cerrado.', p_folio; end if;
   if not (c.atiende = yo or legacy.cx_rol() in ('superadmin','admin')) then
     raise exception 'Solo quien atiende el caso puede reabrirlo.' using errcode = '42501'; end if;
-  update legacy.tickets set estatus = 'En proceso' where folio = p_folio;
+  perform set_config('cx.retencion_rpc', '1', true);
+  update legacy.tickets set estatus = 'En proceso', status_cancelacion = null, fecha_efectiva_cancelacion = null
+   where folio = p_folio;
   perform set_config('cx.retencion_rpc', '1', true);
   update legacy.cx_retencion_casos set estado = 'abierto', cerrado_at = null, resumen_copiado_at = null
    where folio = p_folio returning * into c;

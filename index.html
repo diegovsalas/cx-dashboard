@@ -526,7 +526,7 @@ function isAromatex(){
 }
 // Usuarios no-admin que pueden editar el detalle de casos, registros y tickets
 // (status, tipo, comentarios, cancelaciones). No ven páginas de admin ni campos de superadmin.
-const EDITOR_EMAILS=['itzelramirez@grupoavantex.com','johanamartinez@grupoavantex.com','anakaren@grupoavantex.com'];
+const EDITOR_EMAILS=['itzelramirez@grupoavantex.com','johanamartinez@grupoavantex.com','anakaren@grupoavantex.com','alejandrogil@grupoavantex.com'];
 function puedeEditar(){return user&&(isAdmin()||EDITOR_EMAILS.includes(user.email.toLowerCase()));}
 function puedeEscalar(){return user&&(isAdmin()||ESCALATE_EMAILS.includes(user.email.toLowerCase()));}
 const LIM=50;

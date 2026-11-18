@@ -19,6 +19,7 @@ drop table if exists legacy.cx_retencion_casos;
 drop table if exists legacy.cx_retencion_config_log;
 drop table if exists legacy.cx_retencion_config;
 drop table if exists legacy.cx_retencion_permisos;
+delete from legacy.cx_dashboard_roles where email = 'alejandrogil@grupoavantex.com' and nota like 'Retención:%';
 drop function if exists legacy.cx_retencion_acciones_guardia();
 drop function if exists legacy.cx_retencion_casos_guardia();
 drop function if exists legacy.cx_ret_motivo_sugerido(text);
