@@ -180,33 +180,57 @@ body{font-family:'Archivo',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 .tbl-card,.kpi-row,.home-card,.rt-card,.rt-kpi{box-shadow:0 1px 2px rgba(12,31,62,.06);}
 .tbl-card,.home-card,.rt-card,.rt-kpi{border-radius:14px;}
 .kpi-row{border-radius:14px;}
-.navbar{background:#0C1F3E;border-bottom:0;backdrop-filter:none;}
-.nav-brand{color:#fff;}
-.nav-link{color:rgba(255,255,255,.78);}
-.nav-link:hover,.nav-link.on{color:#fff;}
-.nav-user{color:rgba(255,255,255,.6);}
-.btn-logout{color:#fff;border-color:rgba(255,255,255,.25);}
-.btn-logout:hover{background:rgba(255,255,255,.1);color:#fff;}
-@media(max-width:900px){.navbar{top:var(--cx-banner,0px);}}
+.navbar{background:#ffffff;border-bottom:1px solid var(--border);backdrop-filter:none;}
+.nav-brand{color:var(--text2);font-size:12px;font-weight:500;}
+.nav-brand img{background:transparent!important;padding:0!important;border-radius:0!important;}
+.nav-link{color:#3d4f6e;}
+.nav-link:hover{color:var(--text);background:var(--bg);}
+.nav-link.on{color:var(--accent);}
+.nav-user{color:var(--text3);}
+.btn-logout{color:var(--text2);border-color:var(--border);background:transparent;}
+.btn-logout:hover{background:var(--bg);color:var(--text);}
+.nav-link::before{font-family:"Font Awesome 6 Free";font-weight:900;display:inline-block;width:18px;text-align:center;margin-right:10px;font-size:13px;opacity:.75;}
+.nav-link.on::before{opacity:1;}
+.nav-link[data-page="home"]::before{content:"\f015";}
+.nav-link[data-page="dashboard"]::before{content:"\f201";}
+.nav-link[data-page="registros"]::before{content:"\f03a";}
+.nav-link[data-page="cancelaciones"]::before{content:"\f05e";}
+.nav-link[data-page="retencion"]::before{content:"\f4c4";}
+.nav-link[data-page="analisis"]::before{content:"\f200";}
+.nav-link[data-page="tickets"]::before{content:"\f086";}
+.nav-link[data-page="campanias"]::before{content:"\f1d8";}
+#link-chat-agentes::before{content:"\f0e6";}
 @media(min-width:901px){
-  body{padding-left:220px;}
-  .navbar{position:fixed;left:0;top:var(--cx-banner,0px);bottom:0;width:220px;height:auto;flex-direction:column;align-items:stretch;justify-content:flex-start;padding:0;box-shadow:0 4px 50px rgba(12,31,62,.16);z-index:100;}
-  .nav-brand{flex-direction:column;align-items:flex-start;gap:8px;padding:16px;border-bottom:1px solid rgba(255,255,255,.12);font-size:11px;font-weight:600;letter-spacing:.12em;text-transform:uppercase;color:rgba(255,255,255,.55);}
-  .nav-brand img{height:26px!important;}
-  .nav-links{flex-direction:column;height:auto;flex:1;overflow-y:auto;padding:12px 6px;gap:1px;}
-  .nav-link{height:auto;padding:8px 12px;border-radius:6px;border-bottom:0;font-size:13px;margin:0!important;position:relative;}
-  .nav-link:hover{background:rgba(255,255,255,.1);}
-  .nav-link.on{background:rgba(255,255,255,.15);font-weight:600;border-bottom:0;}
-  .nav-link.on::before{content:'';position:absolute;left:0;top:7px;bottom:7px;width:2.5px;border-radius:2px;background:#6A86BB;}
-  .nav-right{flex-direction:column;align-items:stretch;gap:8px;padding:12px 14px;border-top:1px solid rgba(255,255,255,.12);}
-  .nav-user{word-break:break-all;font-size:11px;}
+  body{padding-left:232px;}
+  .navbar{position:fixed;left:0;top:var(--cx-banner,0px);bottom:0;width:232px;height:auto;flex-direction:column;align-items:stretch;justify-content:flex-start;padding:0;border-bottom:0;border-right:1px solid var(--border);box-shadow:none;z-index:100;}
+  .nav-brand{flex-direction:column;align-items:flex-start;gap:6px;padding:22px 20px 18px;border-bottom:1px solid var(--border-light,#e9eff7);}
+  .nav-brand img{height:auto!important;width:168px;}
+  .nav-links{flex-direction:column;height:auto;flex:1;overflow-y:auto;padding:14px 12px;gap:2px;}
+  .nav-link{height:auto;padding:9px 12px;border-radius:8px;border-bottom:0;font-size:13.5px;font-weight:500;margin:0!important;}
+  .nav-link.on{background:#e8effd;font-weight:600;border-bottom:0;}
+  #link-chat-agentes{margin-top:8px!important;border-top:1px solid var(--border-light,#e9eff7);border-radius:0 0 8px 8px;padding-top:14px;}
+  .nav-right{flex-direction:column;align-items:stretch;gap:8px;padding:14px 20px 18px;border-top:1px solid var(--border-light,#e9eff7);}
+  .nav-user{word-break:break-all;font-size:11.5px;}
+  .btn-logout{text-align:left;border:0;padding:0;font-size:12px;color:var(--accent);}
+  .btn-logout:hover{background:transparent;text-decoration:underline;color:var(--accent);}
+}
+@media(max-width:900px){
+  .navbar{top:var(--cx-banner,0px);position:sticky;flex-wrap:wrap;height:auto;padding:10px 12px 0;gap:4px;}
+  .nav-brand{flex:1;gap:10px;font-size:11.5px;}
+  .nav-brand img{height:20px!important;}
+  .nav-right{gap:8px;}.nav-user{display:none;}
+  .nav-links{order:3;width:100%;max-width:100%;flex-wrap:nowrap!important;overflow-x:auto;gap:2px;padding:6px 0 8px;scrollbar-width:none;}
+  .nav-links::-webkit-scrollbar{display:none;}
+  .nav-link{white-space:nowrap;height:auto;padding:7px 10px;border-radius:8px;border-bottom:0;font-size:13px;margin:0!important;}
+  .nav-link::before{margin-right:6px;width:auto;}
+  .nav-link.on{background:#e8effd;font-weight:600;}
 }
 </style>
 </head>
 <body>
 <div class="login-bg" id="pg-login">
 <div class="login-card">
-<div class="logo"><img src="https://grupoavantex.com/wp-content/uploads/2022/09/AX_Logo_oficial.png" alt="Avantex" style="height:40px;"></div>
+<div class="logo"><img src="logo-avantex.png" alt="Avantex" style="height:40px;"></div>
 <h1>Customer Experience</h1>
 <p class="sub">Inicia sesión para continuar</p>
 <label class="flabel">Correo electrónico</label>
@@ -222,7 +246,7 @@ body{font-family:'Archivo',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 
 <div class="shell" id="pg-app">
 <nav class="navbar">
-<div class="nav-brand"><img src="https://grupoavantex.com/wp-content/uploads/2022/09/AX_Logo_oficial.png" alt="Avantex" style="height:28px;"> Customer Experience</div>
+<div class="nav-brand"><img src="logo-avantex.png" alt="Grupo Avantex" style="height:28px;"> Customer Experience</div>
 <div class="nav-links">
 <a class="nav-link on" data-page="home" onclick="goPage('home')">Inicio</a>
 <a class="nav-link" data-page="dashboard" onclick="goPage('dashboard')">Resumen CX</a>
@@ -243,7 +267,7 @@ body{font-family:'Archivo',-apple-system,BlinkMacSystemFont,sans-serif;backgroun
 
 <div class="page-content" id="page-home">
 <div class="home-hero">
-<img src="https://grupoavantex.com/wp-content/uploads/2022/09/AX_Logo_oficial.png" alt="Avantex" style="height:36px;margin-bottom:14px;background:#fff;padding:10px 18px;border-radius:8px;">
+<img src="logo-avantex.png" alt="Avantex" style="height:36px;margin-bottom:14px;background:#fff;padding:10px 18px;border-radius:8px;">
 <h1>Customer Experience</h1>
 <p>Gestión de incidencias, tickets de WhatsApp y métricas de servicio al cliente.</p>
 </div>
@@ -3039,7 +3063,7 @@ function descargarGuia(){
   var logoImg=new Image();logoImg.crossOrigin='anonymous';
   logoImg.onload=function(){logo=logoImg;check();};
   logoImg.onerror=function(){check();};
-  logoImg.src='https://grupoavantex.com/wp-content/uploads/2022/09/AX_Logo_oficial.png';
+  logoImg.src='logo-avantex.png';
 
   var qrImg=new Image();qrImg.crossOrigin='anonymous';
   qrImg.onload=function(){qr=qrImg;check();};

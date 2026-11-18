@@ -24,6 +24,9 @@ app.get('/favicon.png', (req, res) => {
 app.get('/guia.html', (req, res) => {
   res.sendFile(path.join(__dirname, 'guia.html'));
 });
+app.get('/logo-avantex.png', (req, res) => {
+  res.sendFile(path.join(__dirname, 'logo-avantex.png'));
+});
 app.get('/retencion.js', (req, res) => {
   res.type('application/javascript').sendFile(path.join(__dirname, 'retencion.js'));
 });
